@@ -10,155 +10,296 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { primary: '#0A1A3F', secondary: '#D4AF37', light: '#F8F9FC' }
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        light: '#F8F9FC'
+                    }
                 }
             }
         }
     </script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .input-errado { border-color: #ef4444 !important; }
+    </style>
 </head>
 <body class="bg-light min-h-screen py-8 px-4">
     <div class="max-w-lg mx-auto">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-primary">📋 Completar Cadastro</h1>
-            <p class="text-gray-600 mt-2">Passo 2 de 2 — Informações adicionais</p>
+            <i class="fa fa-file-text-o text-4xl text-primary mb-2"></i>
+            <h1 class="text-2xl font-bold text-primary">Completar Cadastro</h1>
+            <p class="text-gray-500">Passo 2 de 2 — Informações adicionais</p>
         </div>
 
-        <div class="bg-white p-8 rounded-xl shadow-lg">
-            <form id="formCompleto" class="space-y-4">
+        <form id="formCompletar" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg space-y-5">
+            <!-- E-mail -->
+            <div>
+                <label for="email" class="block text-sm font-bold text-gray-700 mb-1">E-mail <span class="text-red-500">*</span></label>
+                <input 
+                    type="text" 
+                    id="email" 
+                    name="email" 
+                    required
+                    placeholder="seu@email.com"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                >
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Sexo -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">E-mail</label>
-                    <input type="email" id="email" required class="w-full p-3 border rounded-lg" placeholder="seuemail@exemplo.com">
+                    <label for="sexo" class="block text-sm font-bold text-gray-700 mb-1">Sexo <span class="text-red-500">*</span></label>
+                    <select 
+                        id="sexo" 
+                        name="sexo" 
+                        required
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors bg-white"
+                    >
+                        <option value="">Selecione...</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                        <option value="outro">Prefiro não informar</option>
+                    </select>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Sexo</label>
-                        <select id="sexo" class="w-full p-3 border rounded-lg">
-                            <option value="">Selecione...</option>
-                            <option value="masculino">Masculino</option>
-                            <option value="feminino">Feminino</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Data de Nascimento</label>
-                        <input type="date" id="nascimento" class="w-full p-3 border rounded-lg">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Estado Civil</label>
-                        <select id="estadoCivil" class="w-full p-3 border rounded-lg">
-                            <option value="">Selecione...</option>
-                            <option value="solteiro">Solteiro(a)</option>
-                            <option value="casado">Casado(a)</option>
-                            <option value="divorciado">Divorciado(a)</option>
-                            <option value="viuvo">Viúvo(a)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Endereço Completo</label>
-                        <input type="text" id="endereco" class="w-full p-3 border rounded-lg" placeholder="Rua, número, bairro, cidade/UF">
-                    </div>
-                </div>
-
+                <!-- Data de Nascimento — CORRIGIDA -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Resposta (opcional)</label>
-                    <p class="text-xs text-gray-500 mb-2">Responda se quiser: Veio de outra igreja ou ministério?</p>
-                    <textarea id="origem" rows="2" class="w-full p-3 border rounded-lg" placeholder="Se sim, de onde? Pode deixar em branco se preferir."></textarea>
+                    <label for="nascimento" class="block text-sm font-bold text-gray-700 mb-1">Data de Nascimento <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="nascimento" 
+                        name="nascimento" 
+                        required
+                        placeholder="dd/mm/aaaa"
+                        maxlength="10"
+                        inputmode="numeric"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                    >
                 </div>
+            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Foi batizado(a)?</label>
-                        <select id="batizado" class="w-full p-3 border rounded-lg">
-                            <option value="">Selecione...</option>
-                            <option value="sim">Sim</option>
-                            <option value="nao">Não</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Data do Batismo (se souber)</label>
-                        <input type="date" id="dataBatismo" class="w-full p-3 border rounded-lg">
-                    </div>
-                </div>
-
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Estado Civil -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observações / Ministério (se houver)</label>
-                    <textarea id="observacoes" rows="2" class="w-full p-3 border rounded-lg" placeholder="Ex: Louvor, Diáconato, etc."></textarea>
+                    <label for="estadoCivil" class="block text-sm font-bold text-gray-700 mb-1">Estado Civil <span class="text-red-500">*</span></label>
+                    <select 
+                        id="estadoCivil" 
+                        name="estadoCivil" 
+                        required
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors bg-white"
+                    >
+                        <option value="">Selecione...</option>
+                        <option value="solteiro">Solteiro(a)</option>
+                        <option value="casado">Casado(a)</option>
+                        <option value="divorciado">Divorciado(a)</option>
+                        <option value="viuvo">Viúvo(a)</option>
+                    </select>
                 </div>
 
-                <div id="msg" class="text-sm hidden"></div>
-                <button type="submit" class="w-full bg-secondary text-primary p-3 rounded-lg font-bold hover:opacity-90 transition">
-                    <i class="fa fa-check-circle mr-2"></i> Concluir e Acessar o Site
+                <!-- Endereço Completo -->
+                <div>
+                    <label for="endereco" class="block text-sm font-bold text-gray-700 mb-1">Endereço Completo <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="endereco" 
+                        name="endereco" 
+                        required
+                        placeholder="Rua, número, bairro, cidade"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                    >
+                </div>
+            </div>
+
+            <!-- Origem -->
+            <div>
+                <label for="origem" class="block text-sm font-bold text-gray-700 mb-1">Origem</label>
+                <textarea 
+                    id="origem" 
+                    name="origem"
+                    rows="3"
+                    placeholder="Resposta opcional: Veio de outra igreja ou ministério? Se sim, de onde? Pode deixar em branco se preferir."
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors resize-none"
+                ></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Batismo -->
+                <div>
+                    <label for="batismo" class="block text-sm font-bold text-gray-700 mb-1">Foi batizado(a)? <span class="text-red-500">*</span></label>
+                    <select 
+                        id="batismo" 
+                        name="batismo" 
+                        required
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors bg-white"
+                    >
+                        <option value="">Selecione...</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+
+                <!-- Data do Batismo — CORRIGIDA -->
+                <div>
+                    <label for="dataBatismo" class="block text-sm font-bold text-gray-700 mb-1">Data do Batismo (se souber)</label>
+                    <input 
+                        type="text" 
+                        id="dataBatismo" 
+                        name="dataBatismo"
+                        placeholder="dd/mm/aaaa"
+                        maxlength="10"
+                        inputmode="numeric"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                    >
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                <a href="index.html" class="flex-1 py-3 text-center border-2 border-gray-300 rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                    ← Voltar
+                </a>
+                <button 
+                    type="submit" 
+                    class="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+                >
+                    <i class="fa fa-check"></i> Concluir Cadastro
                 </button>
-            </form>
-        </div>
+            </div>
+
+            <p id="mensagem" class="text-center text-sm hidden mt-2"></p>
+        </form>
     </div>
 
     <script>
-        const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-        if (!usuario) {
-            alert('Faça o cadastro primeiro.');
-            window.location.href = 'cadastro.html';
+        // ✅ MÁSCARA DE DATA — funciona perfeito no celular
+        function aplicarMascaraData(campo) {
+            campo.addEventListener('input', function(e) {
+                let valor = e.target.value.replace(/\D/g, '');
+                if (valor.length > 2) valor = valor.slice(0, 2) + '/' + valor.slice(2);
+                if (valor.length > 5) valor = valor.slice(0, 5) + '/' + valor.slice(5, 9);
+                e.target.value = valor;
+            });
+
+            campo.addEventListener('keydown', function(e) {
+                if (['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete'].includes(e.key)) return;
+                if (!/\d/.test(e.key)) e.preventDefault();
+            });
         }
 
-        function getMembros() {
-            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
-            catch { return []; }
-        }
-        function salvarMembroCompleto(dadosAtualizados) {
-            const lista = getMembros();
-            const indice = lista.findIndex(m => m.nome === usuario.nome && m.telefone === usuario.telefone);
-            if (indice !== -1) {
-                lista[indice] = { ...lista[indice], ...dadosAtualizados };
-                localStorage.setItem('membrosCadastro', JSON.stringify(lista));
-            }
-        }
-
-        document.getElementById('formCompleto').addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const lista = getMembros();
+        // ✅ Validação de data
+        function validarData(dataTexto) {
+            if (!dataTexto) return true;
+            const partes = dataTexto.split('/');
+            if (partes.length !== 3) return false;
             
-            if (lista.some(m => m.email === email)) {
-                const msg = document.getElementById('msg');
-                msg.textContent = '❌ Este e-mail já está cadastrado.';
-                msg.className = 'text-red-500 mt-2';
+            const dia = parseInt(partes[0], 10);
+            const mes = parseInt(partes[1], 10);
+            const ano = parseInt(partes[2], 10);
+            
+            if (mes < 1 || mes > 12) return false;
+            if (dia < 1 || dia > 31) return false;
+            if (ano < 1900 || ano > new Date().getFullYear() + 1) return false;
+            
+            const data = new Date(ano, mes - 1, dia);
+            return data.getDate() === dia && data.getMonth() === mes - 1 && data.getFullYear() === ano;
+        }
+
+        // ✅ Validação de e-mail flexível
+        function validarEmail(email) {
+            if (!email) return false;
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return true;
+            const apenasNumeros = email.replace(/\D/g, '');
+            if (/^\d{8,15}$/.test(apenasNumeros)) return true;
+            return false;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const campoNasc = document.getElementById('nascimento');
+            const campoBat = document.getElementById('dataBatismo');
+            
+            aplicarMascaraData(campoNasc);
+            aplicarMascaraData(campoBat);
+
+            const form = document.getElementById('formCompletar');
+            const msg = document.getElementById('mensagem');
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                msg.classList.add('hidden');
+
+                const email = document.getElementById('email').value.trim();
+                const nascVal = campoNasc.value.trim();
+                const batVal = campoBat.value.trim();
+
+                // Validar e-mail
+                if (!validarEmail(email)) {
+                    msg.textContent = '⚠️ Digite um e-mail válido ou telefone com DDD';
+                    msg.className = 'text-center text-sm text-red-500 mt-2';
+                    msg.classList.remove('hidden');
+                    document.getElementById('email').classList.add('input-errado');
+                    return;
+                }
+                document.getElementById('email').classList.remove('input-errado');
+
+                // Validar data nascimento
+                if (!validarData(nascVal)) {
+                    msg.textContent = '⚠️ Data de Nascimento inválida! Use dd/mm/aaaa';
+                    msg.className = 'text-center text-sm text-red-500 mt-2';
+                    msg.classList.remove('hidden');
+                    campoNasc.classList.add('input-errado');
+                    return;
+                }
+                campoNasc.classList.remove('input-errado');
+
+                // Validar data batismo se preenchida
+                if (batVal && !validarData(batVal)) {
+                    msg.textContent = '⚠️ Data do Batismo inválida! Use dd/mm/aaaa';
+                    msg.className = 'text-center text-sm text-red-500 mt-2';
+                    msg.classList.remove('hidden');
+                    campoBat.classList.add('input-errado');
+                    return;
+                }
+                campoBat.classList.remove('input-errado');
+
+                // ✅ Salvar dados
+                const dadosPasso1 = JSON.parse(localStorage.getItem('cadastroPasso1') || '{}');
+                const membros = JSON.parse(localStorage.getItem('membrosCadastro') || '[]');
+
+                const novoMembro = {
+                    ...dadosPasso1,
+                    email: email,
+                    sexo: document.getElementById('sexo').value,
+                    nascimento: nascVal,
+                    estadoCivil: document.getElementById('estadoCivil').value,
+                    endereco: document.getElementById('endereco').value,
+                    origem: document.getElementById('origem').value.trim(),
+                    batismo: document.getElementById('batismo').value,
+                    dataBatismo: batVal,
+                    dataCadastro: new Date().toLocaleString('pt-BR')
+                };
+
+                membros.push(novoMembro);
+                localStorage.setItem('membrosCadastro', JSON.stringify(membros));
+                localStorage.removeItem('cadastroPasso1');
+
+                // ✅ Login automático após cadastro
+                localStorage.setItem('usuarioLogado', JSON.stringify({
+                    nome: novoMembro.nome,
+                    email: novoMembro.email,
+                    telefone: novoMembro.telefone,
+                    nivel: 'membro'
+                }));
+
+                // ✅ Mensagem e redirecionamento
+                msg.textContent = '✅ Cadastro concluído! Entrando...';
+                msg.className = 'text-center text-sm text-green-600 mt-2 font-bold';
                 msg.classList.remove('hidden');
-                return;
-            }
 
-            const dadosComplementares = {
-                email,
-                sexo: document.getElementById('sexo').value,
-                nascimento: document.getElementById('nascimento').value,
-                estadoCivil: document.getElementById('estadoCivil').value,
-                endereco: document.getElementById('endereco').value.trim(),
-                origem: document.getElementById('origem').value.trim(),
-                batizado: document.getElementById('batizado').value,
-                dataBatismo: document.getElementById('dataBatismo').value,
-                observacoes: document.getElementById('observacoes').value.trim(),
-                cadastroCompleto: true
-            };
-
-            salvarMembroCompleto(dadosComplementares);
-
-            localStorage.setItem('usuarioLogado', JSON.stringify({
-                ...usuario,
-                email,
-                cadastroCompleto: true
-            }));
-
-            const msg = document.getElementById('msg');
-            msg.textContent = '✅ Cadastro concluído! Bem-vindo(a), ' + usuario.nome + '!';
-            msg.className = 'text-green-600 mt-2 text-center font-bold';
-            msg.classList.remove('hidden');
-
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1500);
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            });
         });
     </script>
 </body>
