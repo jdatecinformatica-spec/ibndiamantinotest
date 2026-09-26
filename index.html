@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ✅ PWA — Instalação do App -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#D4AF37">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IBN Diamantino">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="description" content="Igreja Batista Nacional Diamantino — Família para pertencer">
+    <title>Igreja Batista Nacional Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        accent: '#1E3A8A',
+                        light: '#F8F9FC',
+                        dark: '#0F172A'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .video-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+        
+        .hero-banner {
+            background: linear-gradient(rgba(10, 26, 63, 0.75), rgba(10, 26, 63, 0.65)), 
+                        url('banner-ibn.jpg');
+            background-size: cover;
+            background-position: center;
+            min-height: 85vh;
+            display: flex;
+            align-items: center;
+        }
+        .install-banner {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            max-width: 320px;
+            background: #fff9e6;
+            border: 1px solid #ffd900;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 99;
+            display: none;
+        }
+        .radio-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0A1A3F;
+            color: white;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 98;
+        }
+        .live-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .month-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .month-toggle:hover {
+            color: #D4AF37;
+        }
+        .month-videos {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .month-videos.collapsed {
+            max-height: 0;
+        }
+        .month-videos.expanded {
+            max-height: 3000px;
+        }
+        #mapaCelulas {
+            height: 450px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .mapa-erro {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 450px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            color: #666;
+        }
+        /* ✅ MENSAGEM DE USUÁRIO LOGADO */
+        .aviso-logado {
+            background: linear-gradient(90deg, #f0fdf4, #dcfce7);
+            border-bottom: 2px solid #22c55e;
+            padding: 10px 16px;
+            text-align: center;
+            animation: entradaSuave 0.4s ease-out;
+        }
+        @keyframes entradaSuave {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* ✅ MENU USUÁRIO */
+        .menu-usuario { position: relative; }
+        .botao-usuario {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .inicial-usuario {
+            width: 32px;
+            height: 32px;
+            background: #D4AF37;
+            color: #0A1A3F;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .caixa-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: white;
+            min-width: 220px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .caixa-menu a {
+            display: block;
+            padding: 12px 16px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95em;
+        }
+        .caixa-menu a:hover { background: #f8f8f8; }
+        .caixa-menu a.sair { color: #c0392b; font-weight: bold; }
+        .caixa-menu .email-usuario {
+            padding: 10px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-banner { min-height: 70vh; }
+            #mapaCelulas { height: 380px; }
+            .mapa-erro { height: 380px; }
+        }
+    </style>
+</head>
+<body class="bg-light text-gray-800 font-sans antialiased">
+    <!-- ✅ MENSAGEM DE BOAS-VINDAS QUANDO LOGADO -->
+    <div id="avisoLogado" class="aviso-logado hidden">
+        <p class="text-green-800 font-bold">✅ Você está conectado(a)! Seja bem-vindo(a), <span id="nomeLogado"></span>!</p>
+        <p class="text-green-600 text-sm mt-1">Acesse os eventos, faça inscrições e atualize seus dados quando precisar.</p>
+    </div>
+
+    <!-- ✅ Aviso de Instalação do App -->
+    <div id="installBanner" class="install-banner p-4">
+        <div class="flex items-start gap-3">
+            <div class="flex-1">
+                <p class="font-bold text-primary mb-1">Instalar App IBN</p>
+                <p class="text-sm text-gray-600 mb-3">Acesse mais rápido, mesmo offline</p>
+                <button id="btnInstalar" class="bg-secondary text-primary px-4 py-2 rounded-md font-bold w-full hover:bg-yellow-400">
+                    <i class="fa fa-download mr-2"></i> Instalar Agora
+                </button>
+            </div>
+            <button id="btnFecharAviso" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- ✅ Cabeçalho — Tudo Integrado -->
+    <header class="bg-primary/95 text-white sticky top-0 z-50 shadow-md backdrop-blur-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#inicio" class="flex items-center gap-2">
+                <span class="text-2xl font-bold text-secondary">IBN</span>
+                <span class="hidden sm:inline text-sm">Família para pertencer</span>
+            </a>
+            
+            <!-- Menu Desktop -->
+            <nav class="hidden md:flex items-center gap-4 text-sm">
+                <a href="#inicio" class="border-b-2 border-secondary pb-1 font-bold">Início</a>
+                <a href="#celulas" class="hover:text-secondary transition-colors">Células</a>
+                <a href="#eventos" class="hover:text-secondary transition-colors">Programação</a>
+                <a href="eventos.html" class="hover:text-secondary transition-colors font-bold text-secondary">Eventos</a>
+                <a href="#transmissoes" class="hover:text-secondary transition-colors flex items-center gap-1">
+                    <i class="fa fa-play-circle text-xs"></i> Ao Vivo
+                </a>
+                <a href="fotos.html" class="hover:text-secondary transition-colors">Fotos</a>
+                <a href="#oracao" class="hover:text-secondary transition-colors flex items-center gap-1">
+                    <i class="fa fa-heart text-xs"></i> Oração
+                </a>
+                <a href="#doacao" class="hover:text-secondary transition-colors">Doação</a>
+                <!-- Links visíveis APENAS se logado como gestor/admin -->
+                <span id="linksGestor" style="display:none;">
+                    <a href="adminpainel.html" class="hover:text-secondary transition-colors">Gestão</a>
+                    <a href="gestao-membros.html" class="hover:text-secondary transition-colors">Membros</a>
+                </span>
+            </nav>
+            
+            <!-- Área de Acesso / Usuário -->
+            <div class="hidden md:flex items-center gap-3">
+                <!-- Não logado -->
+                <div id="areaVisitante">
+                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-2 rounded-md font-bold text-sm hover:bg-yellow-400 transition-colors">
+                        <i class="fa fa-user-plus mr-1"></i> Seja Membro
+                    </a>
+                    <a href="login.html" class="border border-white/40 px-4 py-2 rounded-md text-sm hover:bg-white/10 transition-colors">Entrar</a>
+                </div>
+                <!-- Logado -->
+                <div id="areaLogado" class="menu-usuario" style="display:none;">
+                    <button class="botao-usuario" onclick="alternarMenu()">
+                        <span class="inicial-usuario" id="inicialUsuario">U</span>
+                        <span id="nomeUsuario" class="hidden sm:inline">Usuário</span>
+                        <span>▼</span>
+                    </button>
+                    <div class="caixa-menu" id="caixaMenu">
+                        <div class="email-usuario" id="emailUsuario"></div>
+                        <a href="ajustar-dados.html">👤 Meus Dados</a>
+                        <div id="opcoesGestor" style="display:none;">
+                            <a href="adminpainel.html">⚙️ Painel Admin</a>
+                            <a href="gestao-membros.html">👥 Gestão de Membros</a>
+                            <a href="eventos.html">📅 Gestão de Eventos</a>
+                        </div>
+                        <a href="#" class="sair" onclick="sair(event)">🚪 Sair</a>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="md:hidden text-2xl" id="btnMenu">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- ✅ Menu Mobile Completo -->
+        <div id="menuMobile" class="md:hidden hidden bg-accent px-4 pb-4">
+            <nav class="flex flex-col gap-3">
+                <a href="#inicio" class="py-2 border-b border-white/20">Início</a>
+                <a href="#celulas" class="py-2 border-b border-white/20">Células</a>
+                <a href="#eventos" class="py-2 border-b border-white/20">Programação</a>
+                <a href="eventos.html" class="py-2 border-b border-white/20 font-bold text-secondary">Eventos</a>
+                <a href="#transmissoes" class="py-2 border-b border-white/20">Ao Vivo</a>
+                <a href="fotos.html" class="py-2 border-b border-white/20">Fotos</a>
+                <a href="#oracao" class="py-2 border-b border-white/20">Oração</a>
+                <a href="#doacao" class="py-2 border-b border-white/20">Doação</a>
+                <span id="linksGestorMobile" style="display:none;">
+                    <a href="adminpainel.html" class="py-2 border-b border-white/20">Gestão</a>
+                    <a href="gestao-membros.html" class="py-2 border-b border-white/20">Membros</a>
+                </span>
+                <div class="flex flex-col gap-2 mt-3">
+                    <div id="areaVisitanteMobile">
+                        <a href="cadastro.html" class="bg-secondary text-primary px-4 py-2 rounded-md font-bold text-center">Seja Membro</a>
+                        <a href="login.html" class="border border-white px-4 py-2 rounded-md text-center mt-2">Entrar</a>
+                    </div>
+                    <div id="areaLogadoMobile" style="display:none;">
+                        <span class="font-bold" id="nomeUsuarioMobile"></span>
+                        <a href="ajustar-dados.html" class="py-2 border-b border-white/20 mt-2">👤 Meus Dados</a>
+                        <div id="opcoesGestorMobile" style="display:none;">
+                            <a href="adminpainel.html" class="py-2 border-b border-white/20">⚙️ Painel Admin</a>
+                            <a href="gestao-membros.html" class="py-2 border-b border-white/20">👥 Gestão de Membros</a>
+                            <a href="eventos.html" class="py-2 border-b border-white/20">📅 Gestão de Eventos</a>
+                        </div>
+                        <a href="#" class="sair py-2" onclick="sair(event)">🚪 Sair</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- ✅ Seção Hero -->
+        <section id="inicio" class="hero-banner text-white py-20">
+            <div class="container mx-auto px-4 text-center">
+                <p class="inline-block bg-white/10 px-4 py-1 rounded-full text-sm mb-8">● Boas-vindas à nossa família</p>
+                <h1 class="text-5xl md:text-7xl font-bold mb-4 text-secondary tracking-wider">JESUS</h1>
+                <h2 class="text-2xl md:text-3xl mb-6 font-light">Ele é o caminho, a verdade e a vida</h2>
+                <p class="text-lg md:text-xl mb-8 text-gray-200 max-w-2xl mx-auto">
+                    Uma comunidade de fé, amor e esperança. Venha crescer espiritualmente conosco.
+                </p>
+                <div id="destaqueVideo" class="max-w-2xl mx-auto mb-8 bg-black/30 rounded-xl p-6 backdrop-blur-sm">
+                    <p class="text-center text-gray-200">
+                        <i class="fa fa-play-circle text-secondary text-3xl mb-2"></i><br>
+                        Assista às transmissões ao vivo e gravadas no YouTube
+                    </p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#transmissoes" class="bg-secondary text-primary px-8 py-3 rounded-md font-bold text-lg hover:bg-yellow-400 transition-colors">
+                        <i class="fa fa-play mr-2"></i> Ver Transmissões
+                    </a>
+                    <a href="eventos.html" class="bg-white/20 hover:bg-white/30 px-8 py-3 rounded-md font-bold text-lg transition-colors border border-white/30">
+                        <i class="fa fa-calendar mr-2"></i> Eventos e Inscrições
+                    </a>
+                    <a href="#celulas" class="bg-white/20 hover:bg-white/30 px-8 py-3 rounded-md font-bold text-lg transition-colors border border-white/30">
+                        <i class="fa fa-map-marker mr-2"></i> Encontrar Célula
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ CÉLULAS — MAPA INTERATIVO com FALLBACK -->
+        <section id="celulas" class="py-16 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold text-center mb-4 text-primary">Encontre a Célula Mais Próxima</h2>
+                <p class="text-center text-gray-600 mb-8">Terça-feira às 20h — Veja no mapa e encontre a mais perto de você!</p>
+                <div class="max-w-3xl mx-auto mb-6">
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+                        <button id="btnLocalizar" class="bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
+                            <i class="fa fa-location-arrow mr-2"></i> Usar Minha Localização
+                        </button>
+                        <a href="https://www.google.com/maps/search/?api=1&query=Igreja+Batista+Nacional+Diamantino" target="_blank" 
+                           class="bg-white text-gray-700 px-6 py-3 rounded-md font-bold hover:bg-gray-100 border">
+                            <i class="fa fa-map-o mr-2"></i> Abrir no Google Maps
+                        </a>
+                    </div>
+                    <div id="resultadoProxima" class="hidden bg-white p-4 rounded-xl border-2 border-secondary shadow-sm">
+                    </div>
+                </div>
+                <div class="max-w-4xl mx-auto">
+                    <!-- Mapa com tratamento de erro -->
+                    <div id="mapaCelulas" class="w-full"></div>
+                    <p class="text-center text-sm text-gray-500 mt-3">
+                        Clique no marcador para ver detalhes e a distância até você
+                    </p>
+                </div>
+                <div class="max-w-4xl mx-auto mt-8">
+                    <h3 class="text-lg font-bold text-center mb-4 text-primary">Lista Rápida</h3>
+                    <div id="listaCompacta" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ PROGRAMAÇÃO -->
+        <section id="eventos" class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold text-center mb-10 text-primary">Programação Semanal</h2>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-xl text-primary">Terça-feira</h3>
+                        <p class="font-semibold">Células nas casas — 20:00</p>
+                        <a href="#celulas" class="text-secondary text-sm font-medium hover:underline">→ Encontrar a mais próxima no mapa</a>
+                    </div>
+                    <div class="border-l-4 border-gray-300 pl-6 py-4 bg-gray-50 rounded-r-lg">
+                        <h3 class="font-bold text-xl text-gray-600">Quinta-feira</h3>
+                        <p class="font-semibold text-gray-500">Culto da Fé — 19:30 <span class="text-gray-400 text-sm">Sem transmissão ao vivo</span></p>
+                    </div>
+                    <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-xl text-primary">Sábado</h3>
+                        <p class="font-semibold">Célula de Adolescentes — 18:00</p>
+                        <p class="font-semibold mt-1">Célula de Jovens — 20:00</p>
+                    </div>
+                    <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-xl text-primary">Domingo</h3>
+                        <p class="font-semibold">Culto de Celebração — 19:00 <span class="text-red-500 text-sm live-indicator">● AO VIVO</span></p>
+                    </div>
+                </div>
+                <div class="text-center mt-8">
+                    <a href="eventos.html" class="inline-block bg-secondary text-primary px-8 py-3 rounded-md font-bold text-lg hover:bg-yellow-400">
+                        <i class="fa fa-calendar-plus-o mr-2"></i> Ver Eventos e Fazer Inscrição
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ TRANSMISSÕES — Sem espera infinita -->
+        <section id="transmissoes" class="py-16 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold text-center mb-4 text-primary">Transmissões dos Cultos</h2>
+                <p class="text-center text-gray-600 mb-8">Apenas aos Domingos às 19:00</p>
+                <div class="max-w-3xl mx-auto mb-8 bg-white p-6 rounded-xl border-2 border-secondary/30">
+                    <h3 class="text-xl font-bold text-center mb-4 text-primary">📅 Transmissões por Período</h3>
+                    <p class="text-center text-gray-500 text-sm mb-4">Assista diretamente no canal oficial</p>
+                    
+                    <div id="lista-meses" class="space-y-3 text-center">
+                        <p class="text-gray-600">Os vídeos estão disponíveis no nosso canal no YouTube</p>
+                        <a href="https://youtube.com/@ibndiamantino/videos" target="_blank" 
+                           class="inline-block bg-red-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-700 mt-2">
+                            <i class="fa fa-youtube-play mr-2"></i> Ver Todos os Vídeos
+                        </a>
+                    </div>
+                </div>
+                <div class="text-center mt-6 space-y-4">
+                    <a href="fotos.html" class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400 mr-2">
+                        <i class="fa fa-camera mr-2"></i> Ver Galeria de Fotos
+                    </a>
+                    <a href="https://youtube.com/@ibndiamantino/live" target="_blank" 
+                       class="inline-block bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
+                        <i class="fa fa-broadcast-tower mr-2"></i> Assistir Ao Vivo
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ ORAÇÃO -->
+        <section id="oracao" class="py-16 bg-white">
+            <div class="container mx-auto px-4 max-w-2xl">
+                <h2 class="text-3xl font-bold text-center mb-6 text-primary">Pedido de Oração</h2>
+                <p class="text-center text-lg italic text-gray-600 mb-8">"Confessai as vossas culpas uns aos outros, e orai uns pelos outros." — Tiago 5:16</p>
+                <form id="formOracao" class="space-y-4">
+                    <input type="text" placeholder="Seu nome" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
+                    <input type="email" placeholder="Seu e-mail" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
+                    <textarea placeholder="Seu pedido de oração" rows="4" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none"></textarea>
+                    <button type="submit" class="w-full bg-primary text-white p-3 rounded-md font-bold hover:bg-accent">Enviar Pedido</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ✅ DOAÇÃO -->
+        <section id="doacao" class="py-16 bg-gray-50">
+            <div class="container mx-auto px-4 max-w-2xl text-center">
+                <h2 class="text-3xl font-bold mb-6 text-primary">Dízimos e Ofertas</h2>
+                <p class="text-lg italic text-gray-600 mb-8">"Deus ama ao que dá com alegria." — 2 Coríntios 9:7</p>
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <p class="text-sm text-gray-500 mb-2">FUNDAÇÃO MISSÃO DA IGREJA BATISTA NACIONAL DE DIAMANTINO MT</p>
+                    <p class="text-sm text-gray-500 mb-4">CNPJ: 36.158.983/0001-36</p>
+                    <h3 class="text-xl font-bold mb-4 text-primary">Chave PIX</h3>
+                    <p class="text-lg font-mono bg-gray-50 p-3 rounded border mb-4">36.158.983000136</p>
+                    <button onclick="copiarPix()" class="bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
+                        <i class="fa fa-copy mr-2"></i> Copiar Chave PIX
+                    </button>
+                    <p id="msgPix" class="mt-3 text-green-600 font-bold hidden">✅ Copiado!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ✅ CONTATO E LOCALIZAÇÃO -->
+        <section id="mais" class="py-16 bg-primary text-white">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="text-3xl font-bold mb-6">Contato e Localização</h2>
+                <p class="text-lg mb-2"><strong>Igreja Batista Nacional Diamantino</strong></p>
+                <p class="mb-4">Av. Ministro Gilmar Ferreira Mendes, S/N — ao lado do Sicredi<br>Diamantino — MT</p>
+                <p class="mb-4"><i class="fa fa-whatsapp"></i> <a href="tel:+5565996292021" class="text-secondary font-bold">(65) 9 9629-2021</a></p>
+                <a href="https://www.google.com/maps/search/?api=1&query=Av.+Ministro+Gilmar+Ferreira+Mendes,Diamantino-MT" target="_blank" 
+                   class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400">
+                    <i class="fa fa-map-marker mr-2"></i> Como Chegar →
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- ✅ RODAPÉ -->
+    <footer class="bg-dark text-white py-8 text-center mb-10">
+        <p class="text-xl font-bold text-secondary mb-2">Igreja Batista Nacional Diamantino</p>
+        <p class="text-sm text-gray-400">© 2026 — "Eu e a minha Casa serviremos ao Senhor." — Josué 24:15</p>
+    </footer>
+
+    <!-- ✅ RÁDIO IBN -->
+    <div class="radio-bar">
+        <button class="text-xl" title="Reproduzir">
+            <i class="fa fa-play-circle"></i>
+        </button>
+        <span class="font-semibold">Rádio IBN</span>
+        <span id="statusAoVivo" class="text-xs text-gray-300 ml-auto">Verificando...</span>
+    </div>
+
+    <!-- ✅ GOOGLE MAPS API com tratamento de erro -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAYZpzdj26wl8lob7ZX3VBxilRyCTpZ3x4&language=pt-BR&region=BR&callback=inicializarMapa" async defer onerror="mapaFalhou()"></script>
+    
+    <script>
+        // ==========================================
+        // ✅ SISTEMA DE LOGIN E PERMISSÕES
+        // ==========================================
+        function verificarSessao() {
+          const sessao = localStorage.getItem('usuarioLogado');
+          
+          if (!sessao) {
+            document.getElementById('avisoLogado').classList.add('hidden');
+            document.getElementById('areaVisitante').style.display = 'flex';
+            document.getElementById('areaLogado').style.display = 'none';
+            document.getElementById('areaVisitanteMobile').style.display = 'block';
+            document.getElementById('areaLogadoMobile').style.display = 'none';
+            document.getElementById('linksGestor').style.display = 'none';
+            document.getElementById('linksGestorMobile').style.display = 'none';
+            return;
+          }
+          
+          const usuario = JSON.parse(sessao);
+          const eGestor = usuario.nivel === 'gestor' || usuario.nivel === 'admin';
+          
+          document.getElementById('avisoLogado').classList.remove('hidden');
+          document.getElementById('nomeLogado').textContent = usuario.nome;
+          
+          document.getElementById('areaVisitante').style.display = 'none';
+          document.getElementById('areaLogado').style.display = 'flex';
+          document.getElementById('areaVisitanteMobile').style.display = 'none';
+          document.getElementById('areaLogadoMobile').style.display = 'block';
+          
+          const primeiroNome = usuario.nome?.split(' ')[0] || 'Usuário';
+          document.getElementById('nomeUsuario').textContent = primeiroNome;
+          document.getElementById('nomeUsuarioMobile').textContent = primeiroNome;
+          document.getElementById('inicialUsuario').textContent = usuario.nome?.charAt(0) || 'U';
+          document.getElementById('emailUsuario').textContent = usuario.email || '';
+          
+          document.getElementById('opcoesGestor').style.display = eGestor ? 'block' : 'none';
+          document.getElementById('opcoesGestorMobile').style.display = eGestor ? 'block' : 'none';
+          document.getElementById('linksGestor').style.display = eGestor ? 'flex' : 'none';
+          document.getElementById('linksGestorMobile').style.display = eGestor ? 'flex' : 'none';
+        }
+        
+        function alternarMenu() {
+          const caixa = document.getElementById('caixaMenu');
+          caixa.style.display = caixa.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        function sair(e) {
+          e.preventDefault();
+          localStorage.removeItem('usuarioLogado');
+          window.location.href = 'index.html';
+        }
+        
+        document.addEventListener('click', function(event) {
+          const botao = event.target.closest('.botao-usuario');
+          const menu = document.getElementById('caixaMenu');
+          if (!botao && !menu.contains(event.target)) {
+            menu.style.display = 'none';
+          }
+        });
+
+        document.getElementById('btnMenu').addEventListener('click', function() {
+          const menu = document.getElementById('menuMobile');
+          menu.classList.toggle('hidden');
+        });
+        
+        // ==========================================
+        // ✅ MAPA — com tratamento de erro
+        // ==========================================
+        let mapa = null;
+        const celulas = [
+            { nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, nº 97 — Solar, Novo Diamantino", lat: -14.4052, lng: -56.4318 },
+            { nome: "Célula Gênesis", endereco: "Rua das Paineiras, nº 541 — Centro, Novo Diamantino", lat: -14.4085, lng: -56.4295 },
+            { nome: "Célula Fonte de Água Viva", endereco: "Rua Jacarandá, nº 321 — Centro, Novo Diamantino", lat: -14.4078, lng: -56.4302 },
+            { nome: "Célula Ebenézer", endereco: "Av. Juscelino Kubitschek, nº 1200 — Centro, Diamantino", lat: -14.4062, lng: -56.4288 },
+            { nome: "Célula Árvore da Vida", endereco: "Rua dos Buritis, nº 215 — Jardim Primavera", lat: -14.4102, lng: -56.4265 },
+            { nome: "Célula Luz do Mundo", endereco: "Rua das Orquídeas, nº 408 — Vila Mariana", lat: -14.4038, lng: -56.4342 }
+        ];
+
+        function inicializarMapa() {
+          const container = document.getElementById('mapaCelulas');
+          if (!window.google || !google.maps) {
+            mostrarErroMapa();
+            return;
+          }
+          
+          try {
+            mapa = new google.maps.Map(container, {
+              center: { lat: -14.406, lng: -56.430 },
+              zoom: 13
+            });
+            
+            celulas.forEach(celula => {
+              new google.maps.Marker({
+                position: { lat: celula.lat, lng: celula.lng },
+                map: mapa,
+                title: celula.nome
+              }).addListener('click', () => {
+                new google.maps.InfoWindow({
+                  content: `<strong>${celula.nome}</strong><br>${celula.endereco}`
+                }).open(mapa);
+              });
+            });
+          } catch (erro) {
+            mostrarErroMapa();
+          }
+        }
+
+        function mapaFalhou() {
+          mostrarErroMapa();
+        }
+
+        function mostrarErroMapa() {
+          const container = document.getElementById('mapaCelulas');
+          container.innerHTML = `
+            <div class="mapa-erro">
+              <i class="fa fa-map-o text-4xl text-gray-300 mb-3"></i>
+              <p class="font-bold text-gray-600">Mapa indisponível no momento</p>
+              <p class="text-sm text-gray-400 mt-1">A lista abaixo mostra todas as células</p>
+              <a href="https://www.google.com/maps/search/?api=1&query=Igreja+Batista+Nacional+Diamantino" target="_blank"
+                 class="mt-3 inline-block bg-secondary text-primary px-4 py-2 rounded font-bold text-sm">
+                Abrir no Google Maps
+              </a>
+            </div>
+          `;
+        }
+
+        function carregarListaCompacta() {
+          const container = document.getElementById('listaCompacta');
+          container.innerHTML = celulas.map(c => `
+            <div class="p-3 bg-white rounded-lg border shadow-sm">
+              <p class="font-bold text-primary">${c.nome}</p>
+              <p class="text-xs text-gray-500 mt-1">${c.endereco}</p>
+            </div>
+          `).join('');
+        }
+
+        document.getElementById('btnLocalizar').addEventListener('click', function() {
+          if (!mapa) {
+            alert('O mapa não está carregado. Veja a lista abaixo ou abra no Google Maps.');
+            return;
+          }
+          if (!navigator.geolocation) { alert('Geolocalização não suportada.'); return; }
+          navigator.geolocation.getCurrentPosition(function(pos) {
+            const latU = pos.coords.latitude;
+            const lngU = pos.coords.longitude;
+            let menor = Infinity;
+            let proxima = null;
+            celulas.forEach(c => {
+              const dist = calcularDistancia(latU, lngU, c.lat, c.lng);
+              if (dist < menor) { menor = dist; proxima = c; }
+            });
+            const resDiv = document.getElementById('resultadoProxima');
+            resDiv.classList.remove('hidden');
+            resDiv.innerHTML = `
+              <p class="font-bold text-secondary">📍 Célula mais próxima:</p>
+              <p class="font-bold text-lg mt-1">${proxima.nome}</p>
+              <p class="text-sm text-gray-600">${proxima.endereco}</p>
+              <p class="text-sm font-semibold text-primary mt-2">Distância aproximada: ${menor.toFixed(2)} km</p>
+            `;
+            if (mapa) {
+              mapa.setCenter({ lat: latU, lng: lngU });
+              mapa.setZoom(14);
+            }
+          });
+        });
+
+        function calcularDistancia(lat1, lng1, lat2, lng2) {
+          const R = 6371;
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLng = (lng2 - lng1) * Math.PI / 180;
+          const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // === Demais funções ===
+        function verificarAoVivo() {
+          document.getElementById('statusAoVivo').textContent = 'Aguardando transmissão';
+        }
+
+        function copiarPix() {
+          navigator.clipboard.writeText('36.158.983000136').then(() => {
+            document.getElementById('msgPix').classList.remove('hidden');
+            setTimeout(() => document.getElementById('msgPix').classList.add('hidden'), 3000);
+          });
+        }
+
+        function configurarInstalacaoApp() {
+          let deferredPrompt;
+          const banner = document.getElementById('installBanner');
+          window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            banner.style.display = 'block';
+          });
+          document.getElementById('btnInstalar').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') banner.style.display = 'none';
+            deferredPrompt = null;
+          });
+          document.getElementById('btnFecharAviso').addEventListener('click', () => {
+            banner.style.display = 'none';
+          });
+        }
+
+        document.getElementById('formOracao').addEventListener('submit', function(e) {
+          e.preventDefault();
+          alert('✅ Pedido enviado! Oremos com você.');
+          this.reset();
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+          verificarSessao();
+          carregarListaCompacta();
+          verificarAoVivo();
+          configurarInstalacaoApp();
+          
+          // Tenta inicializar mapa se já carregou
+          if (window.google && google.maps) {
+            inicializarMapa();
+          }
+        });
+    </script>
+</body>
+</html>
