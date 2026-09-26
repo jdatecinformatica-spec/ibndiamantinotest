@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Membros — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        primary: '#0A1A3F', 
+                        secondary: '#D4AF37', 
+                        accent: '#1E3A8A',
+                        light: '#F8F9FC' 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-light min-h-screen">
+    <!-- ✅ Verificação de Sessão -->
+    <div id="telaBloqueada" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-accent">
+        <div class="bg-white/10 backdrop-blur-sm p-8 rounded-2xl text-center max-w-md">
+            <i class="fa fa-lock text-4xl text-secondary mb-4"></i>
+            <h2 class="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
+            <p class="text-gray-300 mb-6">Apenas Gestores e Administradores autorizados</p>
+            <a href="login.html" class="inline-block bg-secondary text-primary px-8 py-3 rounded-lg font-bold hover:bg-yellow-400">
+                <i class="fa fa-sign-in"></i> Fazer Login
+            </a>
+        </div>
+    </div>
+
+    <div id="conteudoPermitido" class="hidden">
+        <!-- Cabeçalho -->
+        <header class="bg-primary text-white py-4 px-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">👥 Gestão de Membros</h1>
+                <div class="flex items-center gap-4 text-sm">
+                    <span id="nivelUsuario" class="text-secondary font-bold"></span>
+                    <a href="adminpainel.html" class="hover:text-secondary">← Painel</a>
+                    <a href="index.html" class="hover:text-secondary">Site</a>
+                    <button id="btnSair" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8">
+            <!-- Ações Rápidas -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-primary">Lista de Membros</h2>
+                    <p class="text-gray-500 text-sm" id="qtdTotal">0 membros cadastrados</p>
+                </div>
+                <div class="flex gap-3">
+                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold hover:bg-yellow-400">
+                        <i class="fa fa-user-plus"></i> Novo Cadastro
+                    </a>
+                    <button id="btnExportar" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">
+                        <i class="fa fa-download"></i> Exportar CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bg-white p-4 rounded-xl shadow mb-6">
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-sm font-bold text-gray-600">Buscar</label>
+                        <input type="text" id="filtroNome" placeholder="Nome ou telefone..." 
+                               class="w-full p-2 border rounded-lg mt-1">
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold text-gray-600">Status</label>
+                        <select id="filtroStatus" class="w-full p-2 border rounded-lg mt-1">
+                            <option value="todos">Todos</option>
+                            <option value="admin">Administradores</option>
+                            <option value="comum">Membros Comuns</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold text-gray-600">Batismo</label>
+                        <select id="filtroBatismo" class="w-full p-2 border rounded-lg mt-1">
+                            <option value="todos">Todos</option>
+                            <option value="sim">Batizados</option>
+                            <option value="nao">Não Batizados</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Membros -->
+            <div id="listaMembros" class="space-y-4">
+                <p class="text-center text-gray-400 py-8">Carregando...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // ✅ VERIFICAÇÃO — INTEGRADA COM O SISTEMA
+        // ==========================================
+        const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        const ehGestor = usuarioLogado?.nivel === 'gestor';
+        const ehAdmin = ehGestor || usuarioLogado?.nivel === 'admin';
+
+        // Bloqueia se não for gestor/admin
+        if (!usuarioLogado || !ehAdmin) {
+            // Fica na tela de bloqueio
+        } else {
+            document.getElementById('telaBloqueada').classList.add('hidden');
+            document.getElementById('conteudoPermitido').classList.remove('hidden');
+            document.getElementById('nivelUsuario').textContent = ehGestor ? '👑 Gestor' : '🛡️ Administrador';
+            carregarLista();
+        }
+
+        // Logout
+        document.getElementById('btnSair').addEventListener('click', () => {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        });
+
+        // ==========================================
+        // ✅ FUNÇÕES DE DADOS
+        // ==========================================
+        function getMembros() {
+            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
+            catch { return []; }
+        }
+
+        function getAdminsNomeados() {
+            try { return JSON.parse(localStorage.getItem('adminsNomeados') || '[]'); }
+            catch { return []; }
+        }
+
+        function carregarLista() {
+            const lista = getMembros();
+            const admins = getAdminsNomeados();
+            
+            document.getElementById('qtdTotal').textContent = `${lista.length} membro${lista.length !== 1 ? 's' : ''} cadastrados`;
+            
+            aplicarFiltros(lista, admins);
+        }
+
+        function aplicarFiltros(lista, admins) {
+            const filtroNome = document.getElementById('filtroNome').value.toLowerCase();
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            const filtroBatismo = document.getElementById('filtroBatismo').value;
+
+            const filtrada = lista.filter(m => {
+                const buscaNome = m.nome?.toLowerCase().includes(filtroNome) || false;
+                const buscaTel = m.telefone?.includes(filtroNome) || false;
+                const ehAdminMembro = admins.some(a => a.email === m.email);
+                
+                let okStatus = true;
+                if (filtroStatus === 'admin') okStatus = ehAdminMembro;
+                if (filtroStatus === 'comum') okStatus = !ehAdminMembro;
+
+                let okBatismo = true;
+                if (filtroBatismo === 'sim') okBatismo = m.batizado === 'sim' || m.batizado === 'Sim';
+                if (filtroBatismo === 'nao') okBatismo = !m.batizado || m.batizado === 'não' || m.batizado === 'Não';
+
+                return (buscaNome || buscaTel) && okStatus && okBatismo;
+            });
+
+            renderizar(filtrada, admins);
+        }
+
+        function renderizar(lista, admins) {
+            const container = document.getElementById('listaMembros');
+            
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-8">Nenhum membro encontrado com os filtros selecionados.</p>';
+                return;
+            }
+
+            container.innerHTML = lista.map((m, idx) => {
+                const ehAdminMembro = admins.some(a => a.email === m.email);
+                return `
+                <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-bold text-lg text-primary">${m.nome || 'Sem nome'}</h3>
+                                ${ehAdminMembro ? '<span class="bg-secondary/20 text-secondary px-2 py-0.5 rounded text-xs font-bold">🛡️ Admin</span>' : ''}
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                                <p><strong>📞 Telefone:</strong> ${m.telefone || '-'}</p>
+                                <p><strong>📧 E-mail:</strong> ${m.email || '-'}</p>
+                                <p><strong>🎂 Nascimento:</strong> ${m.nascimento || '-'}</p>
+                                <p><strong>🏠 Endereço:</strong> ${m.endereco || '-'}</p>
+                                <p><strong>💍 Estado Civil:</strong> ${m.estadoCivil || '-'}</p>
+                                <p><strong>💧 Batizado:</strong> ${m.batizado || '-'}</p>
+                                ${m.dataBatismo ? `<p><strong>📅 Data Batismo:</strong> ${m.dataBatismo}</p>` : ''}
+                                ${m.observacoes ? `<p class="sm:col-span-2"><strong>📝 Observações:</strong> ${m.observacoes}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="editarMembro(${idx})" class="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600" title="Editar">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            ${ehGestor ? `
+                            <button onclick="removerMembro(${idx})" class="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600" title="Excluir">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Aplicar filtros ao digitar
+        document.getElementById('filtroNome').addEventListener('input', carregarLista);
+        document.getElementById('filtroStatus').addEventListener('change', carregarLista);
+        document.getElementById('filtroBatismo').addEventListener('change', carregarLista);
+
+        // Exportar CSV
+        document.getElementById('btnExportar').addEventListener('click', () => {
+            const lista = getMembros();
+            if (!lista.length) { alert('Sem dados para exportar.'); return; }
+            
+            const cabecalho = 'Nome,Telefone,E-mail,Nascimento,Endereço,Estado Civil,Batizado,Data Batismo,Observações\n';
+            const linhas = lista.map(m => [
+                `"${m.nome || ''}"`,
+                `"${m.telefone || ''}"`,
+                `"${m.email || ''}"`,
+                `"${m.nascimento || ''}"`,
+                `"${m.endereco || ''}"`,
+                `"${m.estadoCivil || ''}"`,
+                `"${m.batizado || ''}"`,
+                `"${m.dataBatismo || ''}"`,
+                `"${m.observacoes || ''}"`
+            ].join(',')).join('\n');
+            
+            baixar(cabecalho + linhas, 'gestao-membros.csv');
+        });
+
+        function baixar(conteudo, nome) {
+            const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = nome; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Funções de ação
+        window.editarMembro = function(idx) {
+            localStorage.setItem('editarMembroIdx', idx);
+            window.location.href = 'ajustar-dados.html?editar=' + idx;
+        };
+
+        window.removerMembro = function(idx) {
+            if (!confirm('⚠️ Remover este membro definitivamente?')) return;
+            
+            let lista = getMembros();
+            const membro = lista[idx];
+            
+            // Remove também da lista de admins se for o caso
+            let admins = getAdminsNomeados();
+            admins = admins.filter(a => a.email !== membro.email);
+            localStorage.setItem('adminsNomeados', JSON.stringify(admins));
+            
+            lista.splice(idx, 1);
+            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
+            
+            alert('✅ Membro removido.');
+            carregarLista();
+        };
+    </script>
+</body>
+</html>

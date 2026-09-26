@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Dados — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0A1A3F', secondary: '#D4AF37', light: '#F8F9FC' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-light min-h-screen py-8 px-4">
+    <div class="max-w-lg mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-primary">📋 Meus Dados Cadastrais</h1>
+            <p class="text-gray-600 mt-2">Atualize suas informações sempre que precisar</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl shadow-lg">
+            <form id="formDados" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Completo</label>
+                    <input type="text" id="nome" required class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Telefone</label>
+                    <input type="tel" id="telefone" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">E-mail</label>
+                    <input type="email" id="email" required class="w-full p-3 border rounded-lg">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Sexo</label>
+                        <select id="sexo" class="w-full p-3 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="feminino">Feminino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Data de Nascimento</label>
+                        <input type="date" id="nascimento" class="w-full p-3 border rounded-lg">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Estado Civil</label>
+                        <select id="estadoCivil" class="w-full p-3 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="solteiro">Solteiro(a)</option>
+                            <option value="casado">Casado(a)</option>
+                            <option value="divorciado">Divorciado(a)</option>
+                            <option value="viuvo">Viúvo(a)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Endereço Completo</label>
+                        <input type="text" id="endereco" class="w-full p-3 border rounded-lg">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Origem / Outra Igreja</label>
+                    <textarea id="origem" rows="2" class="w-full p-3 border rounded-lg"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Batizado(a)?</label>
+                        <select id="batizado" class="w-full p-3 border rounded-lg">
+                            <option value="">Selecione...</option>
+                            <option value="sim">Sim</option>
+                            <option value="nao">Não</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Data do Batismo</label>
+                        <input type="date" id="dataBatismo" class="w-full p-3 border rounded-lg">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Observações / Ministério</label>
+                    <textarea id="observacoes" rows="2" class="w-full p-3 border rounded-lg"></textarea>
+                </div>
+
+                <div id="msg" class="text-sm hidden"></div>
+                <button type="submit" class="w-full bg-primary text-white p-3 rounded-lg font-bold hover:bg-accent">
+                    <i class="fa fa-save mr-2"></i> Salvar Alterações
+                </button>
+            </form>
+
+            <p class="text-center mt-6">
+                <a href="index.html" class="text-secondary font-bold hover:underline">← Voltar à página principal</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        if (!usuario) {
+            alert('Faça login primeiro.');
+            window.location.href = 'login.html';
+        }
+
+        function getMembros() {
+            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
+            catch { return []; }
+        }
+        function salvarMembros(lista) {
+            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
+        }
+
+        // Carrega dados atuais
+        const lista = getMembros();
+        const indice = lista.findIndex(m => m.email === usuario.email);
+        const dados = lista[indice] || {};
+
+        // Preenche formulário
+        document.getElementById('nome').value = dados.nome || usuario.nome || '';
+        document.getElementById('telefone').value = dados.telefone || '';
+        document.getElementById('email').value = dados.email || '';
+        document.getElementById('sexo').value = dados.sexo || '';
+        document.getElementById('nascimento').value = dados.nascimento || '';
+        document.getElementById('estadoCivil').value = dados.estadoCivil || '';
+        document.getElementById('endereco').value = dados.endereco || '';
+        document.getElementById('origem').value = dados.origem || '';
+        document.getElementById('batizado').value = dados.batizado || '';
+        document.getElementById('dataBatismo').value = dados.dataBatismo || '';
+        document.getElementById('observacoes').value = dados.observacoes || '';
+
+        // Salva alterações
+        document.getElementById('formDados').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const atualizado = {
+                ...dados,
+                telefone: document.getElementById('telefone').value.trim(),
+                email: document.getElementById('email').value.trim().toLowerCase(),
+                sexo: document.getElementById('sexo').value,
+                nascimento: document.getElementById('nascimento').value,
+                estadoCivil: document.getElementById('estadoCivil').value,
+                endereco: document.getElementById('endereco').value.trim(),
+                origem: document.getElementById('origem').value.trim(),
+                batizado: document.getElementById('batizado').value,
+                dataBatismo: document.getElementById('dataBatismo').value,
+                observacoes: document.getElementById('observacoes').value.trim()
+            };
+
+            lista[indice] = atualizado;
+            salvarMembros(lista);
+
+            const msg = document.getElementById('msg');
+            msg.textContent = '✅ Dados atualizados com sucesso!';
+            msg.className = 'text-green-600 mt-2 text-center font-bold';
+            msg.classList.remove('hidden');
+
+            // Atualiza sessão
+            localStorage.setItem('usuarioLogado', JSON.stringify({
+                ...usuario,
+                email: atualizado.email
+            }));
+        });
+    </script>
+</body>
+</html>

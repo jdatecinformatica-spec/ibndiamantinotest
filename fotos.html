@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria de Fotos — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        accent: '#1E3A8A',
+                        light: '#F8F9FC',
+                        dark: '#0F172A'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: linear-gradient(135deg, #0A1A3F 0%, #0F2050 100%); }
+        .card-glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .photo-card:hover { transform: scale(1.02); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; }
+        .modal.aberto { display: flex; }
+    </style>
+</head>
+<body class="min-h-screen text-white py-8">
+
+    <div class="max-w-6xl mx-auto px-4">
+        <!-- Cabeçalho -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <a href="index.html" class="text-gray-400 hover:text-white text-sm mb-2 inline-block">
+                    ← Voltar ao Início
+                </a>
+                <h1 class="text-3xl font-bold">📸 Galeria de Fotos</h1>
+                <p class="text-gray-400 mt-1">Registros dos cultos, eventos e momentos da nossa família</p>
+            </div>
+            <div id="area-usuario" class="text-right">
+                <!-- Preenchido por JS -->
+            </div>
+        </div>
+
+        <!-- ⚠️ AVISO DE DIREITOS DE IMAGEM -->
+        <div class="card-glass rounded-xl p-5 mb-6 border-l-4 border-secondary/50">
+            <h3 class="font-bold text-lg mb-2">📋 Regras de Uso e Direito de Imagem</h3>
+            <ul class="text-sm text-gray-300 space-y-2 mb-4">
+                <li><i class="fa fa-check text-green-400 mr-2"></i> Ao publicar, você confirma que a imagem é de sua autoria ou tem permissão para compartilhar</li>
+                <li><i class="fa fa-check text-green-400 mr-2"></i> Respeite a privacidade: não publique fotos de pessoas que não autorizaram</li>
+                <li><i class="fa fa-check text-green-400 mr-2"></i> Fotos de crianças e adolescentes <strong>exigem autorização dos pais</strong></li>
+                <li><i class="fa fa-check text-green-400 mr-2"></i> Se aparecer em alguma foto e não quiser, use o botão <em>"Solicitar Remoção"</em> — será retirada em até 48h</li>
+            </ul>
+            <p class="text-xs text-gray-400">
+                Estas regras seguem a Lei Geral de Proteção de Dados (LGPD — Lei 13.718/2018) e o Estatuto da Criança e do Adolescente (ECA).
+            </p>
+        </div>
+
+        <!-- Botão Enviar Foto -->
+        <div class="mb-8">
+            <button id="btnEnviar" class="btn-gold bg-secondary text-primary px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">
+                <i class="fa fa-upload mr-2"></i> Enviar Nova Foto
+            </button>
+        </div>
+
+        <!-- Filtro de Mês -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-2">Filtrar por período:</label>
+            <select id="filtroMes" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 outline-none">
+                <option value="todos">Todos os meses</option>
+                <!-- Preenchido automaticamente -->
+            </select>
+        </div>
+
+        <!-- Galeria -->
+        <div id="galeria" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <p class="text-gray-400 col-span-full text-center py-8">Carregando fotos...</p>
+        </div>
+    </div>
+
+    <!-- MODAL — Enviar Foto -->
+    <div id="modalEnviar" class="modal p-4">
+        <div class="card-glass rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Enviar Foto</h2>
+                <button class="fechar text-gray-400 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <form id="formEnviar" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Selecione a imagem *</label>
+                    <input type="file" id="fotoArquivo" accept="image/*" required 
+                        class="w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:bg-secondary file:text-primary file:border-0">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Título / Evento *</label>
+                    <input type="text" id="fotoTitulo" required placeholder="Ex: Culto de Domingo — 21/09/2026"
+                        class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Data do evento</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <select id="fotoDia" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none">
+                            <option value="">DD</option>
+                        </select>
+                        <select id="fotoMes" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none">
+                            <option value="">Mês</option>
+                            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                            <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                            <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                            <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                        </select>
+                        <select id="fotoAno" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none">
+                            <option value="">AAAA</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" id="aceitoRegras" required class="mt-1">
+                    <span class="text-sm">
+                        Declaro que esta imagem é de minha autoria ou tenho permissão para compartilhá-la, 
+                        respeitando os direitos de imagem de todas as pessoas nela presentes. 
+                        Autorizo a IBN Diamantino a exibir esta imagem em seu site.
+                    </span>
+                </label>
+
+                <button type="submit" class="w-full bg-secondary text-primary py-3 rounded-lg font-bold hover:bg-yellow-400">
+                    Enviar Foto
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL — Ver Foto Grande + Solicitar Remoção -->
+    <div id="modalVer" class="modal p-4">
+        <div class="max-w-4xl w-full">
+            <button class="fechar text-white text-2xl float-right mb-4">&times;</button>
+            <img id="imagemGrande" class="w-full rounded-xl shadow-2xl mb-4" alt="">
+            <div class="card-glass p-4 rounded-xl">
+                <h3 id="tituloFoto" class="font-bold text-lg"></h3>
+                <p id="dataFoto" class="text-gray-400 text-sm mb-3"></p>
+                <p id="autorFoto" class="text-gray-400 text-sm mb-4"></p>
+                
+                <button id="btnRemover" class="text-red-400 hover:text-red-300 text-sm">
+                    <i class="fa fa-flag"></i> Solicitar Remoção desta Imagem
+                </button>
+                <p id="msgRemover" class="text-green-400 text-sm mt-2 hidden">✅ Solicitação enviada. Será analisada e removida em até 48h.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="conta.js"></script>
+    <script>
+        // ========== VERIFICAR LOGIN ==========
+        const membro = verificarLogin();
+        if (!membro) {
+            alert('Você precisa estar logado para acessar a galeria.');
+            window.location.href = 'login.html?destino=fotos.html';
+        }
+
+        // Exibir dados do usuário
+        document.getElementById('area-usuario').innerHTML = `
+            <p class="text-sm text-gray-300">${membro.nome}</p>
+            <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
+        `;
+
+        // ========== PREENCHER DIAS E ANOS ==========
+        const selDia = document.getElementById('fotoDia');
+        const selMes = document.getElementById('fotoMes');
+        const selAno = document.getElementById('fotoAno');
+
+        for (let d = 1; d <= 31; d++) {
+            const opt = document.createElement('option');
+            opt.value = String(d).padStart(2, '0');
+            opt.textContent = d;
+            selDia.appendChild(opt);
+        }
+
+        const anoAtual = new Date().getFullYear();
+        for (let a = anoAtual; a >= 2023; a--) {
+            const opt = document.createElement('option');
+            opt.value = String(a);
+            opt.textContent = a;
+            selAno.appendChild(opt);
+        }
+
+        // ========== BANCO DE FOTOS (localStorage — depois pode migrar para servidor) ==========
+        function carregarFotos() {
+            const salvas = localStorage.getItem('ibn_fotos');
+            return salvas ? JSON.parse(salvas) : [];
+        }
+        function salvarFotos(lista) {
+            localStorage.setItem('ibn_fotos', JSON.stringify(lista));
+        }
+        function adicionarFoto(foto) {
+            const lista = carregarFotos();
+            lista.unshift(foto);
+            salvarFotos(lista);
+            renderizarGaleria();
+        }
+
+        // ========== RENDERIZAR GALERIA ==========
+        function renderizarGaleria(filtro = 'todos') {
+            const lista = carregarFotos();
+            const container = document.getElementById('galeria');
+            
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Ainda não há fotos enviadas. Seja o primeiro a compartilhar!</p>';
+                return;
+            }
+
+            const filtrada = filtro === 'todos' ? lista : lista.filter(f => f.mesAno === filtro);
+
+            if (filtrada.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Nenhuma foto encontrada para este período.</p>';
+                return;
+            }
+
+            container.innerHTML = filtrada.map((foto, idx) => `
+                <div class="photo-card card-glass rounded-lg overflow-hidden cursor-pointer transition" data-id="${lista.indexOf(foto)}">
+                    <img src="${foto.imagem}" alt="${foto.titulo}" class="w-full h-40 object-cover">
+                    <div class="p-3">
+                        <h3 class="font-bold text-sm truncate">${foto.titulo}</h3>
+                        <p class="text-xs text-gray-400">${foto.dataFormatada}</p>
+                        <p class="text-xs text-gray-500 mt-1">por ${foto.autor}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Clique para ampliar
+            container.querySelectorAll('.photo-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const id = parseInt(card.dataset.id);
+                    abrirVisualizacao(lista[id]);
+                });
+            });
+
+            // Atualizar filtro de meses
+            atualizarFiltroMeses(lista);
+        }
+
+        function atualizarFiltroMeses(lista) {
+            const sel = document.getElementById('filtroMes');
+            const selecionado = sel.value;
+            sel.innerHTML = '<option value="todos">Todos os meses</option>';
+            
+            const meses = [...new Set(lista.map(f => f.mesAno))].sort().reverse();
+            meses.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                sel.appendChild(opt);
+            });
+            sel.value = selecionado;
+        }
+
+        // ========== ABRIR FOTO GRANDE ==========
+        function abrirVisualizacao(foto) {
+            document.getElementById('imagemGrande').src = foto.imagem;
+            document.getElementById('tituloFoto').textContent = foto.titulo;
+            document.getElementById('dataFoto').textContent = foto.dataFormatada;
+            document.getElementById('autorFoto').textContent = `Enviada por: ${foto.autor}`;
+            document.getElementById('modalVer').classList.add('aberto');
+            document.getElementById('msgRemover').classList.add('hidden');
+        }
+
+        // ========== ENVIAR FOTO ==========
+        document.getElementById('formEnviar').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const arquivo = document.getElementById('fotoArquivo').files[0];
+            const titulo = document.getElementById('fotoTitulo').value.trim();
+            const dia = selDia.value;
+            const mes = selMes.value;
+            const ano = selAno.value;
+
+            if (!arquivo || !titulo) return;
+
+            // Converter imagem para base64 (armazenamento simples)
+            const leitor = new FileReader();
+            leitor.onload = function(evento) {
+                const dataObj = ano && mes && dia ? new Date(`${ano}-${mes}-${dia}`) : new Date();
+                const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+                const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][dataObj.getMonth()];
+                const mesAno = `${nomeMes} de ${dataObj.getFullYear()}`;
+
+                const novaFoto = {
+                    id: Date.now(),
+                    titulo,
+                    imagem: evento.target.result,
+                    dataFormatada,
+                    mesAno,
+                    autor: membro.nome,
+                    emailAutor: membro.email,
+                    dataEnvio: new Date().toISOString()
+                };
+
+                adicionarFoto(novaFoto);
+                
+                // Fechar e limpar
+                document.getElementById('modalEnviar').classList.remove('aberto');
+                document.getElementById('formEnviar').reset();
+                selDia.value = '';
+                selMes.value = '';
+                selAno.value = '';
+                
+                alert('✅ Foto enviada com sucesso! Obrigado por compartilhar!');
+            };
+            leitor.readAsDataURL(arquivo);
+        });
+
+        // ========== SOLICITAR REMOÇÃO ==========
+        document.getElementById('btnRemover').addEventListener('click', () => {
+            document.getElementById('msgRemover').classList.remove('hidden');
+            // Aqui pode integrar envio de e-mail para moderação
+        });
+
+        // ========== CONTROLE DOS MODAIS ==========
+        document.getElementById('btnEnviar').addEventListener('click', () => {
+            document.getElementById('modalEnviar').classList.add('aberto');
+        });
+
+        document.querySelectorAll('.fechar').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.modal').classList.remove('aberto');
+            });
+        });
+
+        // Fechar ao clicar fora
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('aberto');
+            });
+        });
+
+        // Filtrar por mês
+        document.getElementById('filtroMes').addEventListener('change', (e) => {
+            renderizarGaleria(e.target.value);
+        });
+
+        // Iniciar
+        renderizarGaleria();
+    </script>
+
+</body>
+</html>

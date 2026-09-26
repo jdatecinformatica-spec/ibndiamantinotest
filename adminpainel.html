@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0A1A3F', secondary: '#D4AF37', light: '#F8F9FC' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-light min-h-screen">
+    <header class="bg-primary text-white py-4 px-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">⚙️ Painel Administrativo</h1>
+            <div class="flex items-center gap-4">
+                <span id="nomeUsuario" class="text-sm text-secondary"></span>
+                <a href="index.html" class="text-sm hover:text-secondary">← Site</a>
+                <button id="btnSair" class="text-sm bg-red-600 px-3 py-1 rounded hover:bg-red-700">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Sem permissão -->
+        <div id="semPermissao" class="hidden text-center py-12">
+            <i class="fa fa-lock text-5xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Acesso restrito a Administradores.</p>
+            <a href="login.html" class="inline-block mt-4 bg-secondary text-primary px-6 py-2 rounded font-bold">Fazer Login</a>
+        </div>
+
+        <!-- Conteúdo autorizado -->
+        <div id="conteudo" class="space-y-8">
+            
+            <!-- GESTOR APENAS: Nomear Administradores -->
+            <section id="secNomearAdmins" class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-bold text-primary mb-4">👑 Nomear Administradores</h2>
+                <p class="text-sm text-gray-500 mb-4">Gestor nomeia Admins; Admins gerenciam membros/eventos mas não nomeiam outros.</p>
+                
+                <form id="formNovoAdmin" class="flex flex-col md:flex-row gap-3 mb-6">
+                    <input type="text" id="nomeNovoAdmin" placeholder="Nome completo" required class="flex-1 p-3 border rounded-lg">
+                    <input type="email" id="emailNovoAdmin" placeholder="E-mail" required class="flex-1 p-3 border rounded-lg">
+                    <input type="text" id="senhaNovoAdmin" placeholder="Senha" required class="flex-1 p-3 border rounded-lg">
+                    <button type="submit" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold whitespace-nowrap">
+                        <i class="fa fa-plus"></i> Adicionar
+                    </button>
+                </form>
+                <div id="listaAdmins" class="space-y-2"></div>
+            </section>
+
+            <!-- Gestão de Membros -->
+            <section class="bg-white p-6 rounded-xl shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-primary">👥 Membros Cadastrados</h2>
+                    <button id="btnBaixarMembros" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">
+                        <i class="fa fa-download"></i> Baixar CSV Completo
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mb-3" id="qtdMembros">0 membros</p>
+                <div id="listaMembros" class="space-y-3 text-sm"></div>
+            </section>
+
+            <!-- Gestão de Eventos -->
+            <section class="bg-white p-6 rounded-xl shadow">
+                <h2 class="text-xl font-bold text-primary mb-4">📅 Gestão de Eventos</h2>
+                <form id="formEvento" class="grid md:grid-cols-4 gap-3 mb-6">
+                    <input type="text" id="nomeEvento" placeholder="Nome do evento" required class="p-3 border rounded-lg">
+                    <input type="date" id="dataEvento" required class="p-3 border rounded-lg">
+                    <input type="text" id="localEvento" placeholder="Local" class="p-3 border rounded-lg">
+                    <button type="submit" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold">
+                        <i class="fa fa-plus"></i> Cadastrar
+                    </button>
+                </form>
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-sm text-gray-500" id="qtdEventos">0 eventos</p>
+                    <button id="btnBaixarEventos" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">
+                        <i class="fa fa-download"></i> Baixar CSV
+                    </button>
+                </div>
+                <div id="listaEventos" class="space-y-2 text-sm"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // === VERIFICAÇÃO DE SESSÃO ===
+        const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        const ehGestor = usuarioLogado?.nivel === 'gestor';
+        const ehAdmin = ehGestor || usuarioLogado?.nivel === 'admin';
+        
+        if (!usuarioLogado || !ehAdmin) {
+            document.getElementById('semPermissao').classList.remove('hidden');
+            document.getElementById('conteudo').classList.add('hidden');
+        } else {
+            document.getElementById('nomeUsuario').textContent = 
+                `${ehGestor ? '👑 Gestor' : '🛡️ Admin'}: ${usuarioLogado.nome}`;
+            
+            if (!ehGestor) {
+                document.getElementById('secNomearAdmins').style.display = 'none';
+            }
+            carregarTudo();
+        }
+
+        document.getElementById('btnSair').addEventListener('click', () => {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        });
+
+        // === ADMINISTRADORES NOMEADOS (Gestor apenas) ===
+        function getAdminsNomeados() {
+            try { return JSON.parse(localStorage.getItem('adminsNomeados') || '[]'); }
+            catch { return []; }
+        }
+        function salvarAdminsNomeados(lista) {
+            localStorage.setItem('adminsNomeados', JSON.stringify(lista));
+            renderizarAdmins();
+        }
+        function renderizarAdmins() {
+            const container = document.getElementById('listaAdmins');
+            const lista = getAdminsNomeados();
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">Nenhum administrador nomeado.</p>';
+                return;
+            }
+            container.innerHTML = lista.map((adm, idx) => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                    <div>
+                        <p class="font-bold">${adm.nome}</p>
+                        <p class="text-sm text-gray-500">${adm.email}</p>
+                    </div>
+                    ${ehGestor ? `
+                    <button onclick="removerAdmin(${idx})" class="text-red-500 hover:text-red-700" title="Remover administrador">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        function removerAdmin(idx) {
+            if (!confirm('Remover este administrador? Ele voltará a ser membro comum.')) return;
+            const l = getAdminsNomeados(); 
+            l.splice(idx, 1); 
+            salvarAdminsNomeados(l);
+            alert('✅ Administrador removido — voltou a ser membro comum.');
+        }
+        document.getElementById('formNovoAdmin').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('nomeNovoAdmin').value.trim();
+            const email = document.getElementById('emailNovoAdmin').value.trim().toLowerCase();
+            const senha = document.getElementById('senhaNovoAdmin').value.trim();
+            
+            if (senha.length < 4) { alert('Senha mínima: 4 caracteres'); return; }
+            if (['gestor@ibndiamantino.com.br','admin@ibndiamantino.com.br'].includes(email)) {
+                alert('E-mail mestro — não cadastre aqui.'); return;
+            }
+            const lista = getAdminsNomeados();
+            if (lista.some(a => a.email === email)) { alert('Já cadastrado.'); return; }
+            
+            lista.push({ nome, email, senha });
+            salvarAdminsNomeados(lista);
+            alert('✅ Administrador nomeado!');
+            e.target.reset();
+        });
+
+        // === MEMBROS — FUNÇÕES COMPLETAS ===
+        function getMembros() {
+            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
+            catch { return []; }
+        }
+        function salvarMembros(lista) {
+            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
+            renderizarMembros();
+        }
+        function renderizarMembros() {
+            const lista = getMembros();
+            document.getElementById('qtdMembros').textContent = `${lista.length} membro${lista.length!==1?'s':''}`;
+            const container = document.getElementById('listaMembros');
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">Nenhum membro cadastrado.</p>';
+                return;
+            }
+            container.innerHTML = lista.map((m, idx) => {
+                const ehAdminMembro = getAdminsNomeados().some(a => a.email === m.email);
+                return `
+                <div class="p-4 bg-gray-50 rounded border">
+                    <div class="flex justify-between items-start mb-2">
+                        <p class="font-bold text-lg">${m.nome}</p>
+                        <div class="flex gap-2 text-xs">
+                            ${!ehAdminMembro && ehGestor ? `
+                            <button onclick="promoverAdmin(${idx})" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" title="Promover a Administrador">
+                                <i class="fa fa-star"></i> Promover
+                            </button>
+                            ` : ''}
+                            ${ehGestor ? `
+                            <button onclick="removerMembro(${idx})" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" title="Remover definitivamente">
+                                <i class="fa fa-trash"></i> Excluir
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${ehAdminMembro ? '<span class="inline-block bg-secondary/20 text-secondary px-2 py-1 rounded text-xs font-bold mb-2">🛡️ Administrador</span>' : ''}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div><strong>Telefone:</strong> ${m.telefone || '-'}</div>
+                        <div><strong>E-mail:</strong> ${m.email || '-'}</div>
+                        <div><strong>Sexo:</strong> ${m.sexo || '-'}</div>
+                        <div><strong>Nascimento:</strong> ${m.nascimento || '-'}</div>
+                        <div><strong>Estado Civil:</strong> ${m.estadoCivil || '-'}</div>
+                        <div><strong>Endereço:</strong> ${m.endereco || '-'}</div>
+                        <div><strong>Origem:</strong> ${m.origem || '-'}</div>
+                        <div><strong>Batizado:</strong> ${m.batizado || '-'}</div>
+                        <div><strong>Data Batismo:</strong> ${m.dataBatismo || '-'}</div>
+                        <div><strong>Observações:</strong> ${m.observacoes || '-'}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // ✅ PROMOVER MEMBRO A ADMIN (Gestor apenas)
+        window.promoverAdmin = function(idx) {
+            if (!confirm('Promover este membro a Administrador? Ele poderá gerenciar membros e eventos.')) return;
+            const lista = getMembros();
+            const membro = lista[idx];
+            if (!membro.email) { alert('Membro sem e-mail — não é possível promover.'); return; }
+            
+            const admins = getAdminsNomeados();
+            if (admins.some(a => a.email === membro.email)) { alert('Já é administrador.'); return; }
+            
+            admins.push({ 
+                nome: membro.nome, 
+                email: membro.email, 
+                senha: membro.senha || '' 
+            });
+            localStorage.setItem('adminsNomeados', JSON.stringify(admins));
+            alert('✅ Promovido a Administrador com sucesso!');
+            renderizarMembros();
+        };
+
+        // ✅ REMOVER MEMBRO DEFINITIVAMENTE
+        window.removerMembro = function(idx) {
+            if (!confirm('⚠️ Tem certeza? Este membro será REMOVIDO DEFINITIVAMENTE e não poderá mais acessar.')) return;
+            const lista = getMembros();
+            const membro = lista[idx];
+            
+            // Se for admin nomeado, remove também da lista de admins
+            let admins = getAdminsNomeados();
+            admins = admins.filter(a => a.email !== membro.email);
+            localStorage.setItem('adminsNomeados', JSON.stringify(admins));
+            
+            // Remove da lista de membros
+            lista.splice(idx, 1);
+            salvarMembros(lista);
+            alert('✅ Membro removido definitivamente.');
+        };
+
+        // Download CSV
+        document.getElementById('btnBaixarMembros').addEventListener('click', () => {
+            const lista = getMembros();
+            if (!lista.length) { alert('Sem dados para baixar.'); return; }
+            const cabecalho = 'Nome,Telefone,E-mail,Sexo,Nascimento,Estado Civil,Endereço,Origem,Batizado,Data Batismo,Observações\n';
+            const linhas = lista.map(m => [
+                `"${m.nome}"`,
+                `"${m.telefone || ''}"`,
+                `"${m.email || ''}"`,
+                `"${m.sexo || ''}"`,
+                `"${m.nascimento || ''}"`,
+                `"${m.estadoCivil || ''}"`,
+                `"${m.endereco || ''}"`,
+                `"${m.origem || ''}"`,
+                `"${m.batizado || ''}"`,
+                `"${m.dataBatismo || ''}"`,
+                `"${m.observacoes || ''}"`
+            ].join(',')).join('\n');
+            baixar(cabecalho + linhas, 'membros-completo.csv');
+        });
+
+        // === EVENTOS ===
+        function getEventos() {
+            try { return JSON.parse(localStorage.getItem('eventos') || '[]'); }
+            catch { return []; }
+        }
+        function salvarEventos(lista) {
+            localStorage.setItem('eventos', JSON.stringify(lista));
+            renderizarEventos();
+        }
+        function renderizarEventos() {
+            const lista = getEventos();
+            document.getElementById('qtdEventos').textContent = `${lista.length} evento${lista.length!==1?'s':''}`;
+            const container = document.getElementById('listaEventos');
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">Nenhum evento cadastrado.</p>';
+                return;
+            }
+            container.innerHTML = lista.map((ev, idx) => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                    <div>
+                        <p class="font-bold">${ev.nome}</p>
+                        <p class="text-xs text-gray-500">📅 ${ev.data} · 📍 ${ev.local||'Não informado'}</p>
+                    </div>
+                    <button onclick="removerEvento(${idx})" class="text-red-500"><i class="fa fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+        function removerEvento(idx) {
+            if (!confirm('Remover evento?')) return;
+            const l = getEventos(); l.splice(idx, 1); salvarEventos(l);
+        }
+        document.getElementById('formEvento').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const l = getEventos();
+            l.push({
+                nome: document.getElementById('nomeEvento').value.trim(),
+                data: document.getElementById('dataEvento').value,
+                local: document.getElementById('localEvento').value.trim()
+            });
+            salvarEventos(l);
+            e.target.reset();
+        });
+        document.getElementById('btnBaixarEventos').addEventListener('click', () => {
+            const lista = getEventos();
+            if (!lista.length) { alert('Sem dados.'); return; }
+            const csv = 'Nome,Data,Local\n' + lista.map(ev => `"${ev.nome}","${ev.data}","${ev.local}"`).join('\n');
+            baixar(csv, 'eventos.csv');
+        });
+
+        // === UTILITÁRIO ===
+        function baixar(conteudo, nome) {
+            const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = nome; a.click();
+            URL.revokeObjectURL(url);
+        }
+        function carregarTudo() {
+            renderizarAdmins();
+            renderizarMembros();
+            renderizarEventos();
+        }
+    </script>
+</body>
+</html>

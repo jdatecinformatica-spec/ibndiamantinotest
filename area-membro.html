@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área do Membro — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        accent: '#1E3A8A',
+                        light: '#F8F9FC',
+                        dark: '#0F172A'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #F8F9FC; }
+        .card { @apply bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition; }
+        .btn { @apply px-4 py-2 rounded-lg font-medium transition; }
+        .btn-primary { @apply bg-primary text-white hover:bg-accent; }
+        .btn-gold { @apply bg-secondary text-primary hover:bg-yellow-400; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Cabeçalho -->
+    <header class="bg-primary text-white py-4 shadow-md">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-primary font-bold">IB</span>
+                <span class="font-bold hidden sm:inline">IBN Diamantino</span>
+            </a>
+            <div class="flex items-center gap-4">
+                <span id="nomeUsuario" class="text-sm hidden md:inline"></span>
+                <button id="btnSair" class="text-sm bg-white/10 px-3 py-1 rounded hover:bg-white/20">
+                    <i class="fa fa-sign-out"></i> Sair
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-primary mb-6">👋 Bem-vindo, <span id="tituloNome"></span>!</h1>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Perfil -->
+            <div class="md:col-span-1">
+                <div class="card">
+                    <h2 class="font-bold text-lg mb-4 text-primary">Meus Dados</h2>
+                    <div id="dadosPerfil" class="space-y-2 text-sm">
+                        <!-- Preenchido por JS -->
+                    </div>
+                    <button id="btnEditar" class="btn btn-primary w-full mt-4 text-sm">
+                        <i class="fa fa-pencil"></i> Editar Dados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inscrições e Atividades -->
+            <div class="md:col-span-2 space-y-6">
+                <div class="card">
+                    <h2 class="font-bold text-lg mb-4 text-primary">Minhas Inscrições</h2>
+                    <div id="listaInscricoes" class="text-sm text-gray-500">
+                        <p class="py-4 text-center">Você ainda não está inscrito em nenhum evento.</p>
+                        <a href="eventos.html" class="btn btn-gold inline-block mt-2">Ver Eventos Disponíveis</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="font-bold text-lg mb-4 text-primary">Acesso Rápido</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="eventos.html" class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                            <i class="fa fa-calendar text-secondary text-xl"></i>
+                            <p class="text-sm mt-1">Eventos</p>
+                        </a>
+                        <a href="celulas.html" class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                            <i class="fa fa-map-marker text-secondary text-xl"></i>
+                            <p class="text-sm mt-1">Células</p>
+                        </a>
+                        <a href="transmissoes.html" class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                            <i class="fa fa-play-circle text-secondary text-xl"></i>
+                            <p class="text-sm mt-1">Transmissões</p>
+                        </a>
+                        <a href="doacao.html" class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 text-center">
+                            <i class="fa fa-heart text-secondary text-xl"></i>
+                            <p class="text-sm mt-1">Doação</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="conta.js"></script>
+    <script>
+        // Verifica login
+        if (!exigirLogin()) {}
+        const usuario = getUsuarioLogado();
+
+        // Preenche dados
+        document.getElementById('nomeUsuario').textContent = usuario.nome.split(' ')[0];
+        document.getElementById('tituloNome').textContent = usuario.nome.split(' ')[0];
+
+        function formatarData(data) {
+            if (!data) return 'Não informado';
+            return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        // Exibe perfil
+        function carregarPerfil() {
+            const usuarioAtual = getUsuarioLogado();
+            const container = document.getElementById('dadosPerfil');
+            container.innerHTML = `
+                <p><strong>Nome:</strong> ${usuarioAtual.nome}</p>
+                <p><strong>E-mail:</strong> ${usuarioAtual.email}</p>
+                <p><strong>Nascimento:</strong> ${formatarData(usuarioAtual.nascimento)}</p>
+                <p><strong>Estado Civil:</strong> ${usuarioAtual.estadoCivil || 'Não informado'}</p>
+                <p><strong>Telefone:</strong> ${usuarioAtual.telefone || 'Não informado'}</p>
+                <p><strong>Batizado:</strong> ${usuarioAtual.batizado ? '✅ Sim' : '❌ Não'}</p>
+                <p class="text-xs text-gray-400 mt-2">Membro desde: ${formatarData(usuarioAtual.dataCadastro)}</p>
+            `;
+        }
+
+        carregarPerfil();
+
+        // Sair
+        document.getElementById('btnSair').addEventListener('click', sair);
+
+        // Editar (simples — próxima versão com formulário completo)
+        document.getElementById('btnEditar').addEventListener('click', function() {
+            alert('Em desenvolvimento! Em breve você poderá editar seus dados diretamente aqui.');
+        });
+    </script>
+</body>
+</html>

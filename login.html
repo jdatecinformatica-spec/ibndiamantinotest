@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        light: '#F8F9FC'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-light min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <i class="fa fa-lock text-4xl text-primary mb-2"></i>
+            <h1 class="text-2xl font-bold text-primary">Acesso Restrito</h1>
+            <p class="text-gray-500">IBN Diamantino</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <form id="formLogin" class="space-y-5">
+                <div>
+                    <label for="identificador" class="block text-sm font-bold text-gray-700 mb-1">E-mail ou Telefone</label>
+                    <input 
+                        type="text" 
+                        id="identificador" 
+                        name="identificador" 
+                        required
+                        placeholder="Seu e-mail ou telefone"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                    >
+                </div>
+
+                <div>
+                    <label for="senha" class="block text-sm font-bold text-gray-700 mb-1">Senha</label>
+                    <input 
+                        type="password" 
+                        id="senha" 
+                        name="senha" 
+                        required
+                        placeholder="Digite sua senha"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                    >
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+                >
+                    <i class="fa fa-sign-in"></i> Entrar
+                </button>
+
+                <p id="mensagemErro" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+
+            <div class="mt-6 text-center space-y-3">
+                <p class="text-sm text-gray-500">
+                    Quer se tornar membro? 
+                    <a href="cadastro.html" class="text-secondary font-bold hover:underline">Cadastre-se aqui</a>
+                </p>
+                <a href="index.html" class="inline-block text-primary font-medium hover:underline">
+                    ← Voltar ao site
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('formLogin').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const identificador = document.getElementById('identificador').value.trim();
+            const senha = document.getElementById('senha').value;
+            const msgErro = document.getElementById('mensagemErro');
+
+            // 🔍 Carregar dados
+            const membros = JSON.parse(localStorage.getItem('membrosCadastro') || '[]');
+            const admins = JSON.parse(localStorage.getItem('adminsNomeados') || '[]');
+            const gestor = JSON.parse(localStorage.getItem('gestorUsuario') || '{}');
+
+            // 🔎 Encontrar usuário — busca por e-mail OU telefone
+            let usuario = null;
+            let nivel = 'membro';
+
+            // Verificar Gestor
+            if (gestor && (gestor.email === identificador || gestor.telefone === identificador) && gestor.senha === senha) {
+                usuario = gestor;
+                nivel = 'gestor';
+            }
+
+            // Verificar Administradores Nomeados
+            if (!usuario) {
+                const encontrado = admins.find(a => 
+                    (a.email === identificador || a.telefone === identificador) && a.senha === senha
+                );
+                if (encontrado) {
+                    usuario = encontrado;
+                    nivel = 'admin';
+                }
+            }
+
+            // Verificar Membros Comuns
+            if (!usuario) {
+                const encontrado = membros.find(m => 
+                    (m.email === identificador || m.telefone === identificador) && m.senha === senha
+                );
+                if (encontrado) {
+                    usuario = encontrado;
+                    nivel = 'membro';
+                }
+            }
+
+            // ✅ Resultado
+            if (usuario) {
+                localStorage.setItem('usuarioLogado', JSON.stringify({
+                    nome: usuario.nome || 'Usuário',
+                    email: usuario.email || '',
+                    telefone: usuario.telefone || '',
+                    nivel: nivel
+                }));
+                
+                // ✅ REDIRECIONA AUTOMATICAMENTE
+                msgErro.textContent = '✅ Entrando...';
+                msgErro.classList.remove('hidden', 'text-red-500');
+                msgErro.classList.add('text-green-600');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 600);
+            } else {
+                msgErro.textContent = '❌ Dados incorretos. Verifique e tente novamente.';
+                msgErro.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
