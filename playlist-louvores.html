@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist de Louvores — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        light: '#F8F9FC'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: linear-gradient(135deg, #0A1A3F 0%, #152A5F 100%); min-height: 100vh; }
+        .player-card { backdrop-filter: blur(10px); background: rgba(255,255,255,0.05); }
+        @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .tocando { animation: girar 20s linear infinite; }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-center px-4 py-10">
+
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold">🎵 Playlist de Louvores</h1>
+            <p class="text-gray-300 text-sm mt-1">IBN Diamantino — Toca sem repetir</p>
+        </div>
+
+        <!-- Player Principal -->
+        <div class="player-card rounded-3xl p-8 shadow-2xl border border-white/10">
+            <div class="w-32 h-32 mx-auto mb-6 rounded-full bg-secondary/20 flex items-center justify-center">
+                <i id="iconeMusica" class="fa fa-music text-4xl text-secondary"></i>
+            </div>
+
+            <div class="text-center mb-6">
+                <h2 id="nomeMusica" class="text-xl font-bold">Carregando repertório...</h2>
+                <p id="artista" class="text-gray-400 mt-1">—</p>
+            </div>
+
+            <!-- Controles -->
+            <div class="flex items-center justify-center gap-6 mb-6">
+                <button id="btnAnterior" class="text-gray-300 hover:text-white transition-colors text-xl">
+                    <i class="fa fa-step-backward"></i>
+                </button>
+                
+                <button id="btnPlay" class="w-16 h-16 rounded-full bg-secondary text-primary flex items-center justify-center text-xl font-bold hover:bg-yellow-400 transition-colors shadow-lg">
+                    <i class="fa fa-play"></i>
+                </button>
+                
+                <button id="btnProximo" class="text-gray-300 hover:text-white transition-colors text-xl">
+                    <i class="fa fa-step-forward"></i>
+                </button>
+            </div>
+
+            <!-- Volume -->
+            <div class="flex items-center justify-center gap-3">
+                <i class="fa fa-volume-down text-gray-400"></i>
+                <input type="range" id="volume" min="0" max="100" value="70" 
+                    class="w-40 h-2 bg-gray-700 rounded-full appearance-none cursor-pointer accent-secondary">
+                <i class="fa fa-volume-up text-gray-400"></i>
+            </div>
+        </div>
+
+        <!-- Botões Inferiores -->
+        <div class="mt-6 flex justify-center gap-4">
+            <a href="index.html" class="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-sm">
+                ← Voltar ao site
+            </a>
+            <button id="btnAdmin" class="px-4 py-2 bg-secondary/20 rounded-lg hover:bg-secondary/30 transition-colors text-sm hidden">
+                <i class="fa fa-cog"></i> Gerenciar
+            </button>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-4">
+            Ordem aleatória • Toca tudo antes de repetir
+        </p>
+    </div>
+
+    <script>
+        // ==================================================
+        // ✅ REPERTÓRIO — Adicione suas músicas aqui
+        // ==================================================
+        let REPERTORIO = [
+            { titulo: "A Ele a Glória", artista: "Aline Barros", url: "audios/a-ele-a-gloria.mp3" },
+            { titulo: "Além do Rio Azul", artista: "Toque no Altar", url: "audios/alem-do-rio-azul.mp3" },
+            { titulo: "Amor de Deus", artista: "Fernandinho", url: "audios/amor-de-deus.mp3" },
+            { titulo: "Ao Único", artista: "Aline Barros", url: "audios/ao-unico.mp3" },
+            { titulo: "Aquieta Minh'Alma", artista: "Arianne", url: "audios/aquieta-minha-alma.mp3" },
+            { titulo: "Buscando a Ti", artista: "Fernandinho", url: "audios/buscando-a-ti.mp3" },
+            { titulo: "Céu Aberto", artista: "Isadora Pompeo", url: "audios/ceu-aberto.mp3" },
+            { titulo: "Com Muito Louvor", artista: "Fernandinho", url: "audios/com-muito-louvor.mp3" },
+            { titulo: "Deus Cuida de Mim", artista: "Aline Barros", url: "audios/deus-cuida-de-mim.mp3" },
+            { titulo: "Deus É Aqui", artista: "Aline Barros", url: "audios/deus-e-aqui.mp3" },
+            { titulo: "Deus Fiel", artista: "Fernandinho", url: "audios/deus-fiel.mp3" },
+            { titulo: "Digno de Adoração", artista: "Toque no Altar", url: "audios/digno-de-adoracao.mp3" },
+            { titulo: "Eis-me Aqui", artista: "Aline Barros", url: "audios/eis-me-aqui.mp3" },
+            { titulo: "Enche-me", artista: "Fernandinho", url: "audios/enche-me.mp3" },
+            { titulo: "Espírito de Deus", artista: "Arianne", url: "audios/espirito-de-deus.mp3" },
+            { titulo: "Eu Me Rendo", artista: "Fernandinho", url: "audios/eu-me-rendo.mp3" },
+            { titulo: "Fé", artista: "Isadora Pompeo", url: "audios/fe.mp3" },
+            { titulo: "Graça", artista: "Fernandinho", url: "audios/graca.mp3" },
+            { titulo: "Há um Lugar", artista: "Aline Barros", url: "audios/ha-um-lugar.mp3" },
+            { titulo: "Hei de Vencer", artista: "Toque no Altar", url: "audios/hei-de-vencer.mp3" }
+            // ➕ Continue adicionando...
+        ];
+
+        // ==================================================
+        // 🔄 Carregar repertório salvo pelo Admin
+        // ==================================================
+        const salvo = localStorage.getItem('playlistSalva');
+        if (salvo) {
+            try {
+                REPERTORIO = JSON.parse(salvo);
+            } catch (e) {}
+        }
+
+        // ==================================================
+        // 🎵 SISTEMA DE REPRODUÇÃO
+        // ==================================================
+        const player = {
+            lista: [],
+            indice: -1,
+            audio: new Audio(),
+
+            embaralhar(arr) {
+                const a = [...arr];
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            },
+
+            iniciar() {
+                this.lista = this.embaralhar(REPERTORIO);
+                this.indice = 0;
+                this.tocar();
+            },
+
+            tocar() {
+                if (this.indice >= this.lista.length) {
+                    this.lista = this.embaralhar(REPERTORIO);
+                    this.indice = 0;
+                }
+                const m = this.lista[this.indice];
+                this.audio.src = m.url;
+                document.getElementById('nomeMusica').textContent = m.titulo;
+                document.getElementById('artista').textContent = m.artista;
+                this.audio.play().catch(() => {});
+                this.atualizarBotao(true);
+            },
+
+            proxima() { this.indice++; this.tocar(); },
+            anterior() { if (this.indice > 0) { this.indice--; this.tocar(); } },
+
+            toggle() {
+                if (this.audio.paused) { this.audio.play(); this.atualizarBotao(true); }
+                else { this.audio.pause(); this.atualizarBotao(false); }
+            },
+
+            atualizarBotao(tocando) {
+                const icone = document.querySelector('#btnPlay i');
+                icone.className = tocando ? 'fa fa-pause' : 'fa fa-play';
+                document.getElementById('iconeMusica').classList.toggle('tocando', tocando);
+            },
+
+            volume(v) { this.audio.volume = v / 100; }
+        };
+
+        // ==================================================
+        // 🔐 Mostrar botão Admin só para quem pode
+        // ==================================================
+        const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || '{}');
+        if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
+            document.getElementById('btnAdmin').classList.remove('hidden');
+            document.getElementById('btnAdmin').addEventListener('click', () => {
+                window.location.href = 'admin-playlist.html';
+            });
+        }
+
+        // ==================================================
+        // 🎛️ Conectar botões
+        // ==================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            player.iniciar();
+            player.audio.addEventListener('ended', () => player.proxima());
+            
+            document.getElementById('btnPlay').onclick = () => player.toggle();
+            document.getElementById('btnProximo').onclick = () => player.proxima();
+            document.getElementById('btnAnterior').onclick = () => player.anterior();
+            document.getElementById('volume').oninput = (e) => player.volume(e.target.value);
+            player.volume(70);
+        });
+    </script>
+</body>
+</html>

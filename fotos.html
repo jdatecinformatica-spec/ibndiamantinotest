@@ -33,20 +33,20 @@
 
     <div class="max-w-6xl mx-auto px-4">
         <!-- Cabeçalho -->
-        <div class="flex items-center justify-between mb-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
                 <a href="index.html" class="text-gray-400 hover:text-white text-sm mb-2 inline-block">
                     ← Voltar ao Início
                 </a>
                 <h1 class="text-3xl font-bold">📸 Galeria de Fotos</h1>
-                <p class="text-gray-400 mt-1">Registros dos cultos, eventos e momentos da nossa família</p>
+                <p class="text-gray-400 mt-1">O que acontece na igreja e nos ministérios — área exclusiva para membros</p>
             </div>
             <div id="area-usuario" class="text-right">
                 <!-- Preenchido por JS -->
             </div>
         </div>
 
-        <!-- ⚠️ AVISO DE DIREITOS DE IMAGEM -->
+        <!-- Aviso de direitos de imagem -->
         <div class="card-glass rounded-xl p-5 mb-6 border-l-4 border-secondary/50">
             <h3 class="font-bold text-lg mb-2">📋 Regras de Uso e Direito de Imagem</h3>
             <ul class="text-sm text-gray-300 space-y-2 mb-4">
@@ -56,24 +56,52 @@
                 <li><i class="fa fa-check text-green-400 mr-2"></i> Se aparecer em alguma foto e não quiser, use o botão <em>"Solicitar Remoção"</em> — será retirada em até 48h</li>
             </ul>
             <p class="text-xs text-gray-400">
-                Estas regras seguem a Lei Geral de Proteção de Dados (LGPD — Lei 13.718/2018) e o Estatuto da Criança e do Adolescente (ECA).
+                Estas regras seguem a LGPD e o Estatuto da Criança e do Adolescente (ECA).
             </p>
         </div>
 
-        <!-- Botão Enviar Foto -->
-        <div class="mb-8">
-            <button id="btnEnviar" class="btn-gold bg-secondary text-primary px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">
+        <!-- Botão Enviar + Filtros -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center justify-between">
+            <button id="btnEnviar" class="bg-secondary text-primary px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">
                 <i class="fa fa-upload mr-2"></i> Enviar Nova Foto
             </button>
-        </div>
 
-        <!-- Filtro de Mês -->
-        <div class="mb-6">
-            <label class="block text-sm font-medium mb-2">Filtrar por período:</label>
-            <select id="filtroMes" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 outline-none">
-                <option value="todos">Todos os meses</option>
-                <!-- Preenchido automaticamente -->
-            </select>
+            <div class="flex flex-wrap gap-3">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Ministério</label>
+                    <select id="filtroMinisterio" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-sm min-w-[180px]">
+                        <option value="todos">Todos os ministérios</option>
+                        <option value="atmosfera">Atmosfera</option>
+                        <option value="acolhimento">Acolhimento</option>
+                        <option value="mulheres">Mulheres</option>
+                        <option value="homens">Homens</option>
+                        <option value="intercessao">Intercessão</option>
+                        <option value="evangelismo">Evangelismo</option>
+                        <option value="danca">Dança</option>
+                        <option value="empreendedorismo">Empreendedorismo</option>
+                        <option value="batismo">Batismo</option>
+                        <option value="zeladoria">Zeladoria</option>
+                        <option value="projetos-sociais">Projetos Sociais</option>
+                        <option value="casais">Casais</option>
+                        <option value="jovens">Jovens</option>
+                        <option value="adolescentes">Adolescentes</option>
+                        <option value="louvor">Louvor</option>
+                        <option value="midias">Mídias Sociais</option>
+                        <option value="infantil">Infantil</option>
+                        <option value="artes">Artes</option>
+                        <option value="ensino">Ensino</option>
+                        <option value="cantina">Cantina</option>
+                        <option value="projeto-kids">Projeto Kids</option>
+                        <option value="geral">Geral / Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Período</label>
+                    <select id="filtroMes" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none text-sm min-w-[160px]">
+                        <option value="todos">Todos os meses</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <!-- Galeria -->
@@ -104,6 +132,35 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium mb-2">Ministério *</label>
+                    <select id="fotoMinisterio" required class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 outline-none">
+                        <option value="">Selecione o ministério</option>
+                        <option value="atmosfera">Atmosfera</option>
+                        <option value="acolhimento">Acolhimento</option>
+                        <option value="mulheres">Mulheres</option>
+                        <option value="homens">Homens</option>
+                        <option value="intercessao">Intercessão</option>
+                        <option value="evangelismo">Evangelismo</option>
+                        <option value="danca">Dança</option>
+                        <option value="empreendedorismo">Empreendedorismo</option>
+                        <option value="batismo">Batismo</option>
+                        <option value="zeladoria">Zeladoria</option>
+                        <option value="projetos-sociais">Projetos Sociais</option>
+                        <option value="casais">Casais</option>
+                        <option value="jovens">Jovens</option>
+                        <option value="adolescentes">Adolescentes</option>
+                        <option value="louvor">Louvor</option>
+                        <option value="midias">Mídias Sociais</option>
+                        <option value="infantil">Infantil</option>
+                        <option value="artes">Artes</option>
+                        <option value="ensino">Ensino</option>
+                        <option value="cantina">Cantina</option>
+                        <option value="projeto-kids">Projeto Kids</option>
+                        <option value="geral">Geral / Outros</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium mb-2">Data do evento</label>
                     <div class="grid grid-cols-3 gap-2">
                         <select id="fotoDia" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 outline-none">
@@ -127,7 +184,7 @@
                     <span class="text-sm">
                         Declaro que esta imagem é de minha autoria ou tenho permissão para compartilhá-la, 
                         respeitando os direitos de imagem de todas as pessoas nela presentes. 
-                        Autorizo a IBN Diamantino a exibir esta imagem em seu site.
+                        Autorizo a IBN Diamantino a exibir esta imagem na área de membros.
                     </span>
                 </label>
 
@@ -138,14 +195,15 @@
         </div>
     </div>
 
-    <!-- MODAL — Ver Foto Grande + Solicitar Remoção -->
+    <!-- MODAL — Ver Foto Grande -->
     <div id="modalVer" class="modal p-4">
         <div class="max-w-4xl w-full">
             <button class="fechar text-white text-2xl float-right mb-4">&times;</button>
             <img id="imagemGrande" class="w-full rounded-xl shadow-2xl mb-4" alt="">
             <div class="card-glass p-4 rounded-xl">
                 <h3 id="tituloFoto" class="font-bold text-lg"></h3>
-                <p id="dataFoto" class="text-gray-400 text-sm mb-3"></p>
+                <p id="dataFoto" class="text-gray-400 text-sm mb-1"></p>
+                <p id="ministerioFoto" class="text-secondary text-sm mb-2"></p>
                 <p id="autorFoto" class="text-gray-400 text-sm mb-4"></p>
                 
                 <button id="btnRemover" class="text-red-400 hover:text-red-300 text-sm">
@@ -158,18 +216,63 @@
 
     <script src="conta.js"></script>
     <script>
+        // ========== LISTA DE MINISTÉRIOS (nomes amigáveis) ==========
+        const NOMES_MINISTERIO = {
+            'atmosfera': 'Atmosfera',
+            'acolhimento': 'Acolhimento',
+            'mulheres': 'Mulheres',
+            'homens': 'Homens',
+            'intercessao': 'Intercessão',
+            'evangelismo': 'Evangelismo',
+            'danca': 'Dança',
+            'empreendedorismo': 'Empreendedorismo',
+            'batismo': 'Batismo',
+            'zeladoria': 'Zeladoria',
+            'projetos-sociais': 'Projetos Sociais',
+            'casais': 'Casais',
+            'jovens': 'Jovens',
+            'adolescentes': 'Adolescentes',
+            'louvor': 'Louvor',
+            'midias': 'Mídias Sociais',
+            'infantil': 'Infantil',
+            'artes': 'Artes',
+            'ensino': 'Ensino',
+            'cantina': 'Cantina',
+            'projeto-kids': 'Projeto Kids',
+            'geral': 'Geral / Outros'
+        };
+
         // ========== VERIFICAR LOGIN ==========
-        const membro = verificarLogin();
-        if (!membro) {
-            alert('Você precisa estar logado para acessar a galeria.');
-            window.location.href = 'login.html?destino=fotos.html';
+        let membro = null;
+        try {
+            if (typeof verificarLogin === 'function') {
+                membro = verificarLogin();
+            } else {
+                // fallback se conta.js não tiver a função
+                const sessao = localStorage.getItem('usuarioLogado');
+                if (sessao) membro = JSON.parse(sessao);
+            }
+        } catch (e) {
+            console.warn('conta.js não encontrado ou erro ao verificar login');
         }
 
-        // Exibir dados do usuário
-        document.getElementById('area-usuario').innerHTML = `
-            <p class="text-sm text-gray-300">${membro.nome}</p>
-            <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
-        `;
+        if (!membro) {
+            // Tenta também a chave usada no index
+            const sessao = localStorage.getItem('usuarioLogado');
+            if (sessao) {
+                try { membro = JSON.parse(sessao); } catch(e) {}
+            }
+        }
+
+        if (!membro) {
+            alert('Você precisa estar logado para acessar a galeria de fotos.\n\nFaça login ou cadastre-se para ver o que acontece na igreja e nos ministérios.');
+            window.location.href = 'login.html?destino=fotos.html';
+        } else {
+            document.getElementById('area-usuario').innerHTML = `
+                <p class="text-sm text-gray-300">${membro.nome || 'Membro'}</p>
+                <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
+            `;
+        }
 
         // ========== PREENCHER DIAS E ANOS ==========
         const selDia = document.getElementById('fotoDia');
@@ -191,7 +294,7 @@
             selAno.appendChild(opt);
         }
 
-        // ========== BANCO DE FOTOS (localStorage — depois pode migrar para servidor) ==========
+        // ========== BANCO DE FOTOS ==========
         function carregarFotos() {
             const salvas = localStorage.getItem('ibn_fotos');
             return salvas ? JSON.parse(salvas) : [];
@@ -207,34 +310,45 @@
         }
 
         // ========== RENDERIZAR GALERIA ==========
-        function renderizarGaleria(filtro = 'todos') {
+        function renderizarGaleria() {
             const lista = carregarFotos();
             const container = document.getElementById('galeria');
-            
-            if (lista.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Ainda não há fotos enviadas. Seja o primeiro a compartilhar!</p>';
-                return;
+            const filtroMin = document.getElementById('filtroMinisterio').value;
+            const filtroMes = document.getElementById('filtroMes').value;
+
+            let filtrada = lista;
+            if (filtroMin !== 'todos') {
+                filtrada = filtrada.filter(f => f.ministerio === filtroMin);
+            }
+            if (filtroMes !== 'todos') {
+                filtrada = filtrada.filter(f => f.mesAno === filtroMes);
             }
 
-            const filtrada = filtro === 'todos' ? lista : lista.filter(f => f.mesAno === filtro);
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Ainda não há fotos enviadas. Seja o primeiro a compartilhar o que acontece no seu ministério!</p>';
+                return;
+            }
 
             if (filtrada.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Nenhuma foto encontrada para este período.</p>';
+                container.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">Nenhuma foto encontrada com esses filtros.</p>';
                 return;
             }
 
-            container.innerHTML = filtrada.map((foto, idx) => `
-                <div class="photo-card card-glass rounded-lg overflow-hidden cursor-pointer transition" data-id="${lista.indexOf(foto)}">
+            container.innerHTML = filtrada.map((foto) => {
+                const idxOriginal = lista.indexOf(foto);
+                const nomeMin = NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral';
+                return `
+                <div class="photo-card card-glass rounded-lg overflow-hidden cursor-pointer transition" data-id="${idxOriginal}">
                     <img src="${foto.imagem}" alt="${foto.titulo}" class="w-full h-40 object-cover">
                     <div class="p-3">
                         <h3 class="font-bold text-sm truncate">${foto.titulo}</h3>
+                        <p class="text-xs text-secondary mt-1">${nomeMin}</p>
                         <p class="text-xs text-gray-400">${foto.dataFormatada}</p>
                         <p class="text-xs text-gray-500 mt-1">por ${foto.autor}</p>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
-            // Clique para ampliar
             container.querySelectorAll('.photo-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const id = parseInt(card.dataset.id);
@@ -242,7 +356,6 @@
                 });
             });
 
-            // Atualizar filtro de meses
             atualizarFiltroMeses(lista);
         }
 
@@ -251,14 +364,16 @@
             const selecionado = sel.value;
             sel.innerHTML = '<option value="todos">Todos os meses</option>';
             
-            const meses = [...new Set(lista.map(f => f.mesAno))].sort().reverse();
+            const meses = [...new Set(lista.map(f => f.mesAno).filter(Boolean))].sort().reverse();
             meses.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
                 opt.textContent = m;
                 sel.appendChild(opt);
             });
-            sel.value = selecionado;
+            if ([...sel.options].some(o => o.value === selecionado)) {
+                sel.value = selecionado;
+            }
         }
 
         // ========== ABRIR FOTO GRANDE ==========
@@ -266,6 +381,7 @@
             document.getElementById('imagemGrande').src = foto.imagem;
             document.getElementById('tituloFoto').textContent = foto.titulo;
             document.getElementById('dataFoto').textContent = foto.dataFormatada;
+            document.getElementById('ministerioFoto').textContent = 'Ministério: ' + (NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral');
             document.getElementById('autorFoto').textContent = `Enviada por: ${foto.autor}`;
             document.getElementById('modalVer').classList.add('aberto');
             document.getElementById('msgRemover').classList.add('hidden');
@@ -277,13 +393,13 @@
             
             const arquivo = document.getElementById('fotoArquivo').files[0];
             const titulo = document.getElementById('fotoTitulo').value.trim();
+            const ministerio = document.getElementById('fotoMinisterio').value;
             const dia = selDia.value;
             const mes = selMes.value;
             const ano = selAno.value;
 
-            if (!arquivo || !titulo) return;
+            if (!arquivo || !titulo || !ministerio) return;
 
-            // Converter imagem para base64 (armazenamento simples)
             const leitor = new FileReader();
             leitor.onload = function(evento) {
                 const dataObj = ano && mes && dia ? new Date(`${ano}-${mes}-${dia}`) : new Date();
@@ -297,21 +413,21 @@
                     imagem: evento.target.result,
                     dataFormatada,
                     mesAno,
-                    autor: membro.nome,
-                    emailAutor: membro.email,
+                    ministerio,
+                    autor: membro.nome || 'Membro',
+                    emailAutor: membro.email || '',
                     dataEnvio: new Date().toISOString()
                 };
 
                 adicionarFoto(novaFoto);
                 
-                // Fechar e limpar
                 document.getElementById('modalEnviar').classList.remove('aberto');
                 document.getElementById('formEnviar').reset();
                 selDia.value = '';
                 selMes.value = '';
                 selAno.value = '';
                 
-                alert('✅ Foto enviada com sucesso! Obrigado por compartilhar!');
+                alert('✅ Foto enviada com sucesso! Obrigado por compartilhar o que acontece no ministério.');
             };
             leitor.readAsDataURL(arquivo);
         });
@@ -319,7 +435,6 @@
         // ========== SOLICITAR REMOÇÃO ==========
         document.getElementById('btnRemover').addEventListener('click', () => {
             document.getElementById('msgRemover').classList.remove('hidden');
-            // Aqui pode integrar envio de e-mail para moderação
         });
 
         // ========== CONTROLE DOS MODAIS ==========
@@ -333,17 +448,22 @@
             });
         });
 
-        // Fechar ao clicar fora
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) modal.classList.remove('aberto');
             });
         });
 
-        // Filtrar por mês
-        document.getElementById('filtroMes').addEventListener('change', (e) => {
-            renderizarGaleria(e.target.value);
-        });
+        // Filtros
+        document.getElementById('filtroMinisterio').addEventListener('change', renderizarGaleria);
+        document.getElementById('filtroMes').addEventListener('change', renderizarGaleria);
+
+        // Aplicar filtro da URL (?ministerio=atmosfera)
+        const params = new URLSearchParams(window.location.search);
+        const minUrl = params.get('ministerio');
+        if (minUrl && NOMES_MINISTERIO[minUrl]) {
+            document.getElementById('filtroMinisterio').value = minUrl;
+        }
 
         // Iniciar
         renderizarGaleria();

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ministérios — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1A3F',
+                        secondary: '#D4AF37',
+                        accent: '#1E3A8A',
+                        light: '#F8F9FC',
+                        dark: '#0F172A'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .card-ministro {
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .card-ministro:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(10, 26, 63, 0.15);
+        }
+        .badge-ativo {
+            background: linear-gradient(135deg, #D4AF37, #f0d060);
+            color: #0A1A3F;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Cabeçalho -->
+    <header class="bg-primary text-white py-4 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="text-2xl font-bold text-secondary">IBN</span>
+                <span class="hidden sm:inline text-sm">Família para pertencer</span>
+            </a>
+            <nav class="hidden md:flex gap-6 text-sm">
+                <a href="index.html" class="hover:text-secondary transition">Início</a>
+                <a href="ministerios.html" class="text-secondary font-bold">Ministérios</a>
+                <a href="eventos.html" class="hover:text-secondary transition">Eventos</a>
+                <a href="fotos.html" class="hover:text-secondary transition">Fotos</a>
+                <a href="index.html#mais" class="hover:text-secondary transition">Contato</a>
+            </nav>
+            <a href="index.html" class="text-sm hover:text-secondary transition">← Voltar</a>
+        </div>
+    </header>
+
+    <!-- Título -->
+    <section class="py-12 text-center bg-white border-b">
+        <h1 class="text-3xl md:text-4xl font-bold text-primary">Nossos Ministérios</h1>
+        <p class="text-gray-600 mt-3 max-w-2xl mx-auto px-4">
+            Cada ministério é uma engrenagem essencial. Juntos fazemos a igreja funcionar com amor, ordem e propósito.
+        </p>
+        <p class="text-sm text-gray-500 mt-2">21 ministérios servindo a família IBN</p>
+    </section>
+
+    <!-- Aviso para membros -->
+    <div class="max-w-7xl mx-auto px-4 mt-8">
+        <div class="bg-secondary/10 border border-secondary/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p class="text-sm text-primary text-center sm:text-left">
+                <i class="fa fa-camera text-secondary mr-2"></i>
+                <strong>Fotos e o que acontece em cada ministério</strong> estão disponíveis apenas para membros logados.
+            </p>
+            <a href="fotos.html" class="bg-primary text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-accent whitespace-nowrap">
+                Ver Galeria →
+            </a>
+        </div>
+    </div>
+
+    <!-- Grade de Ministérios -->
+    <section class="max-w-7xl mx-auto px-4 py-10">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="gradeMinisterios">
+
+            <!-- 1. Atmosfera (destaque) -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden border-2 border-secondary/40 relative">
+                <span class="absolute top-3 right-3 badge-ativo text-xs font-bold px-2 py-1 rounded-full">Muito ativo</span>
+                <div class="h-32 bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-cloud"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Atmosfera</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Responsável por toda a atmosfera dos cultos, celebrações e eventos. Cuida do ambiente, da recepção sensorial e do clima espiritual que envolve cada momento.
+                    </p>
+                    <a href="fotos.html?ministerio=atmosfera" class="mt-4 inline-block w-full text-center bg-secondary text-primary py-2 rounded-lg font-bold hover:bg-yellow-400 transition">
+                        Ver o que acontece →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 2. Acolhimento -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-sky-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-heart"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Acolhimento</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Recebe e orienta as pessoas com amor, organiza o acolhimento e cria os primeiros vínculos com quem chega.
+                    </p>
+                    <a href="fotos.html?ministerio=acolhimento" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3. Mulheres -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-rose-500 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-female"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Mulheres</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Fortalece, discipula e promove comunhão entre as mulheres da igreja em todos os tempos de vida.
+                    </p>
+                    <a href="fotos.html?ministerio=mulheres" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 4. Homens -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-blue-800 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-male"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Homens</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Forma homens de caráter, fé e responsabilidade para a família, a igreja e a sociedade.
+                    </p>
+                    <a href="fotos.html?ministerio=homens" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 5. Intercessão -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-indigo-700 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-hands"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Intercessão</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Sustenta a igreja em oração. Intercede pelos cultos, pelos membros e pelas necessidades da obra.
+                    </p>
+                    <a href="fotos.html?ministerio=intercessao" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 6. Evangelismo -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-red-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-bullhorn"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Evangelismo</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Leva a mensagem de Jesus para fora dos muros da igreja, com ações e relacionamento.
+                    </p>
+                    <a href="fotos.html?ministerio=evangelismo" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 7. Dança -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-fuchsia-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-music"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Dança</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Adoração por meio da dança, transmitindo mensagens de fé, esperança e amor através do movimento.
+                    </p>
+                    <a href="fotos.html?ministerio=danca" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 8. Empreendedorismo -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-emerald-700 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-briefcase"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Empreendedorismo</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Estimula o desenvolvimento profissional e de negócios com princípios cristãos e ética.
+                    </p>
+                    <a href="fotos.html?ministerio=empreendedorismo" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 9. Batismo -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-cyan-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-tint"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Batismo</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Acompanha novos convertidos no processo de decisão, preparação e celebração do batismo.
+                    </p>
+                    <a href="fotos.html?ministerio=batismo" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 10. Zeladoria -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-gray-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-wrench"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Zeladoria</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Cuida da estrutura física, organização e manutenção do templo e espaços da igreja.
+                    </p>
+                    <a href="fotos.html?ministerio=zeladoria" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 11. Projetos Sociais (destaque) -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden border-2 border-secondary/40 relative">
+                <span class="absolute top-3 right-3 badge-ativo text-xs font-bold px-2 py-1 rounded-full">Muito ativo</span>
+                <div class="h-32 bg-gradient-to-br from-green-600 to-teal-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-users"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Projetos Sociais</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Aulas e atividades para a comunidade: xadrez, violão, bateria, balé, teclado e outras ações que transformam vidas.
+                    </p>
+                    <a href="fotos.html?ministerio=projetos-sociais" class="mt-4 inline-block w-full text-center bg-secondary text-primary py-2 rounded-lg font-bold hover:bg-yellow-400 transition">
+                        Ver o que acontece →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 12. Casais -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-pink-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-heart"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Casais</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Fortalece casamentos com ensinamentos, encontros e aconselhamento para famílias saudáveis.
+                    </p>
+                    <a href="fotos.html?ministerio=casais" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 13. Jovens -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-teal-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-bolt"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Jovens</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Formação, comunhão e propósito para a juventude — vivendo a fé no dia a dia.
+                    </p>
+                    <a href="fotos.html?ministerio=jovens" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 14. Adolescentes -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-orange-500 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-child"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Adolescentes</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Formação espiritual dos adolescentes, ajudando-os a firmar a fé e crescer em comunidade.
+                    </p>
+                    <a href="fotos.html?ministerio=adolescentes" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 15. Louvor -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-indigo-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-microphone"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Louvor</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Conduz o povo de Deus na adoração por meio da música, preparando corações para o encontro com Deus.
+                    </p>
+                    <a href="fotos.html?ministerio=louvor" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 16. Mídias Sociais -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-blue-500 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-camera"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Mídias Sociais</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Registra e compartilha a vida da igreja: cultos, eventos e momentos especiais. Muitas das fotos da galeria vêm daqui.
+                    </p>
+                    <a href="fotos.html?ministerio=midias" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 17. Infantil -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-yellow-500 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-star"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Infantil</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Ensina a Palavra às crianças de forma lúdica, afetiva e cuidadosa desde cedo.
+                    </p>
+                    <a href="fotos.html?ministerio=infantil" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 18. Artes -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-purple-700 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-paint-brush"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Artes</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Expressa o evangelho por meio das artes visuais, teatro, criatividade e manifestação do louvor.
+                    </p>
+                    <a href="fotos.html?ministerio=artes" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 19. Ensino -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-amber-700 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-book"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Ensino</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Estudo profundo da Palavra, discipulado e preparo de líderes para a obra do Senhor.
+                    </p>
+                    <a href="fotos.html?ministerio=ensino" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 20. Cantina -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-amber-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-cutlery"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Cantina</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Prepara e serve alimentos com amor, fortalece a comunhão e gera recursos para a obra.
+                    </p>
+                    <a href="fotos.html?ministerio=cantina" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+            <!-- 21. Projeto Kids -->
+            <div class="card-ministro bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="h-32 bg-lime-600 flex items-center justify-center text-white text-4xl">
+                    <i class="fa fa-smile-o"></i>
+                </div>
+                <div class="p-5">
+                    <h3 class="font-bold text-lg text-primary">Projeto Kids</h3>
+                    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+                        Atividades e cuidado especial com as crianças, complementando o ministério infantil.
+                    </p>
+                    <a href="fotos.html?ministerio=projeto-kids" class="mt-4 inline-block w-full text-center bg-primary text-white py-2 rounded-lg font-bold hover:bg-accent transition">
+                        Participar / Ver fotos →
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer class="bg-primary text-white py-8 text-center">
+        <p class="font-bold text-secondary text-lg">Igreja Batista Nacional Diamantino</p>
+        <p class="text-sm text-gray-400 mt-2">© 2026 — 21 ministérios servindo juntos</p>
+        <p class="text-xs text-gray-500 mt-1">Cada um tem o seu valor. Juntos fazemos a igreja ser o que é.</p>
+    </footer>
+
+</body>
+</html>

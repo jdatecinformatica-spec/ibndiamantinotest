@@ -39,6 +39,7 @@
                         required
                         placeholder="seu@email.com ou telefone"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors"
+                        autocomplete="off"
                     >
                 </div>
 
@@ -52,6 +53,7 @@
                             required
                             placeholder="Digite sua senha"
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:outline-none transition-colors pr-12"
+                            autocomplete="off"
                         >
                         <button type="button" id="btnOlho" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             <i class="fa fa-eye"></i>
@@ -83,7 +85,7 @@
 
     <script>
         // ==========================================
-        // ✅ CONTAS MESTRAS PADRÃO
+        // 🔑 CONTAS MESTRAS — SEMPRE FUNCIONAM
         // ==========================================
         const CONTAS_MESTRAS = [
             {
@@ -101,7 +103,7 @@
         ];
 
         // ==========================================
-        // ✅ Mostrar/Ocultar senha
+        // 👁️ Mostrar/Ocultar senha
         // ==========================================
         document.getElementById('btnOlho').addEventListener('click', function() {
             const campo = document.getElementById('senha');
@@ -116,57 +118,60 @@
         });
 
         // ==========================================
-        // ✅ LOGIN COMPLETO
+        // ✅ LOGIN CORRIGIDO — Busca exata, sem restos
         // ==========================================
         document.getElementById('formLogin').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const identificador = document.getElementById('identificador').value.trim().toLowerCase();
+            let identificador = document.getElementById('identificador').value.trim();
             const senha = document.getElementById('senha').value;
             const msg = document.getElementById('mensagem');
 
+            // Normalizar: email em minúsculas, telefone só números
+            const identMinusculo = identificador.toLowerCase();
+            const identNumeros = identificador.replace(/\D/g, '');
+
+            let usuario = null;
+
             // 1️⃣ Verificar CONTAS MESTRAS primeiro
-            let usuario = CONTAS_MESTRAS.find(acc => 
-                acc.email.toLowerCase() === identificador && acc.senha === senha
+            usuario = CONTAS_MESTRAS.find(acc => 
+                acc.email.toLowerCase() === identMinusculo && acc.senha === senha
             );
 
             // 2️⃣ Se não for mestra, verificar Administradores nomeados
             if (!usuario) {
                 const admins = JSON.parse(localStorage.getItem('adminsNomeados') || '[]');
-                const adminEncontrado = admins.find(a => 
-                    (a.email?.toLowerCase() === identificador || a.telefone === identificador) && a.senha === senha
-                );
-                if (adminEncontrado) {
-                    usuario = {
-                        nome: adminEncontrado.nome || 'Administrador',
-                        email: adminEncontrado.email || '',
-                        telefone: adminEncontrado.telefone || '',
-                        nivel: 'admin'
-                    };
-                }
+                usuario = admins.find(a => {
+                    const emailOk = (a.email || '').trim().toLowerCase() === identMinusculo;
+                    const telOk = (a.telefone || '').replace(/\D/g, '') === identNumeros;
+                    const senhaOk = a.senha === senha;
+                    return (emailOk || telOk) && senhaOk;
+                });
+                if (usuario) usuario.nivel = 'admin';
             }
 
-            // 3️⃣ Se não for admin, verificar Membros Comuns
+            // 3️⃣ Se não for admin, verificar MEMBROS COMUNS
             if (!usuario) {
-                const membros = JSON.parse(localStorage.getItem('membrosCadastro') || '[]');
-                const membroEncontrado = membros.find(m => 
-                    (m.email?.toLowerCase() === identificador || m.telefone === identificador) && m.senha === senha
-                );
-                if (membroEncontrado) {
-                    usuario = {
-                        nome: membroEncontrado.nome || 'Membro',
-                        email: membroEncontrado.email || '',
-                        telefone: membroEncontrado.telefone || '',
-                        nivel: 'membro'
-                    };
-                }
+                const todosMembros = JSON.parse(localStorage.getItem('membrosCadastrados') || '[]');
+                
+                // ✅ FILTRO: ignora quem foi REMOVIDO
+                const membrosAtivos = todosMembros.filter(m => m.removido !== true);
+                
+                usuario = membrosAtivos.find(m => {
+                    const emailOk = (m.email || '').trim().toLowerCase() === identMinusculo;
+                    const telOk = (m.telefone || '').replace(/\D/g, '') === identNumeros;
+                    const senhaOk = m.senha === senha;
+                    return (emailOk || telOk) && senhaOk;
+                });
+                
+                if (usuario) usuario.nivel = 'membro';
             }
 
             // ✅ Resultado
             if (usuario) {
                 localStorage.setItem('usuarioLogado', JSON.stringify({
-                    nome: usuario.nome,
-                    email: usuario.email,
+                    nome: usuario.nome || 'Usuário',
+                    email: usuario.email || '',
                     telefone: usuario.telefone || '',
                     nivel: usuario.nivel
                 }));
