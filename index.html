@@ -266,6 +266,11 @@
                 <h2 class="text-3xl font-bold text-center mb-10 text-primary">Programação Semanal</h2>
                 <div class="max-w-3xl mx-auto space-y-4">
                     <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-xl text-primary">Segunda-feira</h3>
+                        <p class="font-semibold">Futebol dos Homens</p>
+                        <p class="text-sm text-gray-500 mt-1">Encontro e comunhão entre os homens da igreja</p>
+                    </div>
+                    <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
                         <h3 class="font-bold text-xl text-primary">Terça-feira</h3>
                         <p class="font-semibold">Células nas casas — 20:00</p>
                         <a href="#celulas" class="text-secondary text-sm font-medium hover:underline">→ Encontrar a mais próxima no mapa</a>
@@ -412,7 +417,7 @@
     </div>
 
     <!-- ✅ GOOGLE MAPS API — chave correta do index 1 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAYZpzdj26wl8lob7ZX3VBxilRyCTpZ3x4&language=pt-BR&region=BR"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvIb1B_rLoN1VIamugnaw5IJQ85ksBcpM&language=pt-BR&region=BR"></script>
 
     <script>
         // ==================================================
@@ -882,7 +887,11 @@
             let link = '';
             let href = '#eventos';
 
-            if (diaSemana === 2) { // Terça
+            if (diaSemana === 1) { // Segunda
+                texto = '⚽ Hoje: Futebol dos Homens — comunhão e esporte!';
+                link = 'Ver programação →';
+                href = '#eventos';
+            } else if (diaSemana === 2) { // Terça
                 texto = '📍 Hoje tem Célula! Procure a mais próxima de você.';
                 link = 'Ver mapa →';
                 href = '#celulas';

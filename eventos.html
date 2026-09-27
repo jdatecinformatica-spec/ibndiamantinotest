@@ -47,9 +47,23 @@
 
     <main class="container mx-auto px-4 py-12 max-w-4xl">
 
+        <!-- Aviso membro -->
+        <div id="avisoNaoLogado" class="hidden mb-8 bg-yellow-50 border border-yellow-300 rounded-xl p-5 text-center">
+            <p class="font-bold text-primary mb-2"><i class="fa fa-lock mr-2"></i>Inscrição apenas para membros</p>
+            <p class="text-sm text-gray-600 mb-4">Para se inscrever em eventos, faça login ou cadastre-se como membro.</p>
+            <div class="flex flex-wrap justify-center gap-3">
+                <a href="login.html?destino=eventos.html" class="bg-primary text-white px-5 py-2 rounded-lg font-bold hover:bg-accent">Entrar</a>
+                <a href="cadastro.html" class="bg-secondary text-primary px-5 py-2 rounded-lg font-bold hover:bg-yellow-400">Seja Membro</a>
+            </div>
+        </div>
+
+        <div id="avisoLogado" class="hidden mb-6 bg-green-50 border border-green-200 rounded-xl p-3 text-center text-sm text-green-800">
+            <i class="fa fa-check-circle mr-1"></i> Conectado como <strong id="nomeMembro"></strong> — você pode se inscrever.
+        </div>
+
         <section id="proximo" class="mb-12">
-            <h2 class="text-3xl font-bold text-center mb-8 text-primary">📅 Próximo Evento</h2>
-            <div id="proximoEvento" class="bg-white rounded-xl shadow-lg p-6 border-2 border-secondary">
+            <h2 class="text-3xl font-bold text-center mb-8 text-primary">📅 Próximos Eventos</h2>
+            <div id="listaEventosCards" class="space-y-4">
                 <div class="py-8 text-center text-gray-500">
                     <i class="fa fa-calendar-check-o text-3xl text-secondary mb-2"></i>
                     <p>Carregando...</p>
@@ -59,6 +73,9 @@
 
         <section id="inscricao" class="mb-12">
             <h2 class="text-2xl font-bold mb-6 text-primary">Fazer Inscrição</h2>
+            <div id="avisoSemEvento" class="hidden mb-4 bg-gray-50 border border-gray-200 rounded-xl p-4 text-center text-gray-600 text-sm">
+                Não há eventos abertos para inscrição no momento. Quando um evento for publicado, você poderá se inscrever aqui.
+            </div>
             <div id="formInscricao" class="bg-white rounded-xl shadow-lg p-6">
                 <form id="formInsc" class="space-y-4">
                     <div>
@@ -79,7 +96,7 @@
                         <label class="block font-semibold mb-1">E-mail</label>
                         <input type="email" id="email" class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary">
                     </div>
-                    <button type="submit" class="w-full bg-primary text-white p-3 rounded-md font-bold hover:bg-accent">
+                    <button type="submit" id="btnEnviarInsc" class="w-full bg-primary text-white p-3 rounded-md font-bold hover:bg-accent">
                         <i class="fa fa-check-circle mr-2"></i> Gerar Inscrição
                     </button>
                 </form>
@@ -102,10 +119,12 @@
                     <p id="valorEventoFat" class="text-2xl font-bold text-secondary"></p>
                 </div>
                 <div class="bg-gray-50 p-4 rounded-lg mb-4">
-                    <p class="text-sm font-semibold mb-2">Chave PIX para Pagamento:</p>
+                    <p class="text-sm font-semibold mb-2">Forma de pagamento:</p>
+                    <p id="formaPagamento" class="text-sm mb-2"></p>
+                    <p class="text-sm font-semibold mb-2">Chave PIX:</p>
                     <p id="pixCode" class="font-mono bg-white p-3 rounded border text-center text-sm break-all"></p>
                     <button onclick="copiarPixPag()" class="mt-3 w-full bg-secondary text-primary p-2 rounded font-bold hover:bg-yellow-400">
-                        <i class="fa fa-copy mr-2"></i> Copiar Código PIX
+                        <i class="fa fa-copy mr-2"></i> Copiar Chave PIX
                     </button>
                 </div>
                 <div class="mt-6 pt-4 border-t">
@@ -125,6 +144,21 @@
             </div>
         </section>
 
+        <!-- Área admin (visível só para admin/gestor) -->
+        <section id="areaAdmin" class="hidden mb-12 border-2 border-dashed border-secondary/40 rounded-xl p-6 bg-white">
+            <h2 class="text-xl font-bold text-primary mb-2"><i class="fa fa-cog mr-2"></i> Gestão de Eventos (Admin)</h2>
+            <p class="text-sm text-gray-500 mb-4">Adicione eventos, valores e formas de pagamento. Os dados ficam salvos neste navegador (depois pode migrar para servidor).</p>
+            <form id="formAdminEvento" class="space-y-3 max-w-lg">
+                <input type="text" id="admNome" placeholder="Nome do evento" required class="w-full p-2 border rounded">
+                <input type="text" id="admData" placeholder="Data (ex: 15/11/2026)" required class="w-full p-2 border rounded">
+                <input type="number" id="admValor" placeholder="Valor (R$)" step="0.01" min="0" required class="w-full p-2 border rounded">
+                <input type="text" id="admPix" placeholder="Chave PIX" value="36.158.983/0001-36" class="w-full p-2 border rounded">
+                <input type="text" id="admForma" placeholder="Formas de pagamento (ex: PIX, Dinheiro)" value="PIX" class="w-full p-2 border rounded">
+                <button type="submit" class="bg-secondary text-primary px-4 py-2 rounded font-bold">+ Adicionar Evento</button>
+            </form>
+            <div id="listaAdminEventos" class="mt-4 text-sm space-y-2"></div>
+        </section>
+
     </main>
 
     <footer class="bg-dark text-white py-6 text-center text-sm">
@@ -132,46 +166,143 @@
     </footer>
 
     <script>
-        const eventos = [
-            { id: 'retiro-2026', nome: 'Retiro de Jovens 2026', data: '15/11/2026', valor: 150.00, pixDestino: '36.158.983/0001-36' },
-            { id: 'conferencia-2026', nome: 'Conferência de Mulheres', data: '05/12/2026', valor: 80.00, pixDestino: '36.158.983/0001-36' }
-        ];
+        // Eventos padrão + os salvos pelo admin
+        // Agenda começa vazia — o admin adiciona os eventos
+        const EVENTOS_PADRAO = [];
 
+        function carregarEventos() {
+            const salvos = localStorage.getItem('ibn_eventos');
+            if (salvos) {
+                try {
+                    const arr = JSON.parse(salvos);
+                    if (Array.isArray(arr) && arr.length) return arr;
+                } catch (e) {}
+            }
+            return [...EVENTOS_PADRAO];
+        }
+
+        function salvarEventos(lista) {
+            localStorage.setItem('ibn_eventos', JSON.stringify(lista));
+        }
+
+        let eventos = carregarEventos();
         let inscritos = JSON.parse(localStorage.getItem('inscritosIBN') || '[]');
         let inscricaoAtual = null;
+        let membro = null;
+
+        function verificarMembro() {
+            try {
+                const s = localStorage.getItem('usuarioLogado');
+                if (s) membro = JSON.parse(s);
+            } catch (e) {}
+            return !!membro;
+        }
 
         function init() {
-            carregarProximoEvento();
+            const logado = verificarMembro();
+
+            if (logado) {
+                document.getElementById('avisoLogado').classList.remove('hidden');
+                document.getElementById('nomeMembro').textContent = membro.nome || 'Membro';
+                document.getElementById('nome').value = membro.nome || '';
+                document.getElementById('email').value = membro.email || '';
+                if (membro.nivel === 'admin' || membro.nivel === 'gestor') {
+                    document.getElementById('areaAdmin').classList.remove('hidden');
+                    renderAdminEventos();
+                }
+            } else {
+                document.getElementById('avisoNaoLogado').classList.remove('hidden');
+                document.getElementById('btnEnviarInsc').disabled = true;
+                document.getElementById('btnEnviarInsc').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('btnEnviarInsc').innerHTML = '<i class="fa fa-lock mr-2"></i> Faça login para se inscrever';
+            }
+
+            carregarCardsEventos();
             carregarSelectEventos();
+            atualizarUISemEvento();
             carregarListaPublica();
         }
 
-        function carregarProximoEvento() {
-            const proximo = eventos[0];
-            const container = document.getElementById('proximoEvento');
-            container.innerHTML = `
-                <div class="grid md:grid-cols-2 gap-6 items-center">
-                    <div>
-                        <p class="text-sm text-secondary font-bold">EM BREVE</p>
-                        <h3 class="text-2xl font-bold text-primary mt-1">${proximo.nome}</h3>
-                        <p class="text-lg mt-2"><i class="fa fa-calendar"></i> ${proximo.data}</p>
-                        <p class="text-xl font-bold text-secondary mt-3">Valor: R$ ${proximo.valor.toFixed(2)}</p>
+
+        function atualizarUISemEvento() {
+            const sem = !eventos.length;
+            const aviso = document.getElementById('avisoSemEvento');
+            const form = document.getElementById('formInscricao');
+            if (aviso) aviso.classList.toggle('hidden', !sem);
+            if (form) form.classList.toggle('opacity-50', sem);
+            if (form && sem) {
+                form.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
+            }
+        }
+
+        function carregarCardsEventos() {
+            const container = document.getElementById('listaEventosCards');
+            if (!eventos.length) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-8 md:p-12 border-2 border-dashed border-secondary/40 text-center">
+                        <div class="text-5xl mb-4">📅</div>
+                        <h3 class="text-2xl font-bold text-primary mb-2">Nenhum evento na agenda</h3>
+                        <p class="text-gray-600 max-w-md mx-auto mb-4">
+                            Em breve teremos novidades! Fique de olho nas nossas redes e no WhatsApp da igreja.
+                        </p>
+                        <p class="text-sm text-gray-500 mb-6">
+                            Igreja Batista Nacional Diamantino — Família para pertencer
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-3">
+                            <a href="https://youtube.com/@ibndiamantino" target="_blank"
+                               class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700">
+                                <i class="fa fa-youtube-play"></i> YouTube
+                            </a>
+                            <a href="index.html#celulas"
+                               class="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent">
+                                <i class="fa fa-map-marker"></i> Células
+                            </a>
+                            <a href="index.html"
+                               class="inline-flex items-center gap-2 bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-400">
+                                <i class="fa fa-home"></i> Site
+                            </a>
+                        </div>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = eventos.map((e, i) => `
+                <div class="bg-white rounded-xl shadow-lg p-6 border-2 ${i === 0 ? 'border-secondary' : 'border-gray-100'}">
+                    <div class="grid md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            ${i === 0 ? '<p class="text-sm text-secondary font-bold">PRÓXIMO</p>' : ''}
+                            <h3 class="text-xl font-bold text-primary mt-1">${e.nome}</h3>
+                            <p class="mt-2"><i class="fa fa-calendar"></i> ${e.data}</p>
+                            <p class="text-lg font-bold text-secondary mt-2">R$ ${Number(e.valor).toFixed(2)}</p>
+                            <p class="text-xs text-gray-500 mt-1">${e.formaPagamento || 'PIX'}</p>
+                        </div>
+                        <a href="#inscricao" class="bg-secondary text-primary p-3 rounded-lg font-bold text-center hover:bg-yellow-400">
+                            <i class="fa fa-pencil-square-o mr-2"></i> Inscrever-se
+                        </a>
                     </div>
-                    <a href="#inscricao" class="bg-secondary text-primary p-4 rounded-lg font-bold text-center text-lg hover:bg-yellow-400">
-                        <i class="fa fa-pencil-square-o mr-2"></i> Fazer Inscrição
-                    </a>
                 </div>
-            `;
+            `).join('');
         }
 
         function carregarSelectEventos() {
             const sel = document.getElementById('eventoSelect');
-            sel.innerHTML = '<option value="">Selecione...</option>' + 
-                eventos.map(e => `<option value="${e.id}">${e.nome} — R$ ${e.valor.toFixed(2)}</option>`).join('');
+            if (!eventos.length) {
+                sel.innerHTML = '<option value="">Nenhum evento na agenda no momento</option>';
+                sel.disabled = true;
+            } else {
+                sel.disabled = false;
+                sel.innerHTML = '<option value="">Selecione...</option>' +
+                    eventos.map(e => `<option value="${e.id}">${e.nome} — R$ ${Number(e.valor).toFixed(2)}</option>`).join('');
+            }
         }
 
         document.getElementById('formInsc').addEventListener('submit', function(e) {
             e.preventDefault();
+            if (!verificarMembro()) {
+                alert('Você precisa estar cadastrado e logado como membro para se inscrever.');
+                window.location.href = 'login.html?destino=eventos.html';
+                return;
+            }
+
             const eventoId = document.getElementById('eventoSelect').value;
             const nome = document.getElementById('nome').value.trim();
             const telefone = document.getElementById('telefone').value.trim();
@@ -180,11 +311,19 @@
             const evento = eventos.find(ev => ev.id === eventoId);
             if (!evento) return alert('Selecione um evento válido');
 
+            // Evitar inscrição duplicada no mesmo evento
+            const ja = inscritos.find(i => i.eventoId === eventoId && (i.email === email || i.telefone === telefone));
+            if (ja) {
+                alert('Você já possui inscrição neste evento. Código: ' + ja.codigo);
+                return;
+            }
+
             const codigo = 'IBN-' + eventoId.toUpperCase().replace(/-/g,'') + '-' + Date.now().toString(36).toUpperCase();
-            
+
             const novaInsc = {
                 codigo, eventoId, eventoNome: evento.nome, nome, telefone, email,
-                valor: evento.valor, dataInsc: new Date().toLocaleString('pt-BR'), pago: false
+                valor: evento.valor, dataInsc: new Date().toLocaleString('pt-BR'), pago: false,
+                membroId: membro.email || membro.nome
             };
             inscritos.push(novaInsc);
             salvarInscritos();
@@ -193,16 +332,20 @@
             document.getElementById('fatura').classList.remove('hidden');
             document.getElementById('codigoInsc').textContent = codigo;
             document.getElementById('nomeEventoFat').textContent = evento.nome;
-            document.getElementById('valorEventoFat').textContent = `R$ ${evento.valor.toFixed(2)}`;
-            document.getElementById('pixCode').textContent = `${evento.pixDestino} — Ref: ${codigo}`;
+            document.getElementById('valorEventoFat').textContent = `R$ ${Number(evento.valor).toFixed(2)}`;
+            document.getElementById('formaPagamento').textContent = evento.formaPagamento || 'PIX';
+            document.getElementById('pixCode').textContent = evento.pixDestino || '36.158.983/0001-36';
 
             document.getElementById('fatura').scrollIntoView({ behavior: 'smooth' });
             carregarListaPublica();
         });
 
         function copiarPixPag() {
-            navigator.clipboard.writeText(`${inscricaoAtual.pixDestino} — Ref: ${inscricaoAtual.codigo}`);
-            alert('✅ Copiado! Cole no app do banco e coloque o código como "Descrição/Referência"');
+            const pix = (inscricaoAtual && eventos.find(e => e.id === inscricaoAtual.eventoId))
+                ? (eventos.find(e => e.id === inscricaoAtual.eventoId).pixDestino || '36158983000136')
+                : '36158983000136';
+            navigator.clipboard.writeText(pix.replace(/\D/g, '') || pix);
+            alert('✅ Chave PIX copiada! No app do banco, use a referência: ' + (inscricaoAtual ? inscricaoAtual.codigo : ''));
         }
 
         document.getElementById('btnConfirmar').addEventListener('click', function() {
@@ -229,19 +372,65 @@
                 container.innerHTML = '<p class="text-gray-500 text-center">Ninguém inscrito ainda. Seja o primeiro! ✨</p>';
                 return;
             }
+            const pagos = inscritos.filter(i => i.pago).length;
             container.innerHTML = `
-                <p class="text-sm text-gray-500 mb-4">Total: ${inscritos.length} inscrito(s)</p>
+                <p class="text-sm text-gray-500 mb-4">Total: ${inscritos.length} · Pagos: ${pagos} · Pendentes: ${inscritos.length - pagos}</p>
                 <div class="space-y-2">
                     ${inscritos.map(i => `
-                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span class="font-semibold">${i.nome}</span>
-                            <span class="text-xs px-2 py-1 rounded-full ${i.pago ? 'status-pago' : 'status-pendente'}">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <span class="font-semibold">${i.nome}</span>
+                                <span class="text-xs text-gray-500 block sm:inline sm:ml-2">${i.eventoNome || ''}</span>
+                            </div>
+                            <span class="text-xs px-2 py-1 rounded-full w-fit ${i.pago ? 'status-pago' : 'status-pendente'}">
                                 ${i.pago ? '✅ Pago' : '⏳ Pendente'}
                             </span>
                         </div>
                     `).join('')}
                 </div>
             `;
+        }
+
+        // Admin: adicionar evento
+        document.getElementById('formAdminEvento').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('admNome').value.trim();
+            const data = document.getElementById('admData').value.trim();
+            const valor = parseFloat(document.getElementById('admValor').value) || 0;
+            const pix = document.getElementById('admPix').value.trim() || '36.158.983/0001-36';
+            const forma = document.getElementById('admForma').value.trim() || 'PIX';
+            const id = 'evt-' + Date.now().toString(36);
+
+            eventos.push({ id, nome, data, valor, pixDestino: pix, formaPagamento: forma });
+            salvarEventos(eventos);
+            this.reset();
+            document.getElementById('admPix').value = '36.158.983/0001-36';
+            document.getElementById('admForma').value = 'PIX';
+            carregarCardsEventos();
+            carregarSelectEventos();
+            atualizarUISemEvento();
+            renderAdminEventos();
+            alert('Evento adicionado!');
+        });
+
+        function renderAdminEventos() {
+            const box = document.getElementById('listaAdminEventos');
+            box.innerHTML = eventos.map((e, idx) => `
+                <div class="flex justify-between items-center border-b py-2">
+                    <span>${e.nome} — ${e.data} — R$ ${Number(e.valor).toFixed(2)}</span>
+                    <button type="button" data-idx="${idx}" class="btn-rm-evt text-red-500 text-xs">Remover</button>
+                </div>
+            `).join('') || '<p class="text-gray-400">Nenhum evento</p>';
+            box.querySelectorAll('.btn-rm-evt').forEach(btn => {
+                btn.onclick = () => {
+                    eventos.splice(parseInt(btn.dataset.idx), 1);
+                    salvarEventos(eventos);
+                    carregarCardsEventos();
+                    carregarSelectEventos();
+                    atualizarUISemEvento();
+                    renderAdminEventos();
+                };
+            });
         }
 
         init();
