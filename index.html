@@ -120,10 +120,28 @@
         </span>
     </div>
 
-    <!-- ✅ ALERTA DO DIA (programação automática) -->
-    <div id="alertaDoDia" class="hidden bg-secondary text-primary py-3 px-4 text-center font-bold shadow-sm">
-        <span id="textoAlertaDia"></span>
-        <a id="linkAlertaDia" href="#celulas" class="underline ml-2 text-sm font-semibold hover:opacity-80"></a>
+    <!-- ✅ ALERTA DO DIA + REDES + INSTALAR APP -->
+    <div id="barraTopoUtil" class="bg-primary text-white">
+        <div id="alertaDoDia" class="hidden bg-secondary text-primary py-2.5 px-4 text-center font-bold shadow-sm">
+            <span id="textoAlertaDia"></span>
+            <a id="linkAlertaDia" href="#celulas" class="underline ml-2 text-sm font-semibold hover:opacity-80"></a>
+        </div>
+        <div class="container mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div class="flex items-center gap-3">
+                <span class="text-white/70 text-xs hidden sm:inline">Siga a IBN:</span>
+                <a href="https://www.instagram.com/ibndiamantino" target="_blank" rel="noopener"
+                   class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center hover:scale-110 transition" title="Instagram">
+                    <i class="fa fa-instagram text-white"></i>
+                </a>
+                <a href="https://youtube.com/@ibndiamantino" target="_blank" rel="noopener"
+                   class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center hover:scale-110 transition" title="YouTube">
+                    <i class="fa fa-youtube-play text-white"></i>
+                </a>
+</div>
+            <button type="button" id="btnBaixarApp" class="inline-flex items-center gap-2 bg-secondary text-primary px-3 py-1.5 rounded-full font-bold text-xs hover:bg-yellow-400 transition">
+                <i class="fa fa-download"></i> Baixar / Instalar App
+            </button>
+        </div>
     </div>
 
     <!-- ✅ Cabeçalho -->
@@ -144,6 +162,7 @@
                 </a>
                 <a href="ministerios.html" class="hover:text-secondary transition-colors">Ministérios</a>
                 <a href="fotos.html" class="hover:text-secondary transition-colors">Fotos</a>
+                <a href="#devocional" class="hover:text-secondary transition-colors">Devocional</a>
                 <a href="#oracao" class="hover:text-secondary transition-colors flex items-center gap-1">
                     <i class="fa fa-heart text-xs"></i> Oração
                 </a>
@@ -180,6 +199,7 @@
                 <a href="#transmissoes" class="py-2 border-b border-white/20">Ao Vivo</a>
                 <a href="ministerios.html" class="py-2 border-b border-white/20">Ministérios</a>
                 <a href="fotos.html" class="py-2 border-b border-white/20">Fotos</a>
+                <a href="#devocional" class="py-2 border-b border-white/20">Devocional</a>
                 <a href="#oracao" class="py-2 border-b border-white/20">Oração</a>
                 <a href="#doacao" class="py-2 border-b border-white/20">Doação</a>
                 <a href="adminlogin.html" id="linkGestaoMobile" class="py-2 border-b border-white/20 hidden">Gestão</a>
@@ -324,13 +344,63 @@
                     <a href="fotos.html" class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400 mr-2">
                         <i class="fa fa-camera mr-2"></i> Ver Galeria de Fotos
                     </a>
-                    <a href="https://youtube.com/@ibndiamantino/videos" target="_blank" 
+                    <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" 
                        class="inline-block bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
                         <i class="fa fa-youtube-play mr-2"></i> Ver TODO o histórico no YouTube
                     </a>
                 </div>
             </div>
         </section>
+        <!-- ✅ DEVOCIONAL DIÁRIO -->
+        <section id="devocional" class="py-16 bg-gradient-to-b from-primary to-accent text-white">
+            <div class="container mx-auto px-4 max-w-3xl">
+                <div class="text-center mb-8">
+                    <p class="text-secondary font-bold text-sm tracking-wide mb-2">TODOS OS DIAS</p>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">📖 Devocional Diário</h2>
+                    <p class="text-white/80 max-w-xl mx-auto">
+                        Ouça o devocional de hoje e dos dias anteriores aqui mesmo. Também pode entrar nos grupos ou abrir no Spotify.
+                    </p>
+                </div>
+
+                <!-- Player Spotify embutido (show completo = episódios atuais e anteriores) -->
+                <div class="bg-black/30 rounded-2xl p-3 md:p-4 shadow-xl border border-white/10 mb-8">
+                    <iframe
+                        style="border-radius:12px"
+                        src="https://open.spotify.com/embed/show/5hSS9sP5fa0GYBJNP5IqEQ?utm_source=generator&theme=0"
+                        width="100%"
+                        height="352"
+                        frameBorder="0"
+                        allowfullscreen=""
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                        loading="lazy"
+                        title="Devocional Diário IBN Diamantino">
+                    </iframe>
+                    <p class="text-center text-xs text-white/50 mt-2">Toque no episódio desejado para ouvir · lista com dias anteriores</p>
+                </div>
+
+                <div class="grid sm:grid-cols-3 gap-4">
+                    <a href="https://chat.whatsapp.com/BtY8qLwdyfF6vu3zL4scXr" target="_blank" rel="noopener"
+                       class="bg-green-500 hover:bg-green-600 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
+                        <i class="fa fa-whatsapp text-3xl"></i>
+                        <span class="font-bold">WhatsApp</span>
+                        <span class="text-xs text-white/90">Grupo do devocional</span>
+                    </a>
+                    <a href="https://t.me/joinchat/BFI7ldqPUxMxNmMx" target="_blank" rel="noopener"
+                       class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
+                        <span class="text-3xl leading-none">✈️</span>
+                        <span class="font-bold">Telegram</span>
+                        <span class="text-xs text-white/90">Grupo do devocional</span>
+                    </a>
+                    <a href="https://open.spotify.com/show/5hSS9sP5fa0GYBJNP5IqEQ" target="_blank" rel="noopener"
+                       class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
+                        <span class="text-3xl leading-none">🎧</span>
+                        <span class="font-bold">Abrir no Spotify</span>
+                        <span class="text-xs text-white/90">App ou site</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
 
         <!-- ✅ ORAÇÃO — formulário completo restaurado -->
         <section id="oracao" class="py-16 bg-white">
@@ -371,6 +441,10 @@
                 <p class="text-lg mb-2"><strong>Igreja Batista Nacional Diamantino</strong></p>
                 <p class="mb-4">Av. Ministro Gilmar Ferreira Mendes, S/N — ao lado do Sicredi<br>Diamantino — MT</p>
                 <p class="mb-4"><i class="fa fa-whatsapp"></i> <a href="tel:+5565996292021" class="text-secondary font-bold">(65) 9 9629-2021</a></p>
+                <div class="flex justify-center gap-4 mb-6">
+                    <a href="https://www.instagram.com/ibndiamantino" target="_blank" rel="noopener" class="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center hover:scale-110 transition" title="Instagram"><i class="fa fa-instagram text-white text-lg"></i></a>
+                    <a href="https://youtube.com/@ibndiamantino" target="_blank" rel="noopener" class="w-11 h-11 rounded-full bg-red-600 flex items-center justify-center hover:scale-110 transition" title="YouTube"><i class="fa fa-youtube-play text-white text-lg"></i></a>
+</div>
                 <a href="https://www.google.com/maps/search/?api=1&query=Av.+Ministro+Gilmar+Ferreira+Mendes,Diamantino-MT" target="_blank" 
                    class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400">
                     <i class="fa fa-map-marker mr-2"></i> Como Chegar →
@@ -465,11 +539,46 @@
         // 🎵 PLAYER DE LOUVORES
         // ==================================================
         const repertorioPadrao = [
-            { titulo: "A Ele a Glória", artista: "Aline Barros", url: "audios/a-ele-a-gloria.mp3" },
-            { titulo: "Além do Rio Azul", artista: "Toque no Altar", url: "audios/alem-do-rio-azul.mp3" },
-            { titulo: "Amor de Deus", artista: "Fernandinho", url: "audios/amor-de-deus.mp3" },
-            { titulo: "Ao Único", artista: "Aline Barros", url: "audios/ao-unico.mp3" },
-            { titulo: "Aquieta Minh'Alma", artista: "Arianne", url: "audios/aquieta-minha-alma.mp3" }
+            { titulo: '500 GRAUS', artista: 'THALES ROBERTO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769178280378-d9gm4o.mp3' },
+            { titulo: 'A BOA PARTE', artista: 'FHOP MUSIC', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769178719443-2w3g5b.mp3' },
+            { titulo: 'Á ESPREITA DE TI', artista: 'OS BRAVOS', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770316461660-8yl81.mp3' },
+            { titulo: 'A RESPOSTA', artista: 'THALES ROBERTO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769192874811-awrz.mp3' },
+            { titulo: 'ABRE OS SELOS', artista: 'NÍVEA SOARES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769192422082-dq5lqm.mp3' },
+            { titulo: 'ACENDE OUTRA VEZ', artista: 'JEFFERSON E SUELLEN', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769180031307-nn54nd.mp3' },
+            { titulo: 'ACLAME AO SENHOR', artista: 'FELIPE RODRIGUES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769179563556-brd8l.mp3' },
+            { titulo: 'ACLAME AO SENHOR', artista: 'MEDELY- MORADA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769178214485-04g4k.mp3' },
+            { titulo: 'AGNUS DEI', artista: 'MATEUS BRITO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769195665736-dbu7qf.mp3' },
+            { titulo: 'ÁGUAS PURIFICADORAS+OCEANOS', artista: 'ISAÍAS SAAD', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769195767953-68oitq.mp3' },
+            { titulo: 'ALELUIA (QUEM MUITO FOI PERDOADO)', artista: 'ALESSANDRO VILAS BOAS', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769192303131-qrgzo9.mp3' },
+            { titulo: 'ALÉM DO IMPOSSÍVEL _ PEDRO • BRASAS  FELIPE RODRIGUES  SALVAON', artista: 'IBN Diamantino', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769176011585-hh6q1.mp3' },
+            { titulo: 'AMO O SENHOR', artista: 'FELIPE RODRIGUES feat MARCUS SALLES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1771506252464-l4gwyq.mp3' },
+            { titulo: 'AOS PÉS DA CRUZ', artista: 'ELI SOARES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1771507938545-0fdnyu.mp3' },
+            { titulo: 'APENAS UM DIA NA SUA CASA', artista: 'MATEUS BRITO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770146990442-knxf4.mp3' },
+            { titulo: 'AQUELE QUE HÁ DE VIR', artista: 'ELEVE MUSIC', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770403916345-5rxlm.mp3' },
+            { titulo: 'ATÉ QUE O SENHOR VENHA', artista: 'CULTURA DO CÉU', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769189669291-8qj44k.mp3' },
+            { titulo: 'ATÉ QUE TODA TERRA CANTE', artista: 'GABI SAMPAIO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1771505734164-ks0zgb.mp3' },
+            { titulo: 'BOM COMIGO', artista: 'BEATRIZ CRISTINA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769189809290-vb3hzi.mp3' },
+            { titulo: 'BONDADE DE DEUS', artista: 'ISAÍAS SAAD', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769179972930-0gd3u.mp3' },
+            { titulo: 'CAIA FOGO', artista: 'FERNANDINHO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769179843361-se6z7n.mp3' },
+            { titulo: 'CANÇÃO AO CORDEIRO', artista: 'ISRAEL SALAZAR feat GABRIEL GUEDES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769179015737-rcf9gs.mp3' },
+            { titulo: 'CANÇÃO DE SIMEÃO', artista: 'DROPS', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770144373813-rbygm.mp3' },
+            { titulo: 'CANÇÃO DO APOCALIPSE', artista: 'CAROL BRAGA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769178765272-mjxeo.mp3' },
+            { titulo: 'CANÇÃO DOS REDIMIDOS', artista: 'JULIA VITORIA feat NÍVEA SOARES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770145091104-7y2ceo.mp3' },
+            { titulo: 'CENTRO', artista: 'GUILHERME BAPTISTA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1771506053059-vl6m0d.mp3' },
+            { titulo: 'CLAMO JESUS', artista: 'MARCELO MARKES feat SUED SILVA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770147167731-eo3ps.mp3' },
+            { titulo: 'COLOSSENSES E SUAS LINHAS DE AMOR', artista: 'FHOP MUSIC', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769175381967-3qnd2q.mp3' },
+            { titulo: 'COMUNHÃO', artista: 'GABI SAMPAIO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770317636046-4032q.mp3' },
+            { titulo: 'CONSOLADOR', artista: 'BEATRIZ CRISTINA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770317889266-n7ra9.mp3' },
+            { titulo: 'CORDEIRO E LEÃO', artista: 'JEFFERSON E SUELLEN', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769192142759-h7gpyn.mp3' },
+            { titulo: 'CREIO', artista: 'SARAH BEATRIZ', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770144945536-4kqhsg.mp3' },
+            { titulo: 'CRISTO', artista: 'SOM DO REINO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1771505988941-lk2ojh.mp3' },
+            { titulo: 'CRISTO+ TUDO É TEU', artista: 'DRPOS', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769178023823-2d5xia.mp3' },
+            { titulo: 'DEUS DA MINHA VIDA', artista: 'THALES ROBERTO', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769174410193-wv3ic3.mp3' },
+            { titulo: 'DIGNO DE TUDO', artista: 'CENTRAL 3', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770144581612-4xhjc.mp3' },
+            { titulo: 'DIGNO DE TUDO+TE EXALTAMOS', artista: 'FELIPE RODRIGUES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769190083058-v9mj6o.mp3' },
+            { titulo: 'DIGNO É O SENHOR', artista: 'FELIPE RODRIGUES', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769196203275-kuoj0q.mp3' },
+            { titulo: 'DONO DA MINHA AFEIÇÃO', artista: 'FHOP MUSIC', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1769189580081-s3dez9.mp3' },
+            { titulo: 'É ELE+AGNUS DEI', artista: 'CAROL BRAGA', url: 'https://srvohdtvqsifhzccsgpe.supabase.co/storage/v1/object/public/media/radio/1770144640032-8ift5l.mp3' }
         ];
 
         function carregarRepertorio() {
@@ -486,8 +595,41 @@
         const player = {
             lista: [],
             indice: -1,
-            audio: new Audio(),
+            audio: null,
             estaTocando: false,
+            desbloqueado: false,
+            tentativasErro: 0,
+
+            criarAudio() {
+                const a = new Audio();
+                a.preload = 'metadata';
+                a.setAttribute('playsinline', 'true');
+                a.setAttribute('webkit-playsinline', 'true');
+                a.crossOrigin = 'anonymous';
+                a.addEventListener('ended', () => this.proxima());
+                a.addEventListener('error', () => {
+                    this.tentativasErro++;
+                    if (this.tentativasErro > 8) {
+                        this.estaTocando = false;
+                        this.atualizarUI(false);
+                        const el = document.getElementById('nomeMusica');
+                        if (el) el.textContent = 'Erro ao carregar áudio — toque Play de novo';
+                        return;
+                    }
+                    if (this.estaTocando) {
+                        this.indice++;
+                        this.tocar(true);
+                    }
+                });
+                a.addEventListener('playing', () => {
+                    this.tentativasErro = 0;
+                    this.atualizarUI(true);
+                });
+                a.addEventListener('pause', () => {
+                    if (!this.estaTocando) this.atualizarUI(false);
+                });
+                return a;
+            },
 
             embaralhar(arr) {
                 const a = [...arr];
@@ -498,65 +640,102 @@
                 return a;
             },
 
-            recarregarEReiniciar() {
-                REPERTORIO = carregarRepertorio();
-                if (REPERTORIO.length === 0) return;
-                this.lista = this.embaralhar(REPERTORIO);
-                this.indice = 0;
-                this.tocar();
+            garantirAudio() {
+                if (!this.audio) this.audio = this.criarAudio();
             },
 
-            tocar() {
+            recarregarEReiniciar() {
+                REPERTORIO = carregarRepertorio();
+                if (!REPERTORIO.length) return;
+                this.lista = this.embaralhar(REPERTORIO);
+                this.indice = 0;
+                this.tocar(true);
+            },
+
+            tocar(forcarPlay) {
+                this.garantirAudio();
                 if (this.indice >= this.lista.length) {
                     this.lista = this.embaralhar(REPERTORIO);
                     this.indice = 0;
                 }
-                if (this.lista.length === 0) return;
+                if (!this.lista.length) return;
                 const m = this.lista[this.indice];
-                this.audio.src = m.url;
-                document.getElementById('nomeMusica').textContent = `${m.titulo} — ${m.artista}`;
-                if (this.estaTocando) this.audio.play().catch(() => {});
+                const nome = document.getElementById('nomeMusica');
+                if (nome) nome.textContent = `${m.titulo} — ${m.artista}`;
+
+                // Só troca src se mudou (ajuda no iOS)
+                if (this.audio.src !== m.url) {
+                    this.audio.src = m.url;
+                    this.audio.load();
+                }
+
+                if (forcarPlay || this.estaTocando) {
+                    const playPromise = this.audio.play();
+                    if (playPromise && typeof playPromise.then === 'function') {
+                        playPromise.then(() => {
+                            this.desbloqueado = true;
+                            this.atualizarUI(true);
+                        }).catch((err) => {
+                            console.warn('play bloqueado/erro:', err);
+                            // iOS: UI não fica como "tocando" se não tocou de verdade
+                            this.atualizarUI(false);
+                            this.estaTocando = false;
+                        });
+                    }
+                }
             },
 
-            proxima() { this.indice++; this.tocar(); },
-            anterior() { if (this.indice > 0) { this.indice--; this.tocar(); } },
+            proxima() {
+                this.indice++;
+                this.tocar(this.estaTocando);
+            },
+            anterior() {
+                if (this.indice > 0) {
+                    this.indice--;
+                    this.tocar(this.estaTocando);
+                }
+            },
 
+            // Deve ser chamado SEMPRE a partir de clique/toque do usuário (iOS)
             toggle() {
-                if (!this.estaTocando) {
-                    this.recarregarEReiniciar();
-                    this.audio.play().catch(() => {});
+                this.garantirAudio();
+                if (!this.estaTocando || this.audio.paused) {
                     this.estaTocando = true;
-                    this.atualizarUI(true);
-                } else if (this.audio.paused) {
-                    this.audio.play().catch(() => {});
-                    this.atualizarUI(true);
+                    if (!this.lista.length) {
+                        this.recarregarEReiniciar();
+                    } else {
+                        this.tocar(true);
+                    }
                 } else {
+                    this.estaTocando = false;
                     this.audio.pause();
                     this.atualizarUI(false);
                 }
             },
 
             pausar() {
-                if (this.estaTocando) {
-                    this.audio.pause();
-                    this.atualizarUI(false);
-                }
+                if (!this.audio) return;
+                this.audio.pause();
+                this.atualizarUI(false);
             },
 
             retomar() {
-                if (this.estaTocando) {
-                    this.audio.play().catch(() => {});
-                    this.atualizarUI(true);
-                }
+                if (!this.estaTocando || !this.audio) return;
+                this.audio.play().then(() => this.atualizarUI(true)).catch(() => {});
             },
 
             atualizarUI(tocando) {
                 const icone = document.querySelector('#btnPlay i');
                 if (icone) icone.className = tocando ? 'fa fa-pause' : 'fa fa-play';
-                document.getElementById('playerFixo').classList.toggle('tocando', tocando);
+                const bar = document.getElementById('playerFixo');
+                if (bar) bar.classList.toggle('tocando', tocando);
             },
 
-            volume(v) { this.audio.volume = v / 100; }
+            volume(v) {
+                this.garantirAudio();
+                this.audio.volume = Math.max(0, Math.min(1, v / 100));
+            }
+        };
         };
 
         // ==================================================
@@ -735,24 +914,47 @@
         });
 
         // PWA
+        function instrucoesInstalarApp() {
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isAndroid = /Android/i.test(ua);
+            if (isIOS) {
+                alert('📱 iPhone / iPad\n\n1. Abra este site no Safari\n2. Toque em Compartilhar (□↑)\n3. "Adicionar à Tela de Início"\n4. Confirme\n\nPronto! O ícone IBN fica na tela inicial.');
+            } else if (isAndroid) {
+                alert('📱 Android\n\n1. Menu do Chrome (⋮)\n2. "Instalar aplicativo" ou "Adicionar à tela inicial"\n\nSe não aparecer, use o botão Baixar/Instalar quando o Chrome oferecer.');
+            } else {
+                alert('💻 Computador\n\nNo Chrome/Edge: ícone de instalação na barra de endereço (⊕ ou computador)\nou Menu ⋮ → "Instalar IBN Diamantino".\n\nAssim o site abre como app, com o mesmo login.');
+            }
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             promptInstalacao = e;
-            setTimeout(() => { document.getElementById('installBanner').style.display = 'block'; }, 3000);
+            setTimeout(() => {
+                const b = document.getElementById('installBanner');
+                if (b) b.style.display = 'block';
+            }, 2500);
         });
         document.getElementById('btnFecharAviso').addEventListener('click', () => {
             document.getElementById('installBanner').style.display = 'none';
         });
-        document.getElementById('btnInstalar').addEventListener('click', async () => {
-            if (!promptInstalacao) {
-                alert('📱 Android: 3 pontinhos → "Instalar aplicativo"\n📱 iPhone: Compartilhar → "Adicionar à Tela de Início"');
-                return;
+        async function tentarInstalarApp() {
+            if (promptInstalacao) {
+                try {
+                    const res = await promptInstalacao.prompt();
+                    if (res && res.outcome === 'accepted') alert('✅ App IBN instalado!');
+                } catch (err) {
+                    instrucoesInstalarApp();
+                }
+                document.getElementById('installBanner').style.display = 'none';
+                promptInstalacao = null;
+            } else {
+                instrucoesInstalarApp();
             }
-            const res = await promptInstalacao.prompt();
-            if (res.outcome === 'accepted') alert('✅ App IBN instalado!');
-            document.getElementById('installBanner').style.display = 'none';
-            promptInstalacao = null;
-        });
+        }
+        document.getElementById('btnInstalar').addEventListener('click', tentarInstalarApp);
+        const btnBaixar = document.getElementById('btnBaixarApp');
+        if (btnBaixar) btnBaixar.addEventListener('click', tentarInstalarApp);
 
         // YouTube — funções que funcionavam
         function extrairDataDoTitulo(titulo, dataPublicacao) {
@@ -768,11 +970,41 @@
             const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
             return `${m[data.getMonth()]} de ${data.getFullYear()}`;
         }
+        // Canal oficial IBN Diamantino (fixo)
+        const CANAL_IBN = "UCx7IoJcS8Bme6q7UDszjyZQ";
+
         async function buscarCanalId() {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=ibndiamantino&type=channel&key=${API_KEY}`);
-            const d = await res.json();
-            if (!d.items?.length) throw "Canal não encontrado";
-            canalId = d.items[0].id.channelId;
+            if (canalId) return canalId;
+            // tenta pelo handle; se falhar, usa ID fixo
+            try {
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=ibndiamantino&key=${API_KEY}`);
+                const d = await res.json();
+                if (d.items?.length) {
+                    canalId = d.items[0].id;
+                    return canalId;
+                }
+            } catch (e) {}
+            canalId = CANAL_IBN;
+            return canalId;
+        }
+
+        function uiYoutubeErro(msg) {
+            const dest = document.getElementById('destaqueVideo');
+            if (dest) {
+                dest.innerHTML = `<p class="text-gray-300 mb-3">${msg || 'Não foi possível carregar agora.'}</p>
+                    <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" class="inline-block bg-red-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-red-700">
+                        <i class="fa fa-youtube-play mr-2"></i> Ver lives e cultos no YouTube
+                    </a>`;
+            }
+            const lista = document.getElementById('lista-meses');
+            if (lista) {
+                lista.innerHTML = `<div class="text-center py-6">
+                    <p class="text-gray-500 mb-3">Os vídeos podem ser vistos direto no canal.</p>
+                    <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" class="inline-block bg-primary text-white px-5 py-2 rounded-lg font-bold hover:bg-accent">
+                        <i class="fa fa-youtube-play mr-2"></i> Abrir @ibndiamantino/streams
+                    </a>
+                </div>`;
+            }
         }
         async function verificarAoVivo() {
             try {
@@ -941,19 +1173,31 @@
         document.addEventListener('DOMContentLoaded', function() {
             verificarSessao();
             mostrarAlertaDoDia();
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            }
 
-            // Controles do player
-            document.getElementById('btnPlay').addEventListener('click', () => player.toggle());
-            document.getElementById('btnProximo').addEventListener('click', () => player.proxima());
+            // Controles do player (toque do usuário = obrigatório no iOS)
+            player.garantirAudio();
+            player.volume(70);
+            const playHandler = (e) => { e.preventDefault(); player.toggle(); };
+            document.getElementById('btnPlay').addEventListener('click', playHandler);
+            document.getElementById('btnPlay').addEventListener('touchend', playHandler, { passive: false });
+            document.getElementById('btnProximo').addEventListener('click', () => {
+                if (!player.lista.length) { player.estaTocando = true; player.recarregarEReiniciar(); }
+                else player.proxima();
+            });
             document.getElementById('btnAnterior').addEventListener('click', () => player.anterior());
             document.getElementById('volume').addEventListener('input', (e) => player.volume(e.target.value));
-            player.volume(65);
 
             document.getElementById('linkAdmin').addEventListener('click', () => {
                 window.open('admin-playlist.html', '_blank');
             });
 
-            player.audio.addEventListener('ended', () => player.proxima());
+            // iOS: desbloqueia áudio no primeiro toque em qualquer lugar da barra
+            document.getElementById('playerFixo').addEventListener('touchstart', () => {
+                player.garantirAudio();
+            }, { passive: true });
 
             // Mapa + YouTube
             if (typeof google !== 'undefined' && google.maps) {
@@ -976,16 +1220,20 @@
             }
 
 
-            // YouTube
+            // YouTube — canal fixo + fallback para /streams
             (async () => {
                 try {
                     await buscarCanalId();
-                    verificarAoVivo();
-                    carregarMaisVideos();
+                    await Promise.race([
+                        (async () => {
+                            await verificarAoVivo();
+                            await carregarMaisVideos();
+                        })(),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+                    ]);
                 } catch (err) {
                     console.error('Erro YouTube:', err);
-                    document.getElementById('destaqueVideo').innerHTML = '<p class="text-gray-300">Acesse nosso canal no YouTube</p>';
-                    document.getElementById('lista-meses').innerHTML = '<p class="text-center text-gray-500">Não foi possível carregar os vídeos. <a href="https://youtube.com/@ibndiamantino" target="_blank" class="text-secondary underline">Ver no YouTube</a></p>';
+                    uiYoutubeErro('Conteúdo ao vivo e cultos no YouTube da IBN.');
                 }
             })();
         });
