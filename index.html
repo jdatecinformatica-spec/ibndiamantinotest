@@ -70,16 +70,9 @@
         .month-toggle:hover {
             color: #D4AF37;
         }
-        .month-videos {
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        .month-videos.collapsed {
-            max-height: 0;
-        }
-        .month-videos.expanded {
-            max-height: 3000px;
-        }
+        .month-videos { overflow: hidden; transition: max-height 0.35s ease; }
+        .month-videos.collapsed { max-height: 0; padding-top: 0 !important; padding-bottom: 0 !important; }
+        .month-videos.expanded { max-height: 4000px; }
         #mapaCelulas {
             height: 450px;
             border-radius: 12px;
@@ -227,10 +220,16 @@
                     Uma comunidade de fé, amor e esperança. Venha crescer espiritualmente conosco.
                 </p>
                 <div id="destaqueVideo" class="max-w-2xl mx-auto mb-8 bg-black/30 rounded-xl p-6 backdrop-blur-sm">
-                    <div class="py-4">
-                        <i class="fa fa-spinner fa-spin text-2xl text-secondary"></i>
-                        <p class="mt-2">Carregando...</p>
-                    </div>
+                    <span class="text-gray-300">Última transmissão — 22/09/2026</span>
+                    <a href="https://youtu.be/2kOBSVtDEpM" target="_blank" rel="noopener" class="block mt-4">
+                        <img src="https://i.ytimg.com/vi/2kOBSVtDEpM/hqdefault.jpg"
+                             alt="VERDADEIROS AMIGOS - Pr Maxsoel Guilhen"
+                             class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        <p class="mt-3 font-bold text-lg text-white">VERDADEIROS AMIGOS - Pr Maxsoel Guilhen</p>
+                        <span class="inline-block mt-2 bg-secondary text-primary px-5 py-2.5 rounded-md font-bold hover:bg-yellow-400 transition">
+                            <i class="fa fa-play mr-2"></i> Ver Último Culto
+                        </span>
+                    </a>
                 </div>
                 <div class="flex flex-wrap justify-center gap-4">
                     <a href="#transmissoes" class="bg-secondary text-primary px-8 py-3 rounded-md font-bold text-lg hover:bg-yellow-400 transition-colors">
@@ -334,10 +333,43 @@
                     <p class="text-center text-gray-500 text-sm mb-4">Clique no mês para ver os vídeos disponíveis</p>
                     
                     <div id="lista-meses" class="space-y-3">
-                        <div class="text-center py-4">
-                            <i class="fa fa-spinner fa-spin text-xl text-primary"></i>
-                            <p class="text-sm text-gray-500 mt-1">Carregando...</p>
+                        <div class="border rounded-lg overflow-hidden bg-white">
+                            <button type="button" class="month-toggle w-full flex justify-between items-center p-4 font-bold text-left hover:bg-gray-50" data-mes="Setembro de 2026">
+                                <span>Setembro de 2026 <span class="text-gray-400 font-normal text-sm">(3)</span></span>
+                                <i class="fa fa-chevron-down transition-transform rotate-180"></i>
+                            </button>
+                            <div class="month-videos expanded px-4 pb-4">
+                                <div class="grid sm:grid-cols-2 gap-3">
+                                    <a href="https://www.youtube.com/watch?v=2kOBSVtDEpM" target="_blank" rel="noopener"
+                                       class="flex gap-3 p-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                                        <img src="https://i.ytimg.com/vi/2kOBSVtDEpM/mqdefault.jpg" alt="" class="w-28 h-16 object-cover rounded flex-shrink-0">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-primary line-clamp-2">VERDADEIROS AMIGOS - Pr Maxsoel Guilhen</p>
+                                            <p class="text-xs text-gray-500 mt-1">22/09/2026</p>
+                                        </div>
+                                    </a>
+                                    <a href="https://www.youtube.com/watch?v=yb269GCKtWc" target="_blank" rel="noopener"
+                                       class="flex gap-3 p-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                                        <img src="https://i.ytimg.com/vi/yb269GCKtWc/mqdefault.jpg" alt="" class="w-28 h-16 object-cover rounded flex-shrink-0">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-primary line-clamp-2">NÃO SE DEIXE VENCER PELA INTIMIDAÇÃO - Missionária Roseli</p>
+                                            <p class="text-xs text-gray-500 mt-1">15/09/2026</p>
+                                        </div>
+                                    </a>
+                                    <a href="https://www.youtube.com/watch?v=3VxCgJf4_Xc" target="_blank" rel="noopener"
+                                       class="flex gap-3 p-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                                        <img src="https://i.ytimg.com/vi/3VxCgJf4_Xc/mqdefault.jpg" alt="" class="w-28 h-16 object-cover rounded flex-shrink-0">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-primary line-clamp-2">NAO DEIXE O AMOR ESFRIAR - Pr Maxsoel Guilhen</p>
+                                            <p class="text-xs text-gray-500 mt-1">08/09/2026</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
+                        <p class="text-center text-gray-400 text-sm pt-2">
+                            <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" class="text-red-600 hover:underline">Ver canal completo no YouTube →</a>
+                        </p>
                     </div>
                 </div>
                 <div class="text-center mt-6 space-y-4">
@@ -738,21 +770,6 @@
         };
         };
 
-        // ==================================================
-        // 📺 YOUTUBE + CÉLULAS + MAPA (lógica do index 1 que funcionava)
-        // ==================================================
-        const API_KEY = "AIzaSyAYZpzdj26wl8lob7ZX3VBxilRyCTpZ3x4";
-        const QTD_POR_CARGA = 50;
-        let canalId = "";
-        let proximaPagina = "";
-        let todosOsVideos = [];
-        let carregando = false;
-        let promptInstalacao = null;
-        let ultimoVideo = null;
-        let estaAoVivo = false;
-        let carregueiTudo = false;
-
-        // Dados das células (CSV oficial)
         const celulas = [
             { nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, nº 97 — Solar, Novo Diamantino", lat: -14.4052, lng: -56.4318 },
             { nome: "Célula Gênesis", endereco: "Rua das Paineiras, nº 541 — Centro, Novo Diamantino", lat: -14.4085, lng: -56.4295 },
@@ -859,7 +876,7 @@
 
         function atualizarListaComDistancias(ordenadas) { renderizarListaCompacta(ordenadas); }
 
-        // Localização do usuário
+
         document.getElementById('btnLocalizar').addEventListener('click', () => {
             const resultadoDiv = document.getElementById('resultadoProxima');
             resultadoDiv.classList.remove('hidden');
@@ -913,181 +930,252 @@
             );
         });
 
-        // PWA
-        function instrucoesInstalarApp() {
-            const ua = navigator.userAgent || '';
-            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isAndroid = /Android/i.test(ua);
-            if (isIOS) {
-                alert('📱 iPhone / iPad\n\n1. Abra este site no Safari\n2. Toque em Compartilhar (□↑)\n3. "Adicionar à Tela de Início"\n4. Confirme\n\nPronto! O ícone IBN fica na tela inicial.');
-            } else if (isAndroid) {
-                alert('📱 Android\n\n1. Menu do Chrome (⋮)\n2. "Instalar aplicativo" ou "Adicionar à tela inicial"\n\nSe não aparecer, use o botão Baixar/Instalar quando o Chrome oferecer.');
-            } else {
-                alert('💻 Computador\n\nNo Chrome/Edge: ícone de instalação na barra de endereço (⊕ ou computador)\nou Menu ⋮ → "Instalar IBN Diamantino".\n\nAssim o site abre como app, com o mesmo login.');
-            }
+
+
+        // ==================================================
+        // 📺 YOUTUBE — CORRIGIDO (playlist de uploads)
+        // ==================================================
+        const API_KEY = "AIzaSyAYZpzdj26wl8lob7ZX3VBxilRyCTpZ3x4";
+        const CANAL_IBN = "UCx7IoJcS8Bme6q7UDszjyZQ";
+        const UPLOADS_PLAYLIST = "UUx7IoJcS8Bme6q7UDszjyZQ";
+        const STREAMS_URL = "https://www.youtube.com/@ibndiamantino/streams";
+
+        let estaAoVivo = false;
+        let todosVideos = [];
+        let nextPageToken = null;
+        let carregueiTudo = false;
+        const QTD_POR_CARGA = 15;
+
+        function fetchComTimeout(url, ms = 7000) {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), ms);
+            return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
         }
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            promptInstalacao = e;
-            setTimeout(() => {
-                const b = document.getElementById('installBanner');
-                if (b) b.style.display = 'block';
-            }, 2500);
-        });
-        document.getElementById('btnFecharAviso').addEventListener('click', () => {
-            document.getElementById('installBanner').style.display = 'none';
-        });
-        async function tentarInstalarApp() {
-            if (promptInstalacao) {
-                try {
-                    const res = await promptInstalacao.prompt();
-                    if (res && res.outcome === 'accepted') alert('✅ App IBN instalado!');
-                } catch (err) {
-                    instrucoesInstalarApp();
-                }
-                document.getElementById('installBanner').style.display = 'none';
-                promptInstalacao = null;
-            } else {
-                instrucoesInstalarApp();
-            }
-        }
-        document.getElementById('btnInstalar').addEventListener('click', tentarInstalarApp);
-        const btnBaixar = document.getElementById('btnBaixarApp');
-        if (btnBaixar) btnBaixar.addEventListener('click', tentarInstalarApp);
-
-        // YouTube — funções que funcionavam
-        function extrairDataDoTitulo(titulo, dataPublicacao) {
-            const match = titulo.match(/(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})/);
-            if (match) {
-                let dia = parseInt(match[1]), mes = parseInt(match[2]) - 1, ano = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
-                const dt = new Date(ano, mes, dia);
-                if (!isNaN(dt.getTime()) && dt.getFullYear() >= 2010) return dt;
-            }
-            return new Date(dataPublicacao);
-        }
-        function nomeMes(data) {
+        function mesAno(dataStr) {
+            const data = new Date(dataStr);
             const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
             return `${m[data.getMonth()]} de ${data.getFullYear()}`;
         }
-        // Canal oficial IBN Diamantino (fixo)
-        const CANAL_IBN = "UCx7IoJcS8Bme6q7UDszjyZQ";
 
-        async function buscarCanalId() {
-            if (canalId) return canalId;
-            // tenta pelo handle; se falhar, usa ID fixo
-            try {
-                const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=ibndiamantino&key=${API_KEY}`);
-                const d = await res.json();
-                if (d.items?.length) {
-                    canalId = d.items[0].id;
-                    return canalId;
-                }
-            } catch (e) {}
-            canalId = CANAL_IBN;
-            return canalId;
-        }
-
-        function uiYoutubeErro(msg) {
+        function atualizarDestaque(videoId, titulo, aoVivo, dataStr) {
             const dest = document.getElementById('destaqueVideo');
-            if (dest) {
-                dest.innerHTML = `<p class="text-gray-300 mb-3">${msg || 'Não foi possível carregar agora.'}</p>
-                    <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" class="inline-block bg-red-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-red-700">
-                        <i class="fa fa-youtube-play mr-2"></i> Ver lives e cultos no YouTube
+            if (!dest) return;
+            if (!videoId) {
+                dest.innerHTML = `
+                    <p class="text-gray-200 mb-3">Assista aos cultos e lives da IBN</p>
+                    <a href="${STREAMS_URL}" target="_blank" rel="noopener"
+                       class="inline-block bg-red-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-red-700">
+                        <i class="fa fa-youtube-play mr-2"></i> Ver no YouTube
                     </a>`;
+                return;
             }
-            const lista = document.getElementById('lista-meses');
-            if (lista) {
-                lista.innerHTML = `<div class="text-center py-6">
-                    <p class="text-gray-500 mb-3">Os vídeos podem ser vistos direto no canal.</p>
-                    <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" class="inline-block bg-primary text-white px-5 py-2 rounded-lg font-bold hover:bg-accent">
-                        <i class="fa fa-youtube-play mr-2"></i> Abrir @ibndiamantino/streams
-                    </a>
-                </div>`;
-            }
-        }
-        async function verificarAoVivo() {
-            try {
-                if (!canalId) await buscarCanalId();
-                const resLive = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${canalId}&eventType=live&type=video&key=${API_KEY}`);
-                const live = await resLive.json();
-                if (live.items?.length) {
-                    estaAoVivo = true;
-                    const v = live.items[0];
-                    ultimoVideo = { id: v.id.videoId, titulo: v.snippet.title, capa: v.snippet.thumbnails.medium.url, dataStr: '🔴 AO VIVO AGORA!' };
-                } else {
-                    estaAoVivo = false;
-                    const resUlt = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${canalId}&maxResults=1&order=date&type=video&key=${API_KEY}`);
-                    const ult = await resUlt.json();
-                    if (ult.items?.length) {
-                        const v = ult.items[0];
-                        const pub = new Date(v.snippet.publishedAt);
-                        const real = extrairDataDoTitulo(v.snippet.title, pub);
-                        ultimoVideo = { id: v.id.videoId, titulo: v.snippet.title, capa: v.snippet.thumbnails.medium.url, dataStr: real.toLocaleDateString('pt-BR') };
-                    }
-                }
-                atualizarDestaque();
-            } catch (e) { console.error(e); }
-        }
-        function atualizarDestaque() {
-            const c = document.getElementById('destaqueVideo');
-            if (!ultimoVideo) { c.innerHTML = '<p>Acesse nosso canal no YouTube</p>'; return; }
-            const etiq = estaAoVivo 
+            const badge = aoVivo
                 ? '<span class="text-red-400 font-bold live-indicator">🔴 TRANSMISSÃO AO VIVO AGORA!</span>'
-                : `<span class="text-gray-300">Última transmissão — ${ultimoVideo.dataStr}</span>`;
-            c.innerHTML = `${etiq}<a href="https://youtu.be/${ultimoVideo.id}" target="_blank" class="block mt-4"><img src="${ultimoVideo.capa}" class="w-full max-w-md mx-auto rounded-lg"><p class="mt-3 font-bold text-lg">${ultimoVideo.titulo}</p><span class="inline-block mt-2 bg-secondary text-primary px-4 py-2 rounded-md font-bold"><i class="fa ${estaAoVivo?'fa-broadcast-tower':'fa-play'} mr-2"></i> ${estaAoVivo?'Assistir Agora':'Ver Último Culto'}</span></a>`;
+                : `<span class="text-gray-300">Última transmissão — ${dataStr || ''}</span>`;
+            const btnTexto = aoVivo ? 'Assistir Agora' : 'Ver Último Culto';
+            const btnIcone = aoVivo ? 'fa-broadcast-tower' : 'fa-play';
+            dest.innerHTML = `
+                ${badge}
+                <a href="https://youtu.be/${videoId}" target="_blank" rel="noopener" class="block mt-4">
+                    <img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg"
+                         alt="${(titulo || '').replace(/"/g, '')}"
+                         class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                    <p class="mt-3 font-bold text-lg text-white">${titulo || ''}</p>
+                    <span class="inline-block mt-2 bg-secondary text-primary px-5 py-2.5 rounded-md font-bold hover:bg-yellow-400 transition">
+                        <i class="fa ${btnIcone} mr-2"></i> ${btnTexto}
+                    </span>
+                </a>`;
         }
-        async function carregarMaisVideos() {
-            if (carregando || carregueiTudo) return;
-            carregando = true;
-            try {
-                if (!canalId) await buscarCanalId();
-                let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${canalId}&maxResults=${QTD_POR_CARGA}&order=date&type=video&key=${API_KEY}`;
-                if (proximaPagina) url += `&pageToken=${proximaPagina}`;
-                const res = await fetch(url);
-                const d = await res.json();
-                proximaPagina = d.nextPageToken || '';
-                if (!d.items?.length) { carregueiTudo = true; return; }
-                const novos = d.items.map(v => {
-                    const pub = new Date(v.snippet.publishedAt);
-                    const real = extrairDataDoTitulo(v.snippet.title, pub);
-                    return { id: v.id.videoId, titulo: v.snippet.title, dataReal: real, mesAno: nomeMes(real), dataStr: real.toLocaleDateString('pt-BR'), capa: v.snippet.thumbnails.medium.url };
-                });
-                todosOsVideos.push(...novos);
-                todosOsVideos.sort((a,b) => b.dataReal - a.dataReal);
-                if (!proximaPagina) carregueiTudo = true;
-                agruparEMostrar();
-            } catch (e) { console.error(e); }
-            finally { carregando = false; }
-        }
+
         function agruparEMostrar() {
             const c = document.getElementById('lista-meses');
+            if (!c) return;
+            if (!todosVideos.length) {
+                c.innerHTML = `
+                    <div class="text-center py-6 space-y-3">
+                        <p class="text-gray-500">Não foi possível carregar a lista no momento.</p>
+                        <a href="${STREAMS_URL}" target="_blank" class="inline-block bg-primary text-white px-5 py-2 rounded-lg font-bold">
+                            <i class="fa fa-youtube-play mr-2"></i> Abrir lives no YouTube
+                        </a>
+                    </div>`;
+                return;
+            }
             const grupos = {};
-            todosOsVideos.forEach(v => { if (!grupos[v.mesAno]) grupos[v.mesAno] = []; grupos[v.mesAno].push(v); });
-            const ord = Object.keys(grupos).sort((a,b) => {
-                const [ma, aa] = a.split(' de '); const [mb, ab] = b.split(' de ');
-                const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-                return new Date(aa, m.indexOf(ma), 1) - new Date(ab, m.indexOf(mb), 1);
-            }).reverse();
-            let html = '';
-            ord.forEach((mes, idx) => {
-                const vs = grupos[mes]; const abr = idx === 0;
-                html += `<div class="border-b last:border-0"><h4 class="month-toggle flex justify-between py-3 font-bold text-primary" data-mes="${mes}"><span>${mes}</span><span class="text-sm text-gray-500">${vs.length} vídeo${vs.length!==1?'s':''}</span><i class="fa fa-chevron-down transition-transform ${abr?'rotate-180':''}" id="ic-${mes.replace(/\s/g,'-')}"></i></h4><div class="month-videos ${abr?'expanded':'collapsed'}" id="ct-${mes.replace(/\s/g,'-')}"><div class="space-y-3 pb-3">${vs.map(v=>`<a href="https://youtu.be/${v.id}" target="_blank" class="flex gap-3 p-2 bg-gray-50 rounded-lg"><img src="${v.capa}" class="w-28 h-16 object-cover rounded"><div><p class="font-semibold text-sm">${v.titulo}</p><p class="text-xs text-gray-500 mt-1">${v.dataStr}</p></div></a>`).join('')}</div></div></div>`;
+            todosVideos.forEach(v => {
+                const k = mesAno(v.data);
+                if (!grupos[k]) grupos[k] = [];
+                grupos[k].push(v);
             });
-            if (!carregueiTudo) html += `<div class="pt-4 text-center"><button id="btnMais" class="bg-secondary text-primary px-6 py-2 rounded font-bold">Carregar meses anteriores</button></div>`;
-            else html += '<p class="text-center text-gray-400 text-sm pt-4">✅ Todos carregados</p>';
+            // Dentro de cada mês: mais recente primeiro
+            Object.keys(grupos).forEach(k => {
+                grupos[k].sort((a, b) => new Date(b.data) - new Date(a.data));
+            });
+            const mesesOrdenados = Object.keys(grupos).sort((a, b) => {
+                const [ma, aa] = a.split(' de ');
+                const [mb, ab] = b.split(' de ');
+                const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                return new Date(ab, m.indexOf(mb), 1) - new Date(aa, m.indexOf(ma), 1);
+            });
+            let html = '';
+            mesesOrdenados.forEach((mes, i) => {
+                const id = mes.replace(/\s/g, '-');
+                const aberto = i === 0;
+                html += `<div class="border rounded-lg overflow-hidden bg-white">
+                    <button type="button" class="month-toggle w-full flex justify-between items-center p-4 font-bold text-left hover:bg-gray-50" data-mes="${mes}">
+                        <span>${mes} <span class="text-gray-400 font-normal text-sm">(${grupos[mes].length})</span></span>
+                        <i id="ic-${id}" class="fa fa-chevron-down transition-transform ${aberto ? 'rotate-180' : ''}"></i>
+                    </button>
+                    <div id="ct-${id}" class="month-videos ${aberto ? 'expanded' : 'collapsed'} px-4 pb-4">
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            ${grupos[mes].map(v => `
+                                <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener"
+                                   class="flex gap-3 p-2 rounded-lg hover:bg-gray-50 border border-gray-100">
+                                    <img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" class="w-28 h-16 object-cover rounded flex-shrink-0">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-primary line-clamp-2">${v.titulo}</p>
+                                        <p class="text-xs text-gray-500 mt-1">${v.dataStr}</p>
+                                    </div>
+                                </a>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            if (!carregueiTudo) {
+                html += `<div class="pt-4 text-center">
+                    <button type="button" id="btnMais" class="bg-secondary text-primary px-6 py-2 rounded font-bold hover:bg-yellow-400">Carregar mais</button>
+                    <a href="${STREAMS_URL}" target="_blank" class="block mt-3 text-sm text-red-600 hover:underline">
+                        <i class="fa fa-youtube-play"></i> Ver todas no YouTube
+                    </a>
+                </div>`;
+            } else {
+                html += `<p class="text-center text-gray-400 text-sm pt-4">
+                    <a href="${STREAMS_URL}" target="_blank" class="text-red-600 hover:underline">Ver canal completo no YouTube →</a>
+                </p>`;
+            }
             c.innerHTML = html;
-            document.querySelectorAll('.month-toggle').forEach(t => {
-                t.addEventListener('click', () => {
-                    const id = t.dataset.mes.replace(/\s/g,'-');
-                    const ct = document.getElementById(`ct-${id}`);
-                    const ic = document.getElementById(`ic-${id}`);
-                    ct.classList.toggle('expanded'); ct.classList.toggle('collapsed');
-                    ic.classList.toggle('rotate-180');
+            document.querySelectorAll('.month-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.mes.replace(/\s/g, '-');
+                    const ct = document.getElementById('ct-' + id);
+                    const ic = document.getElementById('ic-' + id);
+                    if (!ct) return;
+                    ct.classList.toggle('expanded');
+                    ct.classList.toggle('collapsed');
+                    if (ic) ic.classList.toggle('rotate-180');
                 });
             });
-            const btn = document.getElementById('btnMais');
-            if (btn) btn.addEventListener('click', () => { btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>'; btn.disabled = true; carregarMaisVideos(); });
+            const btnMais = document.getElementById('btnMais');
+            if (btnMais) {
+                btnMais.addEventListener('click', async () => {
+                    btnMais.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+                    btnMais.disabled = true;
+                    await carregarMaisVideos();
+                });
+            }
+        }
+
+        async function verificarAoVivo() {
+            try {
+                const resLive = await fetchComTimeout(
+                    `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CANAL_IBN}&eventType=live&type=video&key=${API_KEY}`
+                );
+                const live = await resLive.json();
+                if (live.items && live.items.length) {
+                    estaAoVivo = true;
+                    const it = live.items[0];
+                    atualizarDestaque(it.id.videoId, it.snippet.title, true, 'AO VIVO');
+                    return;
+                }
+                const resUlt = await fetchComTimeout(
+                    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${UPLOADS_PLAYLIST}&maxResults=1&key=${API_KEY}`
+                );
+                const ult = await resUlt.json();
+                if (ult.items && ult.items.length) {
+                    const it = ult.items[0];
+                    const dataStr = new Date(it.snippet.publishedAt).toLocaleDateString('pt-BR');
+                    atualizarDestaque(it.snippet.resourceId.videoId, it.snippet.title, false, dataStr);
+                } else {
+                    atualizarDestaque(null);
+                }
+            } catch (e) {
+                console.warn('verificarAoVivo', e);
+                atualizarDestaque('2kOBSVtDEpM', 'VERDADEIROS AMIGOS - Pr Maxsoel Guilhen', false, '22/09/2026');
+            }
+        }
+
+        async function carregarMaisVideos() {
+            try {
+                let url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${UPLOADS_PLAYLIST}&maxResults=${QTD_POR_CARGA}&key=${API_KEY}`;
+                if (nextPageToken) url += `&pageToken=${nextPageToken}`;
+                const res = await fetchComTimeout(url, 12000);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message || 'API error');
+                const novos = (data.items || []).map(it => ({
+                    id: it.snippet.resourceId.videoId,
+                    titulo: it.snippet.title,
+                    data: it.snippet.publishedAt,
+                    dataStr: new Date(it.snippet.publishedAt).toLocaleDateString('pt-BR')
+                })).filter(v => v.id);
+                todosVideos = todosVideos.concat(novos);
+                nextPageToken = data.nextPageToken || null;
+                if (!nextPageToken) carregueiTudo = true;
+                agruparEMostrar();
+            } catch (e) {
+                console.warn('carregarMaisVideos', e);
+                if (!todosVideos.length) {
+                    aplicarFallbackYouTube();
+                } else {
+                    carregueiTudo = true;
+                    agruparEMostrar();
+                }
+            }
+        }
+
+        function aplicarFallbackYouTube() {
+            // Vídeos mais recentes conhecidos (atualize de vez em quando)
+            if (!todosVideos.length) {
+                todosVideos = [
+                    { id: '2kOBSVtDEpM', titulo: 'VERDADEIROS AMIGOS - Pr Maxsoel Guilhen', data: '2026-09-22', dataStr: '22/09/2026' },
+                    { id: 'yb269GCKtWc', titulo: 'NÃO SE DEIXE VENCER PELA INTIMIDAÇÃO - Missionária Roseli', data: '2026-09-15', dataStr: '15/09/2026' },
+                    { id: '3VxCgJf4_Xc', titulo: 'NAO DEIXE O AMOR ESFRIAR - Pr Maxsoel Guilhen', data: '2026-09-08', dataStr: '08/09/2026' }
+                ];
+            }
+            carregueiTudo = true;
+            atualizarDestaque(todosVideos[0].id, todosVideos[0].titulo, false, todosVideos[0].dataStr);
+            agruparEMostrar();
+        }
+
+        async function iniciarYouTube() {
+            // Se abriu como arquivo local (file://), a API do Google costuma falhar → usa fallback rápido
+            const isLocal = location.protocol === 'file:';
+            if (isLocal) {
+                console.info('Modo local detectado — usando lista de fallback (API do YouTube não funciona em file://)');
+                aplicarFallbackYouTube();
+                return;
+            }
+
+            // Timeout geral de segurança (não deixa "Carregando..." para sempre)
+            const timeoutGeral = setTimeout(() => {
+                if (!todosVideos.length) {
+                    console.warn('Timeout da API — aplicando fallback');
+                    aplicarFallbackYouTube();
+                }
+            }, 8000);
+
+            try {
+                await Promise.all([
+                    verificarAoVivo(),
+                    carregarMaisVideos()
+                ]);
+            } catch (e) {
+                console.error(e);
+                if (!todosVideos.length) aplicarFallbackYouTube();
+            } finally {
+                clearTimeout(timeoutGeral);
+                // Se ainda não tiver nada, força o fallback
+                if (!todosVideos.length) aplicarFallbackYouTube();
+            }
         }
 
         function copiarPix() {
@@ -1098,11 +1186,16 @@
         }
 
         // Form oração (simples — só feedback visual por enquanto)
-        document.getElementById('formOracao').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('🙏 Seu pedido de oração foi recebido. Deus te abençoe!');
-            this.reset();
-        });
+        (function() {
+            var formOracao = document.getElementById('formOracao');
+            if (formOracao) {
+                formOracao.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    alert('🙏 Seu pedido de oração foi recebido. Deus te abençoe!');
+                    this.reset();
+                });
+            }
+        })();
 
         // ==================================================
         // 📅 ALERTA DO DIA (programação automática)
@@ -1171,71 +1264,84 @@
         // 🚀 INICIALIZAR TUDO
         // ==================================================
         document.addEventListener('DOMContentLoaded', function() {
-            verificarSessao();
-            mostrarAlertaDoDia();
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').catch(() => {});
+            // 1) YouTube PRIMEIRO (não depende de nada)
+            try {
+                iniciarYouTube();
+            } catch (e) {
+                console.error('Erro YouTube:', e);
+                aplicarFallbackYouTube();
             }
-
-            // Controles do player (toque do usuário = obrigatório no iOS)
-            player.garantirAudio();
-            player.volume(70);
-            const playHandler = (e) => { e.preventDefault(); player.toggle(); };
-            document.getElementById('btnPlay').addEventListener('click', playHandler);
-            document.getElementById('btnPlay').addEventListener('touchend', playHandler, { passive: false });
-            document.getElementById('btnProximo').addEventListener('click', () => {
-                if (!player.lista.length) { player.estaTocando = true; player.recarregarEReiniciar(); }
-                else player.proxima();
-            });
-            document.getElementById('btnAnterior').addEventListener('click', () => player.anterior());
-            document.getElementById('volume').addEventListener('input', (e) => player.volume(e.target.value));
-
-            document.getElementById('linkAdmin').addEventListener('click', () => {
-                window.open('admin-playlist.html', '_blank');
-            });
-
-            // iOS: desbloqueia áudio no primeiro toque em qualquer lugar da barra
-            document.getElementById('playerFixo').addEventListener('touchstart', () => {
-                player.garantirAudio();
-            }, { passive: true });
-
-            // Mapa + YouTube
-            if (typeof google !== 'undefined' && google.maps) {
-                initMap();
-            } else {
-                window.addEventListener('load', () => {
-                    if (typeof google !== 'undefined' && google.maps) initMap();
-                    else {
-                        mostrarMapaFallback('Mapa indisponível neste modo. Use a lista rápida abaixo.');
-                        renderizarListaCompacta();
-                    }
-                });
-                // timeout de segurança
-                setTimeout(() => {
-                    if (!mapa) {
-                        mostrarMapaFallback('Mapa indisponível. Use a lista rápida ou o Google Maps.');
-                        renderizarListaCompacta();
-                    }
-                }, 4000);
-            }
-
-
-            // YouTube — canal fixo + fallback para /streams
-            (async () => {
-                try {
-                    await buscarCanalId();
-                    await Promise.race([
-                        (async () => {
-                            await verificarAoVivo();
-                            await carregarMaisVideos();
-                        })(),
-                        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))
-                    ]);
-                } catch (err) {
-                    console.error('Erro YouTube:', err);
-                    uiYoutubeErro('Conteúdo ao vivo e cultos no YouTube da IBN.');
+            // Segurança extra: se em 3s ainda estiver "Carregando...", força fallback
+            setTimeout(function() {
+                var dest = document.getElementById('destaqueVideo');
+                if (dest && dest.innerHTML.indexOf('Carregando') !== -1) {
+                    console.warn('Ainda carregando após 3s — forçando fallback');
+                    aplicarFallbackYouTube();
                 }
-            })();
+            }, 3000);
+
+            // 2) Resto do site (protegido para não quebrar o YouTube)
+            try {
+                verificarSessao();
+                mostrarAlertaDoDia();
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('sw.js').catch(function() {});
+                }
+
+                // Controles do player
+                if (typeof player !== 'undefined' && player.garantirAudio) {
+                    player.garantirAudio();
+                    player.volume(70);
+                }
+                var btnPlay = document.getElementById('btnPlay');
+                if (btnPlay) {
+                    var playHandler = function(e) { e.preventDefault(); player.toggle(); };
+                    btnPlay.addEventListener('click', playHandler);
+                    btnPlay.addEventListener('touchend', playHandler, { passive: false });
+                }
+                var btnProx = document.getElementById('btnProximo');
+                if (btnProx) btnProx.addEventListener('click', function() {
+                    if (!player.lista.length) { player.estaTocando = true; player.recarregarEReiniciar(); }
+                    else player.proxima();
+                });
+                var btnAnt = document.getElementById('btnAnterior');
+                if (btnAnt) btnAnt.addEventListener('click', function() { player.anterior(); });
+                var vol = document.getElementById('volume');
+                if (vol) vol.addEventListener('input', function(e) { player.volume(e.target.value); });
+
+                var linkAdmin = document.getElementById('linkAdmin');
+                if (linkAdmin) linkAdmin.addEventListener('click', function() {
+                    window.open('admin-playlist.html', '_blank');
+                });
+
+                var playerFixo = document.getElementById('playerFixo');
+                if (playerFixo) {
+                    playerFixo.addEventListener('touchstart', function() {
+                        if (player && player.garantirAudio) player.garantirAudio();
+                    }, { passive: true });
+                }
+
+                // Mapa
+                if (typeof google !== 'undefined' && google.maps) {
+                    initMap();
+                } else {
+                    window.addEventListener('load', function() {
+                        if (typeof google !== 'undefined' && google.maps) initMap();
+                        else {
+                            mostrarMapaFallback('Mapa indisponível neste modo. Use a lista rápida abaixo.');
+                            renderizarListaCompacta();
+                        }
+                    });
+                    setTimeout(function() {
+                        if (!mapa) {
+                            mostrarMapaFallback('Mapa indisponível. Use a lista rápida ou o Google Maps.');
+                            renderizarListaCompacta();
+                        }
+                    }, 4000);
+                }
+            } catch (err) {
+                console.error('Erro na inicialização geral:', err);
+            }
         });
     </script>
 </body>
