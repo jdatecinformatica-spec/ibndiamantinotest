@@ -169,14 +169,28 @@ function cadastrarMembro(dados) {
 }
 
 function iniciarSessao(membro) {
+    // Não guarda senha/resposta de segurança na sessão
     const { senha, respostaSeguranca, ...dadosPublicos } = membro;
-    localStorage.setItem(CHAVE_SESSAO, JSON.stringify(dadosPublicos));
+    const json = JSON.stringify(dadosPublicos);
+    // Chave oficial + chave usada na versão "map" (compatibilidade total)
+    localStorage.setItem(CHAVE_SESSAO, json);
+    localStorage.setItem('usuarioLogado', json);
 }
 
 function getUsuarioLogado() {
     try {
-        const dados = localStorage.getItem(CHAVE_SESSAO);
-        return dados ? JSON.parse(dados) : null;
+        // Tenta chave oficial primeiro
+        let dados = localStorage.getItem(CHAVE_SESSAO);
+        if (dados) return JSON.parse(dados);
+        // Fallback: chave da versão map (login antigo / outras páginas)
+        dados = localStorage.getItem('usuarioLogado');
+        if (dados) {
+            const usuario = JSON.parse(dados);
+            // Sincroniza para a chave oficial
+            localStorage.setItem(CHAVE_SESSAO, dados);
+            return usuario;
+        }
+        return null;
     } catch {
         return null;
     }
@@ -219,6 +233,7 @@ function exigirLogin() {
 
 function sair() {
     localStorage.removeItem(CHAVE_SESSAO);
+    localStorage.removeItem('usuarioLogado');
     window.location.href = 'index.html';
 }
 

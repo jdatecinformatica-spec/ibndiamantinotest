@@ -101,51 +101,50 @@
                 </button>
             </form>
 
-            <p class="text-center mt-6">
-                <a href="index.html" class="text-secondary font-bold hover:underline">← Voltar à página principal</a>
+            <p class="text-center mt-6 space-y-2">
+                <a href="area-membro.html" class="text-secondary font-bold hover:underline block">← Voltar à Área do Membro</a>
+                <a href="index.html" class="text-gray-500 text-sm hover:underline">Página principal</a>
             </p>
         </div>
     </div>
 
+    <script src="conta.js"></script>
     <script>
-        const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        // Exige login (chave oficial ibn_sessao_atual)
+        if (typeof exigirLogin === 'function' && !exigirLogin()) { /* redireciona */ }
+
+        const usuario = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
         if (!usuario) {
             alert('Faça login primeiro.');
-            window.location.href = 'login.html';
+            window.location.href = 'login.html?destino=ajustar-dados.html';
         }
 
-        function getMembros() {
-            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
-            catch { return []; }
+        // Preenche formulário com dados da sessão / cadastro
+        document.getElementById('nome').value = usuario.nome || '';
+        document.getElementById('telefone').value = usuario.telefone || '';
+        document.getElementById('email').value = usuario.email || '';
+        document.getElementById('sexo').value = usuario.sexo || '';
+        document.getElementById('nascimento').value = usuario.nascimento || '';
+        document.getElementById('estadoCivil').value = usuario.estadoCivil || '';
+        document.getElementById('endereco').value = usuario.endereco || '';
+        document.getElementById('origem').value = usuario.origem || '';
+        // batizado pode ser boolean ou "sim"/"nao"
+        const bat = usuario.batizado;
+        if (bat === true || bat === 'sim' || bat === 'Sim') {
+            document.getElementById('batizado').value = 'sim';
+        } else if (bat === false || bat === 'nao' || bat === 'Não') {
+            document.getElementById('batizado').value = 'nao';
+        } else {
+            document.getElementById('batizado').value = bat || '';
         }
-        function salvarMembros(lista) {
-            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
-        }
+        document.getElementById('dataBatismo').value = usuario.dataBatismo || '';
+        document.getElementById('observacoes').value = usuario.observacoes || '';
 
-        // Carrega dados atuais
-        const lista = getMembros();
-        const indice = lista.findIndex(m => m.email === usuario.email);
-        const dados = lista[indice] || {};
-
-        // Preenche formulário
-        document.getElementById('nome').value = dados.nome || usuario.nome || '';
-        document.getElementById('telefone').value = dados.telefone || '';
-        document.getElementById('email').value = dados.email || '';
-        document.getElementById('sexo').value = dados.sexo || '';
-        document.getElementById('nascimento').value = dados.nascimento || '';
-        document.getElementById('estadoCivil').value = dados.estadoCivil || '';
-        document.getElementById('endereco').value = dados.endereco || '';
-        document.getElementById('origem').value = dados.origem || '';
-        document.getElementById('batizado').value = dados.batizado || '';
-        document.getElementById('dataBatismo').value = dados.dataBatismo || '';
-        document.getElementById('observacoes').value = dados.observacoes || '';
-
-        // Salva alterações
-        document.getElementById('formDados').addEventListener('submit', (e) => {
+        // Salva alterações via conta.js
+        document.getElementById('formDados').addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const atualizado = {
-                ...dados,
+
+            const dadosNovos = {
                 telefone: document.getElementById('telefone').value.trim(),
                 email: document.getElementById('email').value.trim().toLowerCase(),
                 sexo: document.getElementById('sexo').value,
@@ -153,24 +152,28 @@
                 estadoCivil: document.getElementById('estadoCivil').value,
                 endereco: document.getElementById('endereco').value.trim(),
                 origem: document.getElementById('origem').value.trim(),
-                batizado: document.getElementById('batizado').value,
+                batizado: document.getElementById('batizado').value === 'sim',
                 dataBatismo: document.getElementById('dataBatismo').value,
                 observacoes: document.getElementById('observacoes').value.trim()
             };
 
-            lista[indice] = atualizado;
-            salvarMembros(lista);
+            const r = (typeof atualizarPerfil === 'function')
+                ? atualizarPerfil(dadosNovos)
+                : { sucesso: false, mensagem: 'Função de atualização indisponível.' };
 
             const msg = document.getElementById('msg');
-            msg.textContent = '✅ Dados atualizados com sucesso!';
-            msg.className = 'text-green-600 mt-2 text-center font-bold';
-            msg.classList.remove('hidden');
-
-            // Atualiza sessão
-            localStorage.setItem('usuarioLogado', JSON.stringify({
-                ...usuario,
-                email: atualizado.email
-            }));
+            if (r && r.sucesso) {
+                msg.textContent = '✅ Dados atualizados com sucesso!';
+                msg.className = 'text-green-600 mt-2 text-center font-bold';
+                msg.classList.remove('hidden');
+                setTimeout(function() {
+                    window.location.href = 'area-membro.html';
+                }, 1200);
+            } else {
+                msg.textContent = (r && r.mensagem) || 'Não foi possível salvar. Tente novamente.';
+                msg.className = 'text-red-500 mt-2 text-center font-bold';
+                msg.classList.remove('hidden');
+            }
         });
     </script>
 </body>

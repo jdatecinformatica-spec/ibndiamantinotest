@@ -242,36 +242,40 @@
             'geral': 'Geral / Outros'
         };
 
-        // ========== VERIFICAR LOGIN ==========
+        // ========== VERIFICAR LOGIN (chave oficial ibn_sessao_atual) ==========
         let membro = null;
         try {
-            if (typeof verificarLogin === 'function') {
-                membro = verificarLogin();
-            } else {
-                // fallback se conta.js não tiver a função
-                const sessao = localStorage.getItem('usuarioLogado');
-                if (sessao) membro = JSON.parse(sessao);
+            if (typeof getUsuarioLogado === 'function') {
+                membro = getUsuarioLogado();
             }
         } catch (e) {
-            console.warn('conta.js não encontrado ou erro ao verificar login');
+            console.warn('Erro ao verificar login:', e);
         }
-
+        // Fallback: chave da versão map / outras páginas
         if (!membro) {
-            // Tenta também a chave usada no index
-            const sessao = localStorage.getItem('usuarioLogado');
-            if (sessao) {
-                try { membro = JSON.parse(sessao); } catch(e) {}
-            }
+            try {
+                const antigo = localStorage.getItem('usuarioLogado') || localStorage.getItem('ibn_sessao_atual');
+                if (antigo) {
+                    membro = JSON.parse(antigo);
+                    // Mantém as duas chaves sincronizadas (não remove)
+                    if (membro && typeof iniciarSessao === 'function') {
+                        iniciarSessao(membro);
+                    }
+                }
+            } catch (e) {}
         }
 
         if (!membro) {
             alert('Você precisa estar logado para acessar a galeria de fotos.\n\nFaça login ou cadastre-se para ver o que acontece na igreja e nos ministérios.');
             window.location.href = 'login.html?destino=fotos.html';
         } else {
-            document.getElementById('area-usuario').innerHTML = `
-                <p class="text-sm text-gray-300">${membro.nome || 'Membro'}</p>
-                <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
-            `;
+            var areaUser = document.getElementById('area-usuario');
+            if (areaUser) {
+                areaUser.innerHTML = `
+                    <p class="text-sm text-gray-300">${membro.nome || 'Membro'}</p>
+                    <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
+                `;
+            }
         }
 
         // ========== PREENCHER DIAS E ANOS ==========

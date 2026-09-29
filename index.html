@@ -88,7 +88,7 @@
     </style>
 </head>
 <body class="bg-light text-gray-800 font-sans antialiased">
-    <!-- ✅ Aviso de Instalação do App -->
+    <!-- ✅ Aviso de Instalação do App (Android / Chrome) -->
     <div id="installBanner" class="install-banner p-4">
         <div class="flex items-start gap-3">
             <div class="flex-1">
@@ -99,6 +99,45 @@
                 </button>
             </div>
             <button id="btnFecharAviso" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- ✅ Modal de instruções para instalar (iPhone / iPad / outros) -->
+    <div id="modalInstalar" class="fixed inset-0 z-[100] hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative">
+            <button type="button" id="btnFecharModalInstalar" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            <div class="text-center mb-4">
+                <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-secondary flex items-center justify-center">
+                    <i class="fa fa-mobile text-3xl text-primary"></i>
+                </div>
+                <h3 class="text-lg font-bold text-primary">Instalar App IBN</h3>
+                <p class="text-sm text-gray-500 mt-1">Adicione o atalho na tela inicial</p>
+            </div>
+            <div id="instrucoesIOS" class="hidden space-y-3 text-sm text-gray-700">
+                <p class="font-semibold text-primary">No iPhone / iPad (Safari):</p>
+                <ol class="list-decimal list-inside space-y-2">
+                    <li>Toque no botão <strong>Compartilhar</strong> <i class="fa fa-share-square-o text-blue-500"></i> (barra inferior)</li>
+                    <li>Role e toque em <strong>“Adicionar à Tela de Início”</strong></li>
+                    <li>Toque em <strong>Adicionar</strong></li>
+                </ol>
+                <p class="text-xs text-gray-500 mt-2">O ícone da IBN aparecerá na sua tela inicial.</p>
+            </div>
+            <div id="instrucoesAndroid" class="hidden space-y-3 text-sm text-gray-700">
+                <p class="font-semibold text-primary">No Android:</p>
+                <ol class="list-decimal list-inside space-y-2">
+                    <li>Toque nos <strong>três pontinhos</strong> <i class="fa fa-ellipsis-v"></i> do navegador</li>
+                    <li>Toque em <strong>“Instalar aplicativo”</strong> ou <strong>“Adicionar à tela inicial”</strong></li>
+                    <li>Confirme a instalação</li>
+                </ol>
+                <p class="text-xs text-gray-500 mt-2">O app IBN ficará disponível como um aplicativo.</p>
+            </div>
+            <div id="instrucoesDesktop" class="hidden space-y-3 text-sm text-gray-700">
+                <p class="font-semibold text-primary">No computador:</p>
+                <p>No Chrome ou Edge, clique no ícone de instalação na barra de endereço, ou no menu → “Instalar IBN Diamantino”.</p>
+            </div>
+            <button type="button" id="btnOkModalInstalar" class="mt-5 w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-accent">
+                Entendi
+            </button>
         </div>
     </div>
 
@@ -173,11 +212,13 @@
                     <a href="login.html" class="border border-white/40 px-4 py-2 rounded-md text-sm hover:bg-white/10 transition-colors">Entrar</a>
                 </div>
                 <div id="areaLogado" class="hidden flex items-center gap-3">
-                    <div id="botaoUsuario" class="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-md cursor-pointer hover:bg-white/20">
+                    <a href="area-membro.html" id="botaoUsuario" class="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-md cursor-pointer hover:bg-white/20">
                         <i class="fa fa-user-circle"></i>
                         <span id="nomeMenu" class="text-sm">Usuário</span>
-                        <i class="fa fa-chevron-down text-xs"></i>
-                    </div>
+                    </a>
+                    <button type="button" id="btnSairDesktop" class="text-xs text-red-300 hover:text-red-200 px-2" title="Sair">
+                        <i class="fa fa-sign-out"></i>
+                    </button>
                 </div>
             </div>
             <button class="md:hidden text-2xl" id="btnMenu">
@@ -204,7 +245,8 @@
                     <a href="login.html" class="border border-white px-4 py-2 rounded-md text-center">Entrar</a>
                 </div>
                 <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-3">
-                    <a href="meus-dados.html" class="border border-white/30 px-4 py-2 rounded-md text-center">Meus Dados</a>
+                    <a href="area-membro.html" class="border border-white/30 px-4 py-2 rounded-md text-center">Minha Área</a>
+                    <a href="ajustar-dados.html" class="border border-white/30 px-4 py-2 rounded-md text-center">Editar Dados</a>
                     <a href="#" id="btnSairMobile" class="text-red-300 px-4 py-2 rounded-md text-center">Sair</a>
                 </div>
             </nav>
@@ -535,41 +577,64 @@
         }
     </script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvIb1B_rLoN1VIamugnaw5IJQ85ksBcpM&language=pt-BR&region=BR&callback=onGoogleMapsReady"></script>
+    <script src="conta.js"></script>
 
     <script>
         // ==================================================
-        // 🔐 VERIFICAR SESSÃO DO USUÁRIO
+        // 🔐 VERIFICAR SESSÃO DO USUÁRIO (usa conta.js)
         // ==================================================
         function verificarSessao() {
-            const sessao = localStorage.getItem('usuarioLogado');
-            if (sessao) {
+            // Preferência: conta.js (ibn_sessao_atual). Fallback: chave antiga.
+            let usuario = null;
+            if (typeof getUsuarioLogado === 'function') {
+                usuario = getUsuarioLogado();
+            }
+            if (!usuario) {
                 try {
-                    const usuario = JSON.parse(sessao);
-                    document.getElementById('avisoLogado').classList.remove('hidden');
-                    document.getElementById('nomeUsuario').textContent = usuario.nome || 'Irmão(ã)';
-                    document.getElementById('areaVisitante').classList.add('hidden');
-                    document.getElementById('areaLogado').classList.remove('hidden');
-                    document.getElementById('nomeMenu').textContent = usuario.nome ? usuario.nome.split(' ')[0] : 'Usuário';
-                    
-                    document.getElementById('areaVisitanteMobile').classList.add('hidden');
-                    document.getElementById('areaLogadoMobile').classList.remove('hidden');
-                    
-                    if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
-                        document.getElementById('linkGestao').classList.remove('hidden');
-                        document.getElementById('linkGestaoMobile').classList.remove('hidden');
-                        document.getElementById('linkAdmin').classList.remove('hidden');
+                    const antigo = localStorage.getItem('usuarioLogado') || localStorage.getItem('ibn_sessao_atual');
+                    if (antigo) {
+                        usuario = JSON.parse(antigo);
+                        // Sincroniza as duas chaves (não remove — assim o login permanece)
+                        if (usuario && typeof iniciarSessao === 'function') {
+                            iniciarSessao(usuario);
+                        }
                     }
-                } catch (e) {
-                    localStorage.removeItem('usuarioLogado');
+                } catch (e) {}
+            }
+            if (!usuario) return;
+
+            try {
+                document.getElementById('avisoLogado').classList.remove('hidden');
+                document.getElementById('nomeUsuario').textContent = usuario.nome || 'Irmão(ã)';
+                document.getElementById('areaVisitante').classList.add('hidden');
+                document.getElementById('areaLogado').classList.remove('hidden');
+                document.getElementById('nomeMenu').textContent = usuario.nome ? usuario.nome.split(' ')[0] : 'Usuário';
+
+                document.getElementById('areaVisitanteMobile').classList.add('hidden');
+                document.getElementById('areaLogadoMobile').classList.remove('hidden');
+
+                if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
+                    document.getElementById('linkGestao').classList.remove('hidden');
+                    document.getElementById('linkGestaoMobile').classList.remove('hidden');
+                    document.getElementById('linkAdmin').classList.remove('hidden');
                 }
+            } catch (e) {
+                console.warn('verificarSessao:', e);
             }
         }
 
         // Botão Sair
         document.addEventListener('click', function(e) {
-            if (e.target.id === 'btnSairMobile' || e.target.closest('#botaoUsuario')) {
-                localStorage.removeItem('usuarioLogado');
-                window.location.reload();
+            if (e.target.id === 'btnSairMobile' || e.target.closest('#btnSairMobile') ||
+                e.target.id === 'btnSairDesktop' || e.target.closest('#btnSairDesktop')) {
+                e.preventDefault();
+                if (typeof sair === 'function') {
+                    sair();
+                } else {
+                    localStorage.removeItem('ibn_sessao_atual');
+                    localStorage.removeItem('usuarioLogado');
+                    window.location.href = 'index.html';
+                }
             }
         });
 
@@ -1288,9 +1353,133 @@
         }
 
         // ==================================================
+        // 📱 PWA — INSTALAR APP (iPhone + Android)
+        // ==================================================
+        let promptInstalacao = null;
+
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        function isAndroid() {
+            return /Android/i.test(navigator.userAgent);
+        }
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true;
+        }
+
+        function abrirModalInstalar() {
+            const modal = document.getElementById('modalInstalar');
+            if (!modal) return;
+            // Esconde todas as instruções e mostra a correta
+            ['instrucoesIOS', 'instrucoesAndroid', 'instrucoesDesktop'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            if (isIOS()) {
+                var ios = document.getElementById('instrucoesIOS');
+                if (ios) ios.classList.remove('hidden');
+            } else if (isAndroid()) {
+                var and = document.getElementById('instrucoesAndroid');
+                if (and) and.classList.remove('hidden');
+            } else {
+                var desk = document.getElementById('instrucoesDesktop');
+                if (desk) desk.classList.remove('hidden');
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function fecharModalInstalar() {
+            const modal = document.getElementById('modalInstalar');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function tentarInstalarApp() {
+            // Já está instalado / rodando como app
+            if (isStandalone()) {
+                alert('✅ O App IBN já está instalado!');
+                return;
+            }
+            // Chrome / Android / Edge — prompt nativo
+            if (promptInstalacao) {
+                try {
+                    const res = await promptInstalacao.prompt();
+                    if (res && res.outcome === 'accepted') {
+                        alert('✅ App IBN instalado com sucesso!');
+                    }
+                    promptInstalacao = null;
+                    var ban = document.getElementById('installBanner');
+                    if (ban) ban.style.display = 'none';
+                    return;
+                } catch (e) {
+                    console.warn('Prompt instalação:', e);
+                }
+            }
+            // iOS ou navegador sem prompt → mostra instruções
+            abrirModalInstalar();
+        }
+
+        function configurarInstalacaoPWA() {
+            // Captura o evento do Chrome/Android
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                promptInstalacao = e;
+                // Mostra o banner flutuante após alguns segundos (só se não estiver instalado)
+                if (!isStandalone()) {
+                    setTimeout(function() {
+                        var ban = document.getElementById('installBanner');
+                        if (ban) ban.style.display = 'block';
+                    }, 2500);
+                }
+            });
+
+            // Botão do banner
+            var btnInst = document.getElementById('btnInstalar');
+            if (btnInst) btnInst.addEventListener('click', tentarInstalarApp);
+
+            // Botão do topo "Baixar / Instalar App"
+            var btnTop = document.getElementById('btnBaixarApp');
+            if (btnTop) btnTop.addEventListener('click', tentarInstalarApp);
+
+            // Fechar banner
+            var btnFechar = document.getElementById('btnFecharAviso');
+            if (btnFechar) btnFechar.addEventListener('click', function() {
+                var ban = document.getElementById('installBanner');
+                if (ban) ban.style.display = 'none';
+            });
+
+            // Fechar modal
+            var btnFecharModal = document.getElementById('btnFecharModalInstalar');
+            var btnOkModal = document.getElementById('btnOkModalInstalar');
+            if (btnFecharModal) btnFecharModal.addEventListener('click', fecharModalInstalar);
+            if (btnOkModal) btnOkModal.addEventListener('click', fecharModalInstalar);
+            var modal = document.getElementById('modalInstalar');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) fecharModalInstalar();
+                });
+            }
+
+            // Se já estiver rodando como app, esconde o botão de instalar
+            if (isStandalone()) {
+                var ban = document.getElementById('installBanner');
+                if (ban) ban.style.display = 'none';
+                if (btnTop) btnTop.style.display = 'none';
+            }
+        }
+
+        // ==================================================
         // 🚀 INICIALIZAR TUDO
         // ==================================================
         document.addEventListener('DOMContentLoaded', function() {
+            // 0) PWA install (o quanto antes)
+            try { configurarInstalacaoPWA(); } catch (e) { console.warn('PWA:', e); }
+
             // 1) YouTube PRIMEIRO (não depende de nada)
             try {
                 iniciarYouTube();
