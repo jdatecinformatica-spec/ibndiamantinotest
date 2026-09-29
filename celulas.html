@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Células — IBN Diamantino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0A1A3F', secondary: '#D4AF37', accent: '#1E3A8A', light: '#F8F9FC' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-light text-gray-800 min-h-screen">
+    <header class="bg-primary text-white sticky top-0 z-40 shadow">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" class="font-bold text-secondary text-xl">IBN</a>
+            <span class="text-sm">Organização das Células</span>
+            <a href="index.html#celulas" class="text-sm hover:text-secondary">← Voltar</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-2xl md:text-3xl font-bold text-primary mb-2">Células da IBN</h1>
+        <p class="text-gray-600 mb-2">Terça-feira às 20h nas casas · Sábado: Adolescentes (18h) e Jovens (20h) no prédio da igreja</p>
+        <p class="text-sm text-gray-500 mb-6">Toque em uma célula para ver equipe, membros, fotos e relatórios.</p>
+
+        <div id="avisoLogin" class="hidden mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-900">
+            <i class="fa fa-info-circle"></i> Faça <a href="login.html?destino=celulas.html" class="font-bold underline">login</a> para ver membros, enviar relatório ou exportar dados.
+        </div>
+
+        <div id="barraAdmin" class="hidden mb-6 p-4 bg-white border-2 border-secondary/40 rounded-xl">
+            <p class="font-bold text-primary mb-2"><i class="fa fa-lock"></i> Área do Gestor / Administrador</p>
+            <button type="button" id="btnExportGeral" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent">
+                <i class="fa fa-download"></i> Exportar todos os relatórios (CSV)
+            </button>
+        </div>
+
+        <div id="listaCelulas" class="space-y-3"></div>
+
+        <!-- Painel detalhe da célula -->
+        <div id="painelCelula" class="hidden mt-8 bg-white rounded-2xl shadow-lg border p-5">
+            <div class="flex items-start justify-between gap-2 mb-4">
+                <div>
+                    <h2 id="painelTitulo" class="text-xl font-bold text-primary"></h2>
+                    <p id="painelMeta" class="text-sm text-gray-500"></p>
+                </div>
+                <button type="button" id="btnFecharPainel" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-3 mb-6 text-sm">
+                <div class="bg-gray-50 rounded-lg p-3 border">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Líder</p>
+                    <p id="papelLider" class="font-bold text-primary">—</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 border">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Anfitrião(ã)</p>
+                    <p id="papelAnfitriao" class="font-bold text-primary">—</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 border">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Líder em treinamento</p>
+                    <p id="papelTreino" class="font-bold text-primary">—</p>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-primary mb-2"><i class="fa fa-users"></i> Membros da célula</h3>
+            <ul id="listaMembrosCelula" class="mb-6 text-sm space-y-1 border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto"></ul>
+
+            <div class="flex flex-wrap gap-2 mb-6">
+                <a id="linkFotosCelula" href="fotos-celulas.html" class="inline-block bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-400">
+                    <i class="fa fa-camera"></i> Galeria de fotos da célula
+                </a>
+                <a id="linkMapa" href="index.html#celulas" class="inline-block border border-primary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary hover:text-white">
+                    <i class="fa fa-map-marker"></i> Ver no mapa
+                </a>
+            </div>
+
+            <!-- Relatórios -->
+            <div id="blocoRelatorios" class="hidden border-t pt-5">
+                <h3 class="font-bold text-primary mb-3"><i class="fa fa-file-text-o"></i> Relatórios de participação</h3>
+                <p class="text-xs text-gray-500 mb-3">Visível apenas para o líder desta célula e para gestores/administradores.</p>
+
+                <form id="formRelatorio" class="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border">
+                    <input type="hidden" id="relCelulaId">
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Data do encontro</label>
+                            <input type="date" id="relData" required class="w-full p-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Qtd. presentes (se não marcar nomes)</label>
+                            <input type="number" id="relQtd" min="0" class="w-full p-2 border rounded-lg" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Presentes (marque os nomes)</label>
+                        <div id="relCheckPresentes" class="max-h-36 overflow-y-auto border rounded-lg p-2 bg-white text-sm space-y-1"></div>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Ofertas PIX (R$)</label>
+                            <input type="number" id="relPix" step="0.01" min="0" value="0" class="w-full p-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Ofertas em espécie (R$)</label>
+                            <input type="number" id="relEspecie" step="0.01" min="0" value="0" class="w-full p-2 border rounded-lg">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Observações</label>
+                        <textarea id="relObs" rows="2" class="w-full p-2 border rounded-lg" placeholder="Opcional"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-accent">
+                        <i class="fa fa-save"></i> Salvar relatório
+                    </button>
+                    <p id="relMsg" class="text-sm text-center hidden"></p>
+                </form>
+
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button type="button" id="btnExportCelula" class="text-sm border border-primary text-primary px-3 py-1.5 rounded-lg font-semibold hover:bg-primary hover:text-white">
+                        <i class="fa fa-download"></i> Exportar esta célula (CSV)
+                    </button>
+                </div>
+                <div id="listaRelatorios" class="space-y-2 text-sm"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="conta.js"></script>
+    <script>
+        // Meta das células (endereço / horário) — alinhado ao mapa
+        const META_CELULAS = {
+            'somos-igreja': { endereco: 'Rua Pirarara, 97 — Solar, Novo Diamantino', dia: 'Terça 20h' },
+            'genesis': { endereco: 'Rua das Paineiras, 541 — Centro, Novo Diamantino', dia: 'Terça 20h' },
+            'fonte-agua': { endereco: 'Rua Jacarandá, 321 — Centro, Novo Diamantino', dia: 'Terça 20h' },
+            'ebenezer': { endereco: 'Rua Cajarana, 533 — Bom Jesus, Novo Diamantino', dia: 'Terça 20h' },
+            'shamah': { endereco: 'Rua 5 Alta Floresta, 241 — Bom Jesus, Novo Diamantino', dia: 'Terça 20h' },
+            'morada': { endereco: 'Rua B, 25 — Buriti, Diamantino', dia: 'Terça 20h' },
+            'atos2': { endereco: 'Rua 2, próximo ao ginásio — Buriti, Diamantino', dia: 'Terça 20h' },
+            'primeiro-mandamento': { endereco: 'Rua Manoel Ferreira de Arruda, 33 — Buriti, Diamantino', dia: 'Terça 20h' },
+            'missao': { endereco: 'Alto Paraguai — MT', dia: 'Terça 20h' },
+            'adolescentes': { endereco: 'Prédio da igreja — Av. Ministro Gilmar Ferreira Mendes, S/N', dia: 'Sábado 18h' },
+            'jovens': { endereco: 'Prédio da igreja — Av. Ministro Gilmar Ferreira Mendes, S/N', dia: 'Sábado 20h' }
+        };
+
+        let celulaAberta = null;
+        const usuario = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+
+        function nomeOuTraco(m) {
+            return m && m.nome ? m.nome : 'A definir';
+        }
+
+        function renderLista() {
+            const box = document.getElementById('listaCelulas');
+            box.innerHTML = LISTA_CELULAS.map(function(c) {
+                const meta = META_CELULAS[c.id] || {};
+                const eq = (typeof equipeDaCelula === 'function') ? equipeDaCelula(c.id) : { membros: [] };
+                const n = (eq.membros || []).length;
+                return (
+                    '<button type="button" data-id="' + c.id + '" class="btn-celula w-full text-left p-4 bg-white rounded-xl border shadow-sm hover:border-secondary hover:shadow-md transition">' +
+                    '<p class="font-bold text-primary">' + c.nome + '</p>' +
+                    '<p class="text-xs text-gray-500 mt-1">' + (meta.dia || '') + ' · ' + (meta.endereco || '') + '</p>' +
+                    '<p class="text-xs text-secondary mt-1">' + n + ' membro(s) · Líder: ' + nomeOuTraco(eq.lider) + '</p>' +
+                    '</button>'
+                );
+            }).join('');
+
+            box.querySelectorAll('.btn-celula').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    abrirCelula(btn.getAttribute('data-id'));
+                });
+            });
+        }
+
+        function abrirCelula(id) {
+            celulaAberta = id;
+            const cel = LISTA_CELULAS.find(c => c.id === id);
+            const meta = META_CELULAS[id] || {};
+            const eq = equipeDaCelula(id);
+
+            document.getElementById('painelTitulo').textContent = cel ? cel.nome : id;
+            document.getElementById('painelMeta').textContent = (meta.dia || '') + ' · ' + (meta.endereco || '');
+            document.getElementById('papelLider').textContent = nomeOuTraco(eq.lider);
+            document.getElementById('papelAnfitriao').textContent = nomeOuTraco(eq.anfitriao);
+            document.getElementById('papelTreino').textContent = nomeOuTraco(eq.liderTreino);
+
+            const ul = document.getElementById('listaMembrosCelula');
+            if (!eq.membros.length) {
+                ul.innerHTML = '<li class="text-gray-400">Nenhum membro vinculado a esta célula no cadastro.</li>';
+            } else {
+                ul.innerHTML = eq.membros.map(function(m) {
+                    var papel = m.cargo || m.funcaoEspecifica || 'Membro';
+                    return '<li class="flex justify-between gap-2 border-b border-gray-100 py-1"><span>' + (m.nome || '—') + '</span><span class="text-xs text-gray-400">' + papel + '</span></li>';
+                }).join('');
+            }
+
+            document.getElementById('linkFotosCelula').href = 'fotos-celulas.html?celula=' + encodeURIComponent(id);
+            document.getElementById('painelCelula').classList.remove('hidden');
+            document.getElementById('painelCelula').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Relatórios: só líder da célula ou admin/gestor
+            var pode = podeEditarRelatorioCelula(id);
+            var bloco = document.getElementById('blocoRelatorios');
+            if (pode) {
+                bloco.classList.remove('hidden');
+                document.getElementById('relCelulaId').value = id;
+                document.getElementById('relData').value = new Date().toISOString().slice(0, 10);
+                // checkboxes de presença
+                var box = document.getElementById('relCheckPresentes');
+                if (!eq.membros.length) {
+                    box.innerHTML = '<p class="text-gray-400 text-xs">Sem membros cadastrados — use o campo quantidade.</p>';
+                } else {
+                    box.innerHTML = eq.membros.map(function(m) {
+                        return '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="rel-presente" value="' +
+                            (m.id || '') + '" data-nome="' + (m.nome || '').replace(/"/g, '&quot;') + '"> <span>' + (m.nome || '—') + '</span></label>';
+                    }).join('');
+                }
+                renderRelatorios(id);
+            } else {
+                bloco.classList.add('hidden');
+            }
+        }
+
+        function renderRelatorios(celulaId) {
+            var lista = relatoriosDaCelula(celulaId);
+            var el = document.getElementById('listaRelatorios');
+            if (!lista.length) {
+                el.innerHTML = '<p class="text-gray-400">Nenhum relatório registrado ainda.</p>';
+                return;
+            }
+            el.innerHTML = lista.map(function(r) {
+                return '<div class="border rounded-lg p-3 bg-white">' +
+                    '<p class="font-bold text-primary">' + (r.data || '') + ' · ' + (r.qtdPresentes || 0) + ' presentes</p>' +
+                    '<p class="text-xs text-gray-600">PIX: R$ ' + (r.ofertaPix || 0).toFixed(2).replace('.', ',') +
+                    ' · Espécie: R$ ' + (r.ofertaEspecie || 0).toFixed(2).replace('.', ',') +
+                    ' · <strong>Total: R$ ' + (r.totalOfertas || 0).toFixed(2).replace('.', ',') + '</strong></p>' +
+                    (r.observacoes ? '<p class="text-xs text-gray-500 mt-1">' + r.observacoes + '</p>' : '') +
+                    '<p class="text-xs text-gray-400 mt-1">Por ' + (r.autorNome || '—') + '</p>' +
+                    '</div>';
+            }).join('');
+        }
+
+        document.getElementById('btnFecharPainel').addEventListener('click', function() {
+            document.getElementById('painelCelula').classList.add('hidden');
+            celulaAberta = null;
+        });
+
+        document.getElementById('formRelatorio').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var presentes = [];
+            document.querySelectorAll('.rel-presente:checked').forEach(function(cb) {
+                presentes.push({ id: cb.value, nome: cb.getAttribute('data-nome') || '' });
+            });
+            var r = salvarRelatorioCelula({
+                celulaId: document.getElementById('relCelulaId').value,
+                data: document.getElementById('relData').value,
+                presentes: presentes,
+                qtdPresentes: document.getElementById('relQtd').value || presentes.length,
+                ofertaPix: document.getElementById('relPix').value,
+                ofertaEspecie: document.getElementById('relEspecie').value,
+                observacoes: document.getElementById('relObs').value
+            });
+            var msg = document.getElementById('relMsg');
+            msg.classList.remove('hidden');
+            if (r.sucesso) {
+                msg.className = 'text-sm text-center text-green-600 font-bold';
+                msg.textContent = '✅ Relatório salvo!';
+                document.getElementById('relPix').value = 0;
+                document.getElementById('relEspecie').value = 0;
+                document.getElementById('relObs').value = '';
+                document.getElementById('relQtd').value = '';
+                document.querySelectorAll('.rel-presente').forEach(function(cb) { cb.checked = false; });
+                renderRelatorios(celulaAberta);
+            } else {
+                msg.className = 'text-sm text-center text-red-500 font-bold';
+                msg.textContent = r.mensagem || 'Erro ao salvar.';
+            }
+        });
+
+        document.getElementById('btnExportCelula').addEventListener('click', function() {
+            if (!celulaAberta) return;
+            var r = exportarRelatoriosCSV(celulaAberta);
+            if (!r.sucesso) { alert(r.mensagem || 'Nada para exportar.'); return; }
+            baixarCSV(r.csv, r.nomeArquivo);
+        });
+
+        document.getElementById('btnExportGeral').addEventListener('click', function() {
+            var r = exportarRelatoriosCSV(null);
+            if (!r.sucesso) { alert(r.mensagem || 'Nada para exportar.'); return; }
+            baixarCSV(r.csv, r.nomeArquivo);
+        });
+
+        // Init
+        if (!usuario) {
+            document.getElementById('avisoLogin').classList.remove('hidden');
+        } else if (isAdmin(usuario) || isGestor(usuario)) {
+            document.getElementById('barraAdmin').classList.remove('hidden');
+        }
+        renderLista();
+
+        // Abre célula se veio na URL ?id=
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('id')) abrirCelula(params.get('id'));
+    </script>
+</body>
+</html>

@@ -518,3 +518,133 @@ function obterPerguntaSeguranca(identificador) {
     }
     return { sucesso: true, pergunta: membro.perguntaSeguranca };
 }
+
+// ---------- RELATÓRIOS DE CÉLULA ----------
+const CHAVE_RELATORIOS_CELULA = 'ibn_relatorios_celula';
+
+function lerRelatoriosCelula() {
+    try {
+        return JSON.parse(localStorage.getItem(CHAVE_RELATORIOS_CELULA) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function salvarRelatoriosCelula(lista) {
+    localStorage.setItem(CHAVE_RELATORIOS_CELULA, JSON.stringify(lista));
+}
+
+/** Membros vinculados a uma célula (por id) */
+function membrosDaCelula(celulaId) {
+    const lista = lerMembros().filter(m => m.status === 'aprovado' || !m.status);
+    return lista.filter(m => Array.isArray(m.celulas) && m.celulas.some(c => c.id === celulaId));
+}
+
+/** Papéis na célula a partir do cargo / funcaoEspecifica */
+function equipeDaCelula(celulaId) {
+    const membros = membrosDaCelula(celulaId);
+    const lider = membros.find(m =>
+        m.nivel === 'lider_celula' ||
+        m.cargo === 'Líder de Célula' ||
+        (m.funcaoEspecifica || '').toLowerCase().includes('líder de célula') ||
+        (m.funcaoEspecifica || '').toLowerCase().includes('lider de celula')
+    ) || null;
+    const anfitriao = membros.find(m =>
+        (m.funcaoEspecifica || '').toLowerCase().includes('anfitri')
+    ) || null;
+    const liderTreino = membros.find(m =>
+        (m.funcaoEspecifica || '').toLowerCase().includes('treinament') ||
+        (m.funcaoEspecifica || '').toLowerCase().includes('em treinamento')
+    ) || null;
+    return { lider, anfitriao, liderTreino, membros };
+}
+
+function podeEditarRelatorioCelula(celulaId) {
+    const u = getUsuarioLogado();
+    if (!u) return false;
+    if (isAdmin(u) || isGestor(u)) return true;
+    return isLiderCelula(u, celulaId);
+}
+
+function salvarRelatorioCelula(dados) {
+    const u = getUsuarioLogado();
+    if (!u) return { sucesso: false, mensagem: 'Faça login.' };
+    if (!dados || !dados.celulaId) return { sucesso: false, mensagem: 'Célula inválida.' };
+    if (!podeEditarRelatorioCelula(dados.celulaId)) {
+        return { sucesso: false, mensagem: 'Sem permissão para esta célula.' };
+    }
+
+    const ofertaPix = parseFloat(dados.ofertaPix) || 0;
+    const ofertaEspecie = parseFloat(dados.ofertaEspecie) || 0;
+    const presentes = Array.isArray(dados.presentes) ? dados.presentes : [];
+
+    const rel = {
+        id: dados.id || ('rel-' + Date.now()),
+        celulaId: dados.celulaId,
+        data: dados.data || new Date().toISOString().slice(0, 10),
+        presentes: presentes,
+        qtdPresentes: presentes.length || parseInt(dados.qtdPresentes, 10) || 0,
+        ofertaPix: ofertaPix,
+        ofertaEspecie: ofertaEspecie,
+        totalOfertas: ofertaPix + ofertaEspecie,
+        observacoes: (dados.observacoes || '').trim(),
+        autorId: u.id,
+        autorNome: u.nome,
+        criadoEm: dados.criadoEm || new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
+    };
+
+    const lista = lerRelatoriosCelula();
+    const idx = lista.findIndex(r => r.id === rel.id);
+    if (idx >= 0) lista[idx] = rel;
+    else lista.push(rel);
+    salvarRelatoriosCelula(lista);
+    return { sucesso: true, relatorio: rel };
+}
+
+function relatoriosDaCelula(celulaId) {
+    return lerRelatoriosCelula()
+        .filter(r => r.celulaId === celulaId)
+        .sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+}
+
+function exportarRelatoriosCSV(celulaIdFiltro) {
+    const u = getUsuarioLogado();
+    if (!u || !(isAdmin(u) || isGestor(u) || (celulaIdFiltro && isLiderCelula(u, celulaIdFiltro)))) {
+        return { sucesso: false, mensagem: 'Sem permissão.' };
+    }
+    let lista = lerRelatoriosCelula();
+    if (celulaIdFiltro) lista = lista.filter(r => r.celulaId === celulaIdFiltro);
+    if (!lista.length) return { sucesso: false, mensagem: 'Nenhum relatório para exportar.' };
+
+    const sep = ';';
+    const header = ['Data', 'Célula', 'Qtd presentes', 'Oferta PIX', 'Oferta espécie', 'Total ofertas', 'Observações', 'Registrado por'].join(sep);
+    const linhas = lista.map(r => {
+        const cel = LISTA_CELULAS.find(c => c.id === r.celulaId);
+        const nomeCel = cel ? cel.nome : r.celulaId;
+        return [
+            r.data || '',
+            '"' + (nomeCel || '').replace(/"/g, '""') + '"',
+            r.qtdPresentes || 0,
+            (r.ofertaPix || 0).toFixed(2).replace('.', ','),
+            (r.ofertaEspecie || 0).toFixed(2).replace('.', ','),
+            (r.totalOfertas || 0).toFixed(2).replace('.', ','),
+            '"' + (r.observacoes || '').replace(/"/g, '""') + '"',
+            '"' + (r.autorNome || '').replace(/"/g, '""') + '"'
+        ].join(sep);
+    });
+    const csv = '\uFEFF' + header + '\n' + linhas.join('\n');
+    return { sucesso: true, csv: csv, nomeArquivo: celulaIdFiltro ? ('relatorio-' + celulaIdFiltro + '.csv') : 'relatorios-celulas-geral.csv' };
+}
+
+function baixarCSV(conteudo, nomeArquivo) {
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo || 'relatorio.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}

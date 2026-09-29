@@ -142,6 +142,15 @@
             });
         }
 
+        // Abre filtro se veio ?celula=id
+        (function() {
+            var p = new URLSearchParams(window.location.search);
+            var cid = p.get('celula');
+            if (cid) {
+                var sel = document.getElementById('filtroCelula');
+                if (sel) sel.value = cid;
+            }
+        })();
         renderGaleria();
     </script>
 </body>

@@ -319,6 +319,11 @@
                     <h3 class="text-lg font-bold text-center mb-4 text-primary">Lista Rápida</h3>
                     <div id="listaCompacta" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                     </div>
+                    <div class="text-center mt-6">
+                        <a href="celulas.html" class="inline-block bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
+                            <i class="fa fa-users mr-2"></i> Organização das Células — equipe, membros e relatórios
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>
@@ -845,18 +850,123 @@
             }
         };
 
-        // Dados oficiais das células (CSV IBN Diamantino)
-        const celulas = [
-            { nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, nº 97 — Solar, Novo Diamantino", bairro: "Solar", lat: -14.4052, lng: -56.4318 },
-            { nome: "Célula Gênesis", endereco: "Rua das Paineiras, nº 541 — Centro, Novo Diamantino", bairro: "Centro", lat: -14.4085, lng: -56.4295 },
-            { nome: "Célula Fonte de Água Viva", endereco: "Rua Jacarandá, nº 321 — Centro, Novo Diamantino", bairro: "Centro", lat: -14.4078, lng: -56.4302 },
-            { nome: "Célula Ebenézer", endereco: "Rua Cajarana, nº 533 — Bom Jesus, Novo Diamantino", bairro: "Bom Jesus", lat: -14.4035, lng: -56.4280 },
-            { nome: "Célula Shamah", endereco: "Rua 5 Alta Floresta, nº 241 — Bom Jesus, Novo Diamantino", bairro: "Bom Jesus", lat: -14.4028, lng: -56.4265 },
-            { nome: "Célula Morada", endereco: "Rua B, nº 25 — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4155, lng: -56.4420 },
-            { nome: "Célula Atos 2", endereco: "Rua 2, próximo ao ginásio de esportes — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4168, lng: -56.4435 },
-            { nome: "Célula Primeiro Mandamento", endereco: "Rua Manoel Ferreira de Arruda, nº 33 — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4182, lng: -56.4450 },
-            { nome: "Célula Missão", endereco: "Alto Paraguai — MT", bairro: "Alto Paraguai", lat: -14.5120, lng: -56.4850 }
+        // Dados das células (CSV IBN) — coordenadas aproximadas por bairro.
+        // Líderes/anfitriões podem salvar a localização REAL (fica no aparelho / site).
+        const CHAVE_COORDS_CELULAS = 'ibn_celulas_coords';
+        const celulasBase = [
+            { id: 'somos-igreja', nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, 97", bairro: "Solar", localidade: "Novo Diamantino", lat: -14.3795, lng: -56.3915 },
+            { id: 'genesis', nome: "Célula Gênesis", endereco: "Rua das Paineiras, 541", bairro: "Centro", localidade: "Novo Diamantino", lat: -14.3810, lng: -56.3930 },
+            { id: 'fonte-agua', nome: "Célula Fonte de Água Viva", endereco: "Rua Jacarandá, 321", bairro: "Centro", localidade: "Novo Diamantino", lat: -14.3805, lng: -56.3920 },
+            { id: 'ebenezer', nome: "Célula Ebenézer", endereco: "Rua Cajarana, 533", bairro: "Bom Jesus", localidade: "Novo Diamantino", lat: -14.3780, lng: -56.3890 },
+            { id: 'shamah', nome: "Célula Shamah", endereco: "Rua 5 Alta Floresta, 241", bairro: "Bom Jesus", localidade: "Novo Diamantino", lat: -14.3775, lng: -56.3880 },
+            { id: 'morada', nome: "Célula Morada", endereco: "Rua B, 25", bairro: "Buriti", localidade: "Diamantino", lat: -14.4120, lng: -56.4480 },
+            { id: 'atos2', nome: "Célula Atos 2", endereco: "Rua 2, próximo ao ginásio de esportes", bairro: "Buriti", localidade: "Diamantino", lat: -14.4135, lng: -56.4495 },
+            { id: 'primeiro-mandamento', nome: "Célula Primeiro Mandamento", endereco: "Rua Manoel Ferreira de Arruda, 33", bairro: "Buriti", localidade: "Diamantino", lat: -14.4145, lng: -56.4505 },
+            { id: 'missao', nome: "Célula Missão", endereco: "Centro", bairro: "Centro", localidade: "Alto Paraguai", lat: -14.5200, lng: -56.4800 },
+            { id: 'adolescentes', nome: "Célula de Adolescentes", endereco: "Av. Ministro Gilmar Ferreira Mendes, S/N (prédio da igreja)", bairro: "Centro", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 },
+            { id: 'jovens', nome: "Célula de Jovens", endereco: "Av. Ministro Gilmar Ferreira Mendes, S/N (prédio da igreja)", bairro: "Centro", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 }
         ];
+
+        function carregarCoordsSalvas() {
+            try {
+                return JSON.parse(localStorage.getItem(CHAVE_COORDS_CELULAS) || '{}');
+            } catch (e) { return {}; }
+        }
+
+        function aplicarCoordsSalvas() {
+            const salvas = carregarCoordsSalvas();
+            return celulasBase.map(function(c) {
+                const s = salvas[c.id];
+                const lat = (s && typeof s.lat === 'number') ? s.lat : c.lat;
+                const lng = (s && typeof s.lng === 'number') ? s.lng : c.lng;
+                const real = !!(s && s.real);
+                return Object.assign({}, c, {
+                    lat: lat,
+                    lng: lng,
+                    real: real,
+                    // Texto legível
+                    enderecoCompleto: c.endereco + ' — ' + c.bairro + ', ' + c.localidade,
+                    // Query limpa para o Google Maps (sem travessão / "nº")
+                    queryMaps: c.endereco + ', ' + c.bairro + ', ' + c.localidade + ' - MT, Brasil'
+                });
+            });
+        }
+
+        let celulas = aplicarCoordsSalvas();
+
+        // Links de navegação: SEMPRE por coordenada (evita "lugar não encontrado")
+        function linkComoChegar(c, origem) {
+            var dest = c.lat + ',' + c.lng;
+            if (origem && origem.lat && origem.lng) {
+                return 'https://www.google.com/maps/dir/?api=1&origin=' + origem.lat + ',' + origem.lng + '&destination=' + dest + '&travelmode=driving';
+            }
+            return 'https://www.google.com/maps/dir/?api=1&destination=' + dest + '&travelmode=driving';
+        }
+        function linkVerNoMapa(c) {
+            return 'https://www.google.com/maps/search/?api=1&query=' + c.lat + ',' + c.lng;
+        }
+
+        function salvarCoordCelula(id, lat, lng) {
+            var salvas = carregarCoordsSalvas();
+            salvas[id] = { lat: lat, lng: lng, real: true, atualizadoEm: new Date().toISOString() };
+            localStorage.setItem(CHAVE_COORDS_CELULAS, JSON.stringify(salvas));
+            celulas = aplicarCoordsSalvas();
+            // Atualiza marcador no mapa se existir
+            if (mapa && marcadores.length) {
+                celulas.forEach(function(c, idx) {
+                    if (marcadores[idx]) {
+                        marcadores[idx].setPosition({ lat: c.lat, lng: c.lng });
+                    }
+                });
+            }
+            renderizarListaCompacta();
+        }
+
+        function pedirLocalizacaoReal(idCelula, nomeCelula) {
+            var opcao = confirm(
+                'Atualizar localização de:\n' + nomeCelula + '\n\n' +
+                'OK = usar a localização ATUAL deste aparelho (GPS)\n' +
+                'Cancelar = colar coordenadas ou link do Google Maps'
+            );
+            if (opcao) {
+                if (!navigator.geolocation) {
+                    alert('Seu aparelho não suporta GPS neste navegador.');
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        salvarCoordCelula(idCelula, pos.coords.latitude, pos.coords.longitude);
+                        alert('✅ Localização real salva para ' + nomeCelula + '!\nO pin e o "Como Chegar" já usam este ponto.');
+                    },
+                    function() {
+                        alert('Não foi possível obter o GPS. Tente novamente ou cole as coordenadas.');
+                    },
+                    { enableHighAccuracy: true, timeout: 15000 }
+                );
+            } else {
+                var texto = prompt(
+                    'Cole o link do Google Maps ou as coordenadas (ex: -14.4123, -56.4481)\npara a célula ' + nomeCelula + ':'
+                );
+                if (!texto) return;
+                var lat = null, lng = null;
+                // Tenta extrair de URL (@lat,lng ou !3d !4d)
+                var mAt = texto.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                var mQ = texto.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                var m3d = texto.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                var mPar = texto.match(/(-?\d+\.\d+)\s*[,;\s]\s*(-?\d+\.\d+)/);
+                if (mAt) { lat = parseFloat(mAt[1]); lng = parseFloat(mAt[2]); }
+                else if (mQ) { lat = parseFloat(mQ[1]); lng = parseFloat(mQ[2]); }
+                else if (m3d) { lat = parseFloat(m3d[1]); lng = parseFloat(m3d[2]); }
+                else if (mPar) { lat = parseFloat(mPar[1]); lng = parseFloat(mPar[2]); }
+                if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
+                    alert('Não entendi as coordenadas. Exemplo válido:\n-14.4123, -56.4481');
+                    return;
+                }
+                salvarCoordCelula(idCelula, lat, lng);
+                alert('✅ Localização real salva para ' + nomeCelula + '!');
+            }
+        }
+
         let mapa = null;
         let marcadores = [];
         let posicaoUsuario = null;
@@ -897,7 +1007,8 @@
                 return;
             }
             try {
-            const centro = { lat: -14.4100, lng: -56.4350 };
+            // Centro entre Diamantino e Novo Diamantino
+            const centro = { lat: -14.3950, lng: -56.4200 };
             mapa = new google.maps.Map(elMapa, {
                 zoom: 13,
                 center: centro,
@@ -905,21 +1016,30 @@
                 streetViewControl: false,
                 fullscreenControl: true
             });
+            marcadores = [];
             celulas.forEach((celula, idx) => {
                 const marcador = new google.maps.Marker({
                     position: { lat: celula.lat, lng: celula.lng },
                     map: mapa,
                     title: celula.nome,
-
-                    icon: { url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png', scaledSize: new google.maps.Size(32, 32) }
+                    icon: {
+                        url: celula.real
+                            ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                            : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        scaledSize: new google.maps.Size(32, 32)
+                    }
                 });
+                const statusLoc = celula.real
+                    ? '<span style="color:#15803d;font-size:11px;">● Localização confirmada</span>'
+                    : '<span style="color:#a16207;font-size:11px;">● Aproximada (bairro)</span>';
                 const janela = new google.maps.InfoWindow({
                     content: `
-                        <div style="min-width: 220px; padding: 4px;">
-                            <h4 style="font-weight: bold; margin: 0 0 6px 0; color: #0A1A3F;">${celula.nome}</h4>
-                            <p style="font-size: 13px; color: #555; margin: 0 0 8px 0;">${celula.endereco}</p>
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(celula.endereco + ', Diamantino MT')}" 
-                               target="_blank" style="color: #D4AF37; font-weight: bold; text-decoration: none; font-size: 13px;">
+                        <div style="min-width: 230px; padding: 4px;">
+                            <h4 style="font-weight: bold; margin: 0 0 4px 0; color: #0A1A3F;">${celula.nome}</h4>
+                            <p style="font-size: 13px; color: #555; margin: 0 0 4px 0;">${celula.enderecoCompleto || celula.endereco}</p>
+                            <p style="margin: 0 0 8px 0;">${statusLoc}</p>
+                            <a href="${linkComoChegar(celula)}" target="_blank"
+                               style="color: #D4AF37; font-weight: bold; text-decoration: none; font-size: 13px;">
                                 Como Chegar →
                             </a>
                         </div>
@@ -942,22 +1062,34 @@
             if (!container) return;
             let lista = distancias || celulas;
             container.innerHTML = lista.map(c => {
-                const query = (c.endereco || c.nome) + ', Diamantino MT';
-                const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-                const dirLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
+                const link = linkVerNoMapa(c);
+                const dirLink = linkComoChegar(c, posicaoUsuario);
+                const badge = c.real
+                    ? '<span class="text-xs text-green-700 font-semibold">● Localização confirmada</span>'
+                    : '<span class="text-xs text-amber-700">● Aproximada (bairro)</span>';
                 return `
                     <div class="p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                         <p class="font-bold text-primary text-sm mb-1">${c.nome}</p>
-                        <p class="text-xs text-gray-600 mb-1"><i class="fa fa-map-marker text-secondary"></i> ${c.endereco}</p>
-                        ${c.bairro ? `<p class="text-xs text-gray-400 mb-2">${c.bairro}</p>` : ''}
+                        <p class="text-xs text-gray-600 mb-1"><i class="fa fa-map-marker text-secondary"></i> ${c.enderecoCompleto || c.endereco}</p>
+                        <p class="mb-1">${badge}</p>
                         ${c.distanciaTexto ? `<p class="text-xs font-semibold text-secondary mb-2"><i class="fa fa-location-arrow"></i> ${c.distanciaTexto}</p>` : ''}
-                        <div class="flex gap-2 mt-2">
+                        <div class="flex flex-wrap gap-2 mt-2">
                             <a href="${link}" target="_blank" class="text-xs bg-primary text-white px-3 py-1.5 rounded font-semibold hover:bg-accent">Ver no Mapa</a>
                             <a href="${dirLink}" target="_blank" class="text-xs bg-secondary text-primary px-3 py-1.5 rounded font-semibold hover:bg-yellow-400">Como Chegar</a>
+                            <button type="button" data-celula-id="${c.id}" data-celula-nome="${c.nome}"
+                                class="btn-atualizar-loc text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded font-semibold hover:bg-gray-50">
+                                📍 Atualizar localização
+                            </button>
                         </div>
                     </div>
                 `;
             }).join('');
+            // Liga botões de atualizar localização
+            container.querySelectorAll('.btn-atualizar-loc').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    pedirLocalizacaoReal(btn.getAttribute('data-celula-id'), btn.getAttribute('data-celula-nome'));
+                });
+            });
         }
 
         function atualizarListaComDistancias(ordenadas) { renderizarListaCompacta(ordenadas); }
@@ -987,10 +1119,20 @@
                             mapa.setCenter(posicaoUsuario);
                             mapa.setZoom(13);
                         }
-                        const comDistancia = celulas.map((c, idx) => ({
-                            ...c, idx,
-                            distanciaTexto: calcularDistancia(posicaoUsuario.lat, posicaoUsuario.lng, c.lat, c.lng)
-                        })).sort((a, b) => parseFloat(a.distanciaTexto) - parseFloat(b.distanciaTexto));
+                        const comDistancia = celulas.map((c, idx) => {
+                            const R = 6371;
+                            const dLat = (c.lat - posicaoUsuario.lat) * Math.PI / 180;
+                            const dLng = (c.lng - posicaoUsuario.lng) * Math.PI / 180;
+                            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                      Math.cos(posicaoUsuario.lat * Math.PI / 180) * Math.cos(c.lat * Math.PI / 180) *
+                                      Math.sin(dLng/2) * Math.sin(dLng/2);
+                            const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                            return Object.assign({}, c, {
+                                idx: idx,
+                                distanciaKm: km,
+                                distanciaTexto: calcularDistancia(posicaoUsuario.lat, posicaoUsuario.lng, c.lat, c.lng)
+                            });
+                        }).sort((a, b) => a.distanciaKm - b.distanciaKm);
                         const maisProxima = comDistancia[0];
                         if (marcadores[maisProxima.idx] && typeof google !== 'undefined') {
                             marcadores[maisProxima.idx].setIcon({
@@ -1003,12 +1145,12 @@
                                 <div>
                                     <p class="font-bold text-primary mb-1">⭐ Célula mais próxima de você:</p>
                                     <p class="font-bold text-lg text-secondary">${maisProxima.nome}</p>
-                                    <p class="text-sm text-gray-600">${maisProxima.endereco}</p>
+                                    <p class="text-sm text-gray-600">${maisProxima.enderecoCompleto || maisProxima.endereco}</p>
                                     <p class="text-sm font-semibold text-green-600 mt-1">
                                         <i class="fa fa-location-arrow"></i> Distância: ${maisProxima.distanciaTexto}
                                     </p>
                                 </div>
-                                <a href="https://www.google.com/maps/dir/?api=1&origin=${posicaoUsuario.lat},${posicaoUsuario.lng}&destination=${encodeURIComponent(maisProxima.endereco + ', Diamantino MT')}" 
+                                <a href="${linkComoChegar(maisProxima, posicaoUsuario)}" 
                                    target="_blank" class="bg-secondary text-primary px-5 py-2 rounded-md font-bold hover:bg-yellow-400 whitespace-nowrap text-center">
                                     <i class="fa fa-map-marker mr-1"></i> Traçar Rota
                                 </a>
