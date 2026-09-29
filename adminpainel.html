@@ -90,23 +90,8 @@
     </main>
 
     <script>
-        // === VERIFICAÇÃO DE SESSÃO (compatível com conta.js e login antigo) ===
-        function lerSessaoPainel() {
-            try {
-                const a = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-                if (a && (a.nivel === 'gestor' || a.nivel === 'admin')) return a;
-            } catch (e) {}
-            try {
-                const b = JSON.parse(localStorage.getItem('ibn_sessao_atual') || 'null');
-                if (b && (b.nivel === 'gestor' || b.nivel === 'admin')) return b;
-            } catch (e) {}
-            try {
-                const c = JSON.parse(sessionStorage.getItem('gestorLogado') || 'null');
-                if (c) return { nome: c.nome || 'Gestor', nivel: c.nivel || 'gestor' };
-            } catch (e) {}
-            return null;
-        }
-        const usuarioLogado = lerSessaoPainel();
+        // === VERIFICAÇÃO DE SESSÃO ===
+        const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
         const ehGestor = usuarioLogado?.nivel === 'gestor';
         const ehAdmin = ehGestor || usuarioLogado?.nivel === 'admin';
         
@@ -118,16 +103,13 @@
                 `${ehGestor ? '👑 Gestor' : '🛡️ Admin'}: ${usuarioLogado.nome}`;
             
             if (!ehGestor) {
-                const sec = document.getElementById('secNomearAdmins');
-                if (sec) sec.style.display = 'none';
+                document.getElementById('secNomearAdmins').style.display = 'none';
             }
             carregarTudo();
         }
 
         document.getElementById('btnSair').addEventListener('click', () => {
             localStorage.removeItem('usuarioLogado');
-            localStorage.removeItem('ibn_sessao_atual');
-            sessionStorage.removeItem('gestorLogado');
             window.location.href = 'login.html';
         });
 
@@ -188,37 +170,12 @@
         });
 
         // === MEMBROS — FUNÇÕES COMPLETAS ===
-        // Lê ibn_membros (cadastro novo) + membrosCadastro (legado) e unifica
         function getMembros() {
-            let lista = [];
-            try {
-                const a = JSON.parse(localStorage.getItem('ibn_membros') || '[]');
-                if (Array.isArray(a)) lista = lista.concat(a);
-            } catch (e) {}
-            try {
-                const b = JSON.parse(localStorage.getItem('membrosCadastro') || '[]');
-                if (Array.isArray(b)) lista = lista.concat(b);
-            } catch (e) {}
-            // Remove duplicados por e-mail ou telefone+nome
-            const vistos = new Set();
-            const unicos = [];
-            lista.forEach(m => {
-                const chave = ((m.email || '').toLowerCase().trim()) ||
-                    ((m.nome || '').toLowerCase().trim() + '|' + (m.telefone || '').replace(/\D/g, ''));
-                if (!chave || vistos.has(chave)) return;
-                vistos.add(chave);
-                unicos.push(m);
-            });
-            return unicos;
+            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
+            catch { return []; }
         }
         function salvarMembros(lista) {
-            // Mantém legado e espelha no storage novo
             localStorage.setItem('membrosCadastro', JSON.stringify(lista));
-            try {
-                const novos = JSON.parse(localStorage.getItem('ibn_membros') || '[]');
-                // não sobrescreve ibn_membros inteiro ao excluir pelo painel antigo —
-                // exclusão já trata a lista unificada abaixo
-            } catch (e) {}
             renderizarMembros();
         }
         function renderizarMembros() {
@@ -297,104 +254,31 @@
             admins = admins.filter(a => a.email !== membro.email);
             localStorage.setItem('adminsNomeados', JSON.stringify(admins));
             
-            // Remove da lista unificada e dos dois storages
-            const email = (membro.email || '').toLowerCase();
-            const tel = (membro.telefone || '').replace(/\D/g, '');
-            const nome = (membro.nome || '').toLowerCase();
-            function filtrar(arr) {
-                return arr.filter(m => {
-                    const e = (m.email || '').toLowerCase();
-                    const t = (m.telefone || '').replace(/\D/g, '');
-                    const n = (m.nome || '').toLowerCase();
-                    if (email && e === email) return false;
-                    if (!email && tel && t === tel && n === nome) return false;
-                    return true;
-                });
-            }
-            try {
-                const a = JSON.parse(localStorage.getItem('ibn_membros') || '[]');
-                localStorage.setItem('ibn_membros', JSON.stringify(filtrar(a)));
-            } catch (e) {}
-            try {
-                const b = JSON.parse(localStorage.getItem('membrosCadastro') || '[]');
-                localStorage.setItem('membrosCadastro', JSON.stringify(filtrar(b)));
-            } catch (e) {}
-            renderizarMembros();
+            // Remove da lista de membros
+            lista.splice(idx, 1);
+            salvarMembros(lista);
             alert('✅ Membro removido definitivamente.');
         };
 
-        // Download CSV — formato relatório (separador ; para Excel BR + UTF-8 BOM)
+        // Download CSV
         document.getElementById('btnBaixarMembros').addEventListener('click', () => {
             const lista = getMembros();
             if (!lista.length) { alert('Sem dados para baixar.'); return; }
-
-            function limpar(v) {
-                return String(v == null ? '' : v)
-                    .replace(/[\r\n;]+/g, ' ')
-                    .replace(/"/g, '""')
-                    .trim();
-            }
-            function batizadoTxt(m) {
-                const b = (m.batismo || m.batizado || '').toString().toLowerCase();
-                if (b === 'sim' || b === 'true' || b === 's') return 'Sim';
-                if (b === 'nao' || b === 'não' || b === 'false' || b === 'n') return 'Não';
-                return limpar(m.batismo || m.batizado || '');
-            }
-            function funcoesTxt(m) {
-                const partes = [];
-                if (m.cargo) partes.push(m.cargo);
-                if (m.funcaoEspecifica) partes.push(m.funcaoEspecifica);
-                if (Array.isArray(m.funcoes) && m.funcoes.length) partes.push(m.funcoes.join(', '));
-                if (m.nivel && m.nivel !== 'membro') partes.push(m.nivel);
-                if (!partes.length) partes.push('Membro');
-                return limpar([...new Set(partes)].join(', '));
-            }
-            function dataCad(m) {
-                if (!m.dataCadastro) return '';
-                try {
-                    const d = new Date(m.dataCadastro);
-                    if (isNaN(d)) return limpar(m.dataCadastro);
-                    return d.toLocaleDateString('pt-BR');
-                } catch (e) { return limpar(m.dataCadastro); }
-            }
-            function celulasTxt(m) {
-                if (!Array.isArray(m.celulas) || !m.celulas.length) return '';
-                return limpar(m.celulas.map(c => c.nome || c.id || c).join(', '));
-            }
-            function minsTxt(m) {
-                if (!Array.isArray(m.ministerios) || !m.ministerios.length) return '';
-                return limpar(m.ministerios.join(', '));
-            }
-
-            // Cabeçalho no espírito do relatório + campos extras úteis
-            const cabecalho = [
-                'Nome', 'Email', 'Telefone', 'Batizado', 'Funções', 'Data de Cadastro',
-                'Sexo', 'Nascimento', 'Estado Civil', 'Endereço', 'Origem',
-                'Data Batismo', 'Observações', 'Células', 'Ministérios', 'Status'
-            ].join(';');
-
+            const cabecalho = 'Nome,Telefone,E-mail,Sexo,Nascimento,Estado Civil,Endereço,Origem,Batizado,Data Batismo,Observações\n';
             const linhas = lista.map(m => [
-                limpar(m.nome),
-                limpar(m.email),
-                limpar(m.telefone),
-                batizadoTxt(m),
-                funcoesTxt(m),
-                dataCad(m),
-                limpar(m.sexo),
-                limpar(m.nascimento),
-                limpar(m.estadoCivil),
-                limpar(m.endereco),
-                limpar(m.origem),
-                limpar(m.dataBatismo),
-                limpar(m.observacoes || m.observacoes),
-                celulasTxt(m),
-                minsTxt(m),
-                limpar(m.status || 'aprovado')
-            ].join(';')).join('\n');
-
-            // BOM UTF-8 para o Excel abrir acentos corretamente
-            const conteudo = '\uFEFF' + cabecalho + '\n' + linhas;
-            baixar(conteudo, 'relatorio_membros.csv');
+                `"${m.nome}"`,
+                `"${m.telefone || ''}"`,
+                `"${m.email || ''}"`,
+                `"${m.sexo || ''}"`,
+                `"${m.nascimento || ''}"`,
+                `"${m.estadoCivil || ''}"`,
+                `"${m.endereco || ''}"`,
+                `"${m.origem || ''}"`,
+                `"${m.batizado || ''}"`,
+                `"${m.dataBatismo || ''}"`,
+                `"${m.observacoes || ''}"`
+            ].join(',')).join('\n');
+            baixar(cabecalho + linhas, 'membros-completo.csv');
         });
 
         // === EVENTOS ===

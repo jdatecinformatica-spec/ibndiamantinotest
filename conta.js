@@ -56,32 +56,27 @@ const CONTAS_MESTRAS = [
         id: 'gestor-master',
         nome: 'Gestor Master',
         email: 'gestor@ibndiamantino.com.br',
-        usuario: 'gestor',
         telefone: '',
-        // Aceita as senhas mestras já usadas no projeto
-        senhas: ['IBN-Gestor-2026!', 'IbnDiamantino@2026'],
+        senha: 'IBN-Gestor-2026!',
         nivel: 'gestor',
         status: 'aprovado',
         celulas: [],
         ministerios: [],
         cargo: 'Gestor',
-        funcoes: ['master'],
-        master: true
+        funcoes: ['master']
     },
     {
         id: 'admin-master',
         nome: 'Admin Master',
         email: 'admin@ibndiamantino.com.br',
-        usuario: 'admin',
         telefone: '',
-        senhas: ['IBN-Admin-2026!', 'IbnDiamantino@2026'],
+        senha: 'IBN-Admin-2026!',
         nivel: 'admin',
         status: 'aprovado',
         celulas: [],
         ministerios: [],
         cargo: 'Administrador',
-        funcoes: ['master'],
-        master: true
+        funcoes: ['master']
     }
 ];
 
@@ -174,10 +169,8 @@ function cadastrarMembro(dados) {
 }
 
 function iniciarSessao(membro) {
-    const { senha, senhas, respostaSeguranca, ...dadosPublicos } = membro;
+    const { senha, respostaSeguranca, ...dadosPublicos } = membro;
     localStorage.setItem(CHAVE_SESSAO, JSON.stringify(dadosPublicos));
-    // Compatível com adminpainel.html e páginas antigas
-    localStorage.setItem('usuarioLogado', JSON.stringify(dadosPublicos));
 }
 
 function getUsuarioLogado() {
@@ -193,12 +186,9 @@ function fazerLogin(identificador, senha) {
     const id = (identificador || '').trim().toLowerCase();
     const tel = id.replace(/\D/g, '');
 
-    // Contas mestras (gestor / admin) — NÃO passam por recuperação de senha de membro
-    const master = CONTAS_MESTRAS.find(c => {
-        const idOk = c.email.toLowerCase() === id || (c.usuario && c.usuario.toLowerCase() === id);
-        const senhas = Array.isArray(c.senhas) ? c.senhas : [c.senha];
-        return idOk && senhas.includes(senha);
-    });
+    const master = CONTAS_MESTRAS.find(c =>
+        c.email.toLowerCase() === id && c.senha === senha
+    );
     if (master) {
         iniciarSessao(master);
         return { sucesso: true, usuario: master };
@@ -229,8 +219,6 @@ function exigirLogin() {
 
 function sair() {
     localStorage.removeItem(CHAVE_SESSAO);
-    localStorage.removeItem('usuarioLogado');
-    sessionStorage.removeItem('gestorLogado');
     window.location.href = 'index.html';
 }
 
@@ -468,7 +456,6 @@ function adicionarFotoCelula(foto) {
 
 /** Recuperação por nome + telefone + data de nascimento → senha ibn + 5 últimos dígitos */
 function recuperarSenhaPorDados(nome, telefone, nascimento) {
-    // Apenas membros — contas mestras não recuperam por aqui
     const nomeNorm = (nome || '').trim().toLowerCase();
     const telNorm = (telefone || '').replace(/\D/g, '');
     const nascNorm = (nascimento || '').trim();
@@ -508,17 +495,7 @@ function recuperarSenhaPorDados(nome, telefone, nascimento) {
     };
 }
 
-function ehContaMestra(identificador) {
-    const id = (identificador || '').trim().toLowerCase();
-    return CONTAS_MESTRAS.some(c =>
-        c.email.toLowerCase() === id || (c.usuario && c.usuario.toLowerCase() === id)
-    );
-}
-
 function obterPerguntaSeguranca(identificador) {
-    if (ehContaMestra(identificador)) {
-        return { sucesso: false, mensagem: 'Contas de gestor/admin não usam recuperação de membro.' };
-    }
     const membro = buscarPorIdentificador(identificador);
     if (!membro) return { sucesso: false, mensagem: 'Cadastro não encontrado.' };
     if (!membro.perguntaSeguranca) {

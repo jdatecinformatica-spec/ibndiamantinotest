@@ -4,20 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- ✅ PWA — Instalação do App (PC, Android e iPhone) -->
+    <!-- ✅ PWA — Instalação do App -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0A1A3F">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#D4AF37">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="IBN Diamantino">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
     <meta name="description" content="Igreja Batista Nacional Diamantino — Família para pertencer">
     <title>Igreja Batista Nacional Diamantino</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script>
@@ -51,27 +46,15 @@
         .install-banner {
             position: fixed;
             bottom: 70px;
-            right: 16px;
-            left: auto;
-            max-width: 360px;
-            width: calc(100% - 32px);
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-            z-index: 9999;
+            right: 20px;
+            max-width: 320px;
+            background: #fff9e6;
+            border: 1px solid #ffd900;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 99;
             display: none;
         }
-        @media (max-width: 480px) {
-            .install-banner {
-                right: 12px;
-                left: 12px;
-                width: auto;
-                max-width: none;
-                bottom: 72px;
-            }
-        }
-
         .live-indicator {
             animation: pulse 2s infinite;
         }
@@ -105,56 +88,19 @@
     </style>
 </head>
 <body class="bg-light text-gray-800 font-sans antialiased">
-    <!-- ✅ Modal / Banner de Instalação do App (PC, Android, iPhone) -->
-    <div id="installBanner" class="install-banner p-0 overflow-hidden" style="display:none; max-width:360px;">
-        <div class="bg-primary text-white px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <img src="icon-192.png" alt="IBN" class="w-8 h-8 rounded-lg">
-                <span class="font-bold text-sm">Instalar App IBN</span>
-            </div>
-            <button type="button" id="btnFecharAviso" class="text-white/80 hover:text-white text-2xl leading-none" aria-label="Fechar">&times;</button>
-        </div>
-        <div class="p-4 bg-white">
-            <p class="text-sm text-gray-600 mb-3">Acesse mais rápido, receba avisos e use mesmo offline — como um app de verdade.</p>
-
-            <!-- Botão nativo (Chrome/Edge/Android/PC) -->
-            <div id="installNativeBox" class="mb-3 hidden">
-                <button type="button" id="btnInstalar" class="bg-secondary text-primary px-4 py-2.5 rounded-lg font-bold w-full hover:bg-yellow-400 transition">
+    <!-- ✅ Aviso de Instalação do App -->
+    <div id="installBanner" class="install-banner p-4">
+        <div class="flex items-start gap-3">
+            <div class="flex-1">
+                <p class="font-bold text-primary mb-1">Instalar App IBN</p>
+                <p class="text-sm text-gray-600 mb-3">Acesse mais rápido, mesmo offline</p>
+                <button id="btnInstalar" class="bg-secondary text-primary px-4 py-2 rounded-md font-bold w-full hover:bg-yellow-400">
                     <i class="fa fa-download mr-2"></i> Instalar Agora
                 </button>
             </div>
-
-            <!-- Instruções por plataforma -->
-            <div id="installInstrucoes" class="space-y-3 text-sm">
-                <div id="instIOS" class="hidden border border-blue-100 bg-blue-50 rounded-lg p-3">
-                    <p class="font-bold text-primary mb-2"><i class="fa fa-apple mr-1"></i> iPhone / iPad (Safari)</p>
-                    <ol class="list-decimal list-inside text-gray-700 space-y-1">
-                        <li>Toque no botão <strong>Compartilhar</strong> <span class="inline-block px-1.5 py-0.5 bg-gray-200 rounded text-xs">□↑</span> na barra do Safari</li>
-                        <li>Role e toque em <strong>Adicionar à Tela de Início</strong></li>
-                        <li>Toque em <strong>Adicionar</strong> no canto superior direito</li>
-                    </ol>
-                    <p class="text-xs text-gray-500 mt-2">Use o <strong>Safari</strong> (não o Chrome) para instalar no iPhone.</p>
-                </div>
-                <div id="instAndroid" class="hidden border border-green-100 bg-green-50 rounded-lg p-3">
-                    <p class="font-bold text-primary mb-2"><i class="fa fa-android mr-1"></i> Android (Chrome)</p>
-                    <ol class="list-decimal list-inside text-gray-700 space-y-1">
-                        <li>Toque no menu <strong>⋮</strong> (três pontinhos)</li>
-                        <li>Escolha <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong></li>
-                        <li>Confirme em <strong>Instalar</strong></li>
-                    </ol>
-                </div>
-                <div id="instDesktop" class="hidden border border-gray-200 bg-gray-50 rounded-lg p-3">
-                    <p class="font-bold text-primary mb-2"><i class="fa fa-desktop mr-1"></i> Computador (Chrome / Edge)</p>
-                    <ol class="list-decimal list-inside text-gray-700 space-y-1">
-                        <li>Clique no ícone de instalação na barra de endereço (ou no menu ⋮)</li>
-                        <li>Ou use o botão <strong>Instalar Agora</strong> acima, se aparecer</li>
-                        <li>Confirme a instalação</li>
-                    </ol>
-                </div>
-            </div>
+            <button id="btnFecharAviso" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
         </div>
     </div>
-
 
     <!-- ✅ Aviso de Usuário Conectado -->
     <div id="avisoLogado" class="bg-green-50 border-b border-green-200 py-2 px-4 text-center hidden">
@@ -167,12 +113,14 @@
         </span>
     </div>
 
-    <!-- ✅ ALERTA DO DIA + REDES + INSTALAR APP -->
+    <!-- ✅ ALERTA DO DIA (barra dourada no topo — restaurada do que funcionava bem) -->
+    <div id="alertaDoDia" class="hidden bg-secondary text-primary py-2.5 px-4 text-center font-bold shadow-sm">
+        <span id="textoAlertaDia"></span>
+        <a id="linkAlertaDia" href="#celulas" class="underline ml-2 text-sm font-semibold hover:opacity-80"></a>
+    </div>
+
+    <!-- ✅ REDES + INSTALAR APP -->
     <div id="barraTopoUtil" class="bg-primary text-white">
-        <div id="alertaDoDia" class="hidden bg-secondary text-primary py-2.5 px-4 text-center font-bold shadow-sm">
-            <span id="textoAlertaDia"></span>
-            <a id="linkAlertaDia" href="#celulas" class="underline ml-2 text-sm font-semibold hover:opacity-80"></a>
-        </div>
         <div class="container mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
             <div class="flex items-center gap-3">
                 <span class="text-white/70 text-xs hidden sm:inline">Siga a IBN:</span>
@@ -184,7 +132,7 @@
                    class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center hover:scale-110 transition" title="YouTube">
                     <i class="fa fa-youtube-play text-white"></i>
                 </a>
-</div>
+            </div>
             <button type="button" id="btnBaixarApp" class="inline-flex items-center gap-2 bg-secondary text-primary px-3 py-1.5 rounded-full font-bold text-xs hover:bg-yellow-400 transition">
                 <i class="fa fa-download"></i> Baixar / Instalar App
             </button>
@@ -576,8 +524,17 @@
         </div>
     </div>
 
-    <!-- ✅ GOOGLE MAPS API — chave correta do index 1 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvIb1B_rLoN1VIamugnaw5IJQ85ksBcpM&language=pt-BR&region=BR"></script>
+    <!-- ✅ GOOGLE MAPS API — carregamento com callback (mais confiável) -->
+    <script>
+        window.__mapaPronto = false;
+        function onGoogleMapsReady() {
+            window.__mapaPronto = true;
+            if (typeof initMap === 'function') {
+                try { initMap(); } catch(e) { console.error('initMap:', e); }
+            }
+        }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvIb1B_rLoN1VIamugnaw5IJQ85ksBcpM&language=pt-BR&region=BR&callback=onGoogleMapsReady"></script>
 
     <script>
         // ==================================================
@@ -822,18 +779,18 @@
                 this.audio.volume = Math.max(0, Math.min(1, v / 100));
             }
         };
-        };
 
+        // Dados oficiais das células (CSV IBN Diamantino)
         const celulas = [
-            { nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, nº 97 — Solar, Novo Diamantino", lat: -14.4052, lng: -56.4318 },
-            { nome: "Célula Gênesis", endereco: "Rua das Paineiras, nº 541 — Centro, Novo Diamantino", lat: -14.4085, lng: -56.4295 },
-            { nome: "Célula Fonte de Água Viva", endereco: "Rua Jacarandá, nº 321 — Centro, Novo Diamantino", lat: -14.4078, lng: -56.4302 },
-            { nome: "Célula Ebenézer", endereco: "Rua Cajarana, nº 533 — Bom Jesus, Novo Diamantino", lat: -14.4035, lng: -56.4280 },
-            { nome: "Célula Shamah", endereco: "Rua 5 Alta Floresta, nº 241 — Bom Jesus, Novo Diamantino", lat: -14.4028, lng: -56.4265 },
-            { nome: "Célula Morada", endereco: "Rua B, nº 25 — Buriti, Diamantino (Velho)", lat: -14.4155, lng: -56.4420 },
-            { nome: "Célula Atos 2", endereco: "Rua 2, próximo ao ginásio de esportes — Buriti, Diamantino (Velho)", lat: -14.4168, lng: -56.4435 },
-            { nome: "Célula Primeiro Mandamento", endereco: "Rua Manoel Ferreira de Arruda, nº 33 — Buriti, Diamantino (Velho)", lat: -14.4182, lng: -56.4450 },
-            { nome: "Célula Missão", endereco: "Alto Paraguai — MT", lat: -14.5120, lng: -56.4850 }
+            { nome: "Célula Somos a Igreja", endereco: "Rua Pirarara, nº 97 — Solar, Novo Diamantino", bairro: "Solar", lat: -14.4052, lng: -56.4318 },
+            { nome: "Célula Gênesis", endereco: "Rua das Paineiras, nº 541 — Centro, Novo Diamantino", bairro: "Centro", lat: -14.4085, lng: -56.4295 },
+            { nome: "Célula Fonte de Água Viva", endereco: "Rua Jacarandá, nº 321 — Centro, Novo Diamantino", bairro: "Centro", lat: -14.4078, lng: -56.4302 },
+            { nome: "Célula Ebenézer", endereco: "Rua Cajarana, nº 533 — Bom Jesus, Novo Diamantino", bairro: "Bom Jesus", lat: -14.4035, lng: -56.4280 },
+            { nome: "Célula Shamah", endereco: "Rua 5 Alta Floresta, nº 241 — Bom Jesus, Novo Diamantino", bairro: "Bom Jesus", lat: -14.4028, lng: -56.4265 },
+            { nome: "Célula Morada", endereco: "Rua B, nº 25 — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4155, lng: -56.4420 },
+            { nome: "Célula Atos 2", endereco: "Rua 2, próximo ao ginásio de esportes — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4168, lng: -56.4435 },
+            { nome: "Célula Primeiro Mandamento", endereco: "Rua Manoel Ferreira de Arruda, nº 33 — Buriti, Diamantino (Velho)", bairro: "Buriti", lat: -14.4182, lng: -56.4450 },
+            { nome: "Célula Missão", endereco: "Alto Paraguai — MT", bairro: "Alto Paraguai", lat: -14.5120, lng: -56.4850 }
         ];
         let mapa = null;
         let marcadores = [];
@@ -866,6 +823,7 @@
         }
 
         function initMap() {
+            if (mapa) return; // já iniciado
             const elMapa = document.getElementById('mapaCelulas');
             if (!elMapa) return;
             if (typeof google === 'undefined' || !google.maps) {
@@ -878,7 +836,9 @@
             mapa = new google.maps.Map(elMapa, {
                 zoom: 13,
                 center: centro,
-                language: 'pt-BR'
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
             });
             celulas.forEach((celula, idx) => {
                 const marcador = new google.maps.Marker({
@@ -913,78 +873,91 @@
         }
 
         function renderizarListaCompacta(distancias = null) {
-
             const container = document.getElementById('listaCompacta');
+            if (!container) return;
             let lista = distancias || celulas;
             container.innerHTML = lista.map(c => {
-                const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.endereco + ', Diamantino MT')}`;
+                const query = (c.endereco || c.nome) + ', Diamantino MT';
+                const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+                const dirLink = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
                 return `
-                    <a href="${link}" target="_blank" class="p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border">
-                        <p class="font-bold text-primary text-sm">${c.nome}</p>
-                        <p class="text-xs text-gray-500 mt-1">${c.endereco.split(' — ')[0]}</p>
-                        ${c.distanciaTexto ? `<p class="text-xs font-semibold text-secondary mt-1">${c.distanciaTexto}</p>` : ''}
-                    </a>
+                    <div class="p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                        <p class="font-bold text-primary text-sm mb-1">${c.nome}</p>
+                        <p class="text-xs text-gray-600 mb-1"><i class="fa fa-map-marker text-secondary"></i> ${c.endereco}</p>
+                        ${c.bairro ? `<p class="text-xs text-gray-400 mb-2">${c.bairro}</p>` : ''}
+                        ${c.distanciaTexto ? `<p class="text-xs font-semibold text-secondary mb-2"><i class="fa fa-location-arrow"></i> ${c.distanciaTexto}</p>` : ''}
+                        <div class="flex gap-2 mt-2">
+                            <a href="${link}" target="_blank" class="text-xs bg-primary text-white px-3 py-1.5 rounded font-semibold hover:bg-accent">Ver no Mapa</a>
+                            <a href="${dirLink}" target="_blank" class="text-xs bg-secondary text-primary px-3 py-1.5 rounded font-semibold hover:bg-yellow-400">Como Chegar</a>
+                        </div>
+                    </div>
                 `;
             }).join('');
         }
 
         function atualizarListaComDistancias(ordenadas) { renderizarListaCompacta(ordenadas); }
 
-
-        document.getElementById('btnLocalizar').addEventListener('click', () => {
-            const resultadoDiv = document.getElementById('resultadoProxima');
-            resultadoDiv.classList.remove('hidden');
-            resultadoDiv.innerHTML = `<p class="text-center text-gray-500"><i class="fa fa-spinner fa-spin"></i> Obtendo sua localização...</p>`;
-            if (!navigator.geolocation) {
-                resultadoDiv.innerHTML = `<p class="text-red-500 text-center">Seu navegador não suporta localização.</p>`;
-                return;
-            }
-            navigator.geolocation.getCurrentPosition(
-                (posicao) => {
-                    posicaoUsuario = { lat: posicao.coords.latitude, lng: posicao.coords.longitude };
-                    new google.maps.Marker({
-                        position: posicaoUsuario,
-                        map: mapa,
-                        title: "Você está aqui",
-                        icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png', scaledSize: new google.maps.Size(32, 32) }
-                    });
-                    mapa.setCenter(posicaoUsuario);
-                    mapa.setZoom(13);
-                    const comDistancia = celulas.map((c, idx) => ({
-                        ...c, idx,
-                        distanciaTexto: calcularDistancia(posicaoUsuario.lat, posicaoUsuario.lng, c.lat, c.lng)
-                    })).sort((a, b) => parseFloat(a.distanciaTexto) - parseFloat(b.distanciaTexto));
-                    const maisProxima = comDistancia[0];
-                    marcadores[maisProxima.idx].setIcon({
-                        url: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-                        scaledSize: new google.maps.Size(40, 40)
-                    });
-                    resultadoDiv.innerHTML = `
-                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                            <div>
-                                <p class="font-bold text-primary mb-1">⭐ Célula mais próxima de você:</p>
-                                <p class="font-bold text-lg text-secondary">${maisProxima.nome}</p>
-                                <p class="text-sm text-gray-600">${maisProxima.endereco}</p>
-                                <p class="text-sm font-semibold text-green-600 mt-1">
-                                    <i class="fa fa-location-arrow"></i> Distância: ${maisProxima.distanciaTexto}
-                                </p>
+        function configurarBotaoLocalizar() {
+            const btn = document.getElementById('btnLocalizar');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                const resultadoDiv = document.getElementById('resultadoProxima');
+                if (!resultadoDiv) return;
+                resultadoDiv.classList.remove('hidden');
+                resultadoDiv.innerHTML = `<p class="text-center text-gray-500"><i class="fa fa-spinner fa-spin"></i> Obtendo sua localização...</p>`;
+                if (!navigator.geolocation) {
+                    resultadoDiv.innerHTML = `<p class="text-red-500 text-center">Seu navegador não suporta localização.</p>`;
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (posicao) => {
+                        posicaoUsuario = { lat: posicao.coords.latitude, lng: posicao.coords.longitude };
+                        if (typeof google !== 'undefined' && google.maps && mapa) {
+                            new google.maps.Marker({
+                                position: posicaoUsuario,
+                                map: mapa,
+                                title: "Você está aqui",
+                                icon: { url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png', scaledSize: new google.maps.Size(32, 32) }
+                            });
+                            mapa.setCenter(posicaoUsuario);
+                            mapa.setZoom(13);
+                        }
+                        const comDistancia = celulas.map((c, idx) => ({
+                            ...c, idx,
+                            distanciaTexto: calcularDistancia(posicaoUsuario.lat, posicaoUsuario.lng, c.lat, c.lng)
+                        })).sort((a, b) => parseFloat(a.distanciaTexto) - parseFloat(b.distanciaTexto));
+                        const maisProxima = comDistancia[0];
+                        if (marcadores[maisProxima.idx] && typeof google !== 'undefined') {
+                            marcadores[maisProxima.idx].setIcon({
+                                url: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+                                scaledSize: new google.maps.Size(40, 40)
+                            });
+                        }
+                        resultadoDiv.innerHTML = `
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-primary mb-1">⭐ Célula mais próxima de você:</p>
+                                    <p class="font-bold text-lg text-secondary">${maisProxima.nome}</p>
+                                    <p class="text-sm text-gray-600">${maisProxima.endereco}</p>
+                                    <p class="text-sm font-semibold text-green-600 mt-1">
+                                        <i class="fa fa-location-arrow"></i> Distância: ${maisProxima.distanciaTexto}
+                                    </p>
+                                </div>
+                                <a href="https://www.google.com/maps/dir/?api=1&origin=${posicaoUsuario.lat},${posicaoUsuario.lng}&destination=${encodeURIComponent(maisProxima.endereco + ', Diamantino MT')}" 
+                                   target="_blank" class="bg-secondary text-primary px-5 py-2 rounded-md font-bold hover:bg-yellow-400 whitespace-nowrap text-center">
+                                    <i class="fa fa-map-marker mr-1"></i> Traçar Rota
+                                </a>
                             </div>
-                            <a href="https://www.google.com/maps/dir/?api=1&origin=${posicaoUsuario.lat},${posicaoUsuario.lng}&destination=${encodeURIComponent(maisProxima.endereco + ', Diamantino MT')}" 
-                               target="_blank" class="bg-secondary text-primary px-5 py-2 rounded-md font-bold hover:bg-yellow-400 whitespace-nowrap text-center">
-                                <i class="fa fa-map-marker mr-1"></i> Traçar Rota
-                            </a>
-                        </div>
-                    `;
-                    atualizarListaComDistancias(comDistancia);
-                },
-                (erro) => {
-                    resultadoDiv.innerHTML = `<p class="text-red-500 text-center">Não foi possível acessar sua localização.</p>`;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        });
-
-
+                        `;
+                        atualizarListaComDistancias(comDistancia);
+                    },
+                    (erro) => {
+                        resultadoDiv.innerHTML = `<p class="text-red-500 text-center">Não foi possível acessar sua localização.</p>`;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
 
         // ==================================================
         // 📺 YOUTUBE — CORRIGIDO (playlist de uploads)
@@ -1315,148 +1288,6 @@
         }
 
         // ==================================================
-        // 📱 PWA — INSTALAÇÃO (PC, Android e iPhone)
-        // ==================================================
-        (function() {
-            var deferredPrompt = null;
-            var banner = null;
-            var dismissedKey = 'ibn_install_dismissed';
-
-            function isStandalone() {
-                return window.matchMedia('(display-mode: standalone)').matches ||
-                    window.navigator.standalone === true ||
-                    document.referrer.includes('android-app://');
-            }
-
-            function isIOS() {
-                return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            }
-
-            function isAndroid() {
-                return /Android/i.test(navigator.userAgent);
-            }
-
-            function isDesktop() {
-                return !isIOS() && !isAndroid();
-            }
-
-            function showBanner() {
-                if (!banner || isStandalone()) return;
-                if (sessionStorage.getItem(dismissedKey) === '1') return;
-                banner.style.display = 'block';
-            }
-
-            function hideBanner() {
-                if (banner) banner.style.display = 'none';
-            }
-
-            function setupPlatformUI() {
-                var nativeBox = document.getElementById('installNativeBox');
-                var ios = document.getElementById('instIOS');
-                var and = document.getElementById('instAndroid');
-                var desk = document.getElementById('instDesktop');
-
-                if (ios) ios.classList.add('hidden');
-                if (and) and.classList.add('hidden');
-                if (desk) desk.classList.add('hidden');
-                if (nativeBox) nativeBox.classList.add('hidden');
-
-                if (isIOS()) {
-                    if (ios) ios.classList.remove('hidden');
-                } else if (isAndroid()) {
-                    if (and) and.classList.remove('hidden');
-                    if (deferredPrompt && nativeBox) nativeBox.classList.remove('hidden');
-                } else {
-                    if (desk) desk.classList.remove('hidden');
-                    if (deferredPrompt && nativeBox) nativeBox.classList.remove('hidden');
-                }
-            }
-
-            function initInstall() {
-                banner = document.getElementById('installBanner');
-                if (isStandalone()) {
-                    hideBanner();
-                    return;
-                }
-
-                // Evento nativo de instalação (Chrome, Edge, Android, desktop)
-                window.addEventListener('beforeinstallprompt', function(e) {
-                    e.preventDefault();
-                    deferredPrompt = e;
-                    setupPlatformUI();
-                    // Mostra o banner após um tempo de engajamento
-                    setTimeout(showBanner, 2500);
-                });
-
-                window.addEventListener('appinstalled', function() {
-                    deferredPrompt = null;
-                    hideBanner();
-                    sessionStorage.setItem(dismissedKey, '1');
-                });
-
-                // Botão "Instalar Agora" (quando o prompt nativo está disponível)
-                var btnInstalar = document.getElementById('btnInstalar');
-                if (btnInstalar) {
-                    btnInstalar.addEventListener('click', function() {
-                        if (!deferredPrompt) {
-                            showBanner();
-                            setupPlatformUI();
-                            return;
-                        }
-                        deferredPrompt.prompt();
-                        deferredPrompt.userChoice.then(function(choice) {
-                            if (choice.outcome === 'accepted') {
-                                hideBanner();
-                                sessionStorage.setItem(dismissedKey, '1');
-                            }
-                            deferredPrompt = null;
-                            setupPlatformUI();
-                        });
-                    });
-                }
-
-                // Botão da barra superior "Baixar / Instalar App"
-                var btnBaixar = document.getElementById('btnBaixarApp');
-                if (btnBaixar) {
-                    btnBaixar.addEventListener('click', function() {
-                        setupPlatformUI();
-                        showBanner();
-                        // Se já tiver prompt nativo, tenta instalar direto
-                        if (deferredPrompt) {
-                            var nativeBox = document.getElementById('installNativeBox');
-                            if (nativeBox) nativeBox.classList.remove('hidden');
-                        }
-                    });
-                }
-
-                var btnFechar = document.getElementById('btnFecharAviso');
-                if (btnFechar) {
-                    btnFechar.addEventListener('click', function() {
-                        hideBanner();
-                        sessionStorage.setItem(dismissedKey, '1');
-                    });
-                }
-
-                // Em iOS e quando não houver beforeinstallprompt, mostra instruções após alguns segundos
-                setupPlatformUI();
-                if (isIOS() || (!deferredPrompt && (isAndroid() || isDesktop()))) {
-                    setTimeout(function() {
-                        if (!isStandalone() && sessionStorage.getItem(dismissedKey) !== '1') {
-                            showBanner();
-                        }
-                    }, 4000);
-                }
-            }
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initInstall);
-            } else {
-                initInstall();
-            }
-        })();
-
-        // ==================================================
         // 🚀 INICIALIZAR TUDO
         // ==================================================
         document.addEventListener('DOMContentLoaded', function() {
@@ -1480,14 +1311,12 @@
             try {
                 verificarSessao();
                 mostrarAlertaDoDia();
+                configurarBotaoLocalizar();
+                // Lista de células sempre aparece (mesmo se o mapa falhar)
+                try { renderizarListaCompacta(); } catch (e) {}
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./sw.js').then(function(reg) {
-                        console.log('Service Worker registrado:', reg.scope);
-                    }).catch(function(err) {
-                        console.warn('SW registro falhou:', err);
-                    });
+                    navigator.serviceWorker.register('sw.js').catch(function() {});
                 }
-
 
                 // Controles do player
                 if (typeof player !== 'undefined' && player.garantirAudio) {
@@ -1522,24 +1351,19 @@
                     }, { passive: true });
                 }
 
-                // Mapa
+                // Mapa — tenta agora; se a API ainda não carregou, o callback onGoogleMapsReady cuida
                 if (typeof google !== 'undefined' && google.maps) {
                     initMap();
-                } else {
-                    window.addEventListener('load', function() {
-                        if (typeof google !== 'undefined' && google.maps) initMap();
-                        else {
-                            mostrarMapaFallback('Mapa indisponível neste modo. Use a lista rápida abaixo.');
-                            renderizarListaCompacta();
-                        }
-                    });
-                    setTimeout(function() {
-                        if (!mapa) {
-                            mostrarMapaFallback('Mapa indisponível. Use a lista rápida ou o Google Maps.');
-                            renderizarListaCompacta();
-                        }
-                    }, 4000);
+                } else if (window.__mapaPronto) {
+                    initMap();
                 }
+                // Fallback garantido: lista sempre aparece, e se o mapa não carregar em 5s mostra aviso
+                setTimeout(function() {
+                    if (!mapa) {
+                        mostrarMapaFallback('Mapa interativo indisponível no momento. Use a lista abaixo com os endereços e links do Google Maps.');
+                    }
+                    renderizarListaCompacta();
+                }, 5000);
             } catch (err) {
                 console.error('Erro na inicialização geral:', err);
             }
