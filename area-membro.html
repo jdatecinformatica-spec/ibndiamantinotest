@@ -114,8 +114,14 @@
         document.getElementById('tituloNome').textContent = usuario.nome.split(' ')[0];
 
         function formatarData(data) {
+            if (typeof formatarDataBR === 'function') return formatarDataBR(data);
             if (!data) return 'Não informado';
             return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        function estaBatizado(u) {
+            if (!u) return false;
+            return u.batizado === true || u.batismo === 'sim' || u.batizado === 'sim' || u.batismo === true;
         }
 
         // Exibe perfil
@@ -128,7 +134,9 @@
                 <p><strong>Nascimento:</strong> ${formatarData(usuarioAtual.nascimento)}</p>
                 <p><strong>Estado Civil:</strong> ${usuarioAtual.estadoCivil || 'Não informado'}</p>
                 <p><strong>Telefone:</strong> ${usuarioAtual.telefone || 'Não informado'}</p>
-                <p><strong>Batizado:</strong> ${usuarioAtual.batizado ? '✅ Sim' : '❌ Não'}</p>
+                <p><strong>Município:</strong> ${(usuarioAtual.municipio || '') + (usuarioAtual.uf ? ' — ' + usuarioAtual.uf : '') || 'Não informado'}</p>
+                <p><strong>Endereço:</strong> ${usuarioAtual.endereco || 'Não informado'}</p>
+                <p><strong>Batizado:</strong> ${estaBatizado(usuarioAtual) ? '✅ Sim' : '❌ Não'}</p>
                 <p class="text-xs text-gray-400 mt-2">Membro desde: ${formatarData(usuarioAtual.dataCadastro)}</p>
             `;
         }

@@ -9,6 +9,33 @@ const CHAVE_SESSAO = 'ibn_sessao_atual';
 const CHAVE_FOTOS = 'ibn_fotos';
 const CHAVE_FOTOS_CELULAS = 'ibn_fotos_celulas';
 
+/** Converte dd/mm/aaaa ou ISO para aaaa-mm-dd (input type=date e exibição) */
+function normalizarDataParaISO(str) {
+    if (!str) return '';
+    const s = String(str).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) {
+        const dd = m[1].padStart(2, '0');
+        const mm = m[2].padStart(2, '0');
+        return m[3] + '-' + mm + '-' + dd;
+    }
+    return s;
+}
+
+/** Exibe data em pt-BR a partir de ISO, dd/mm/aaaa ou Date */
+function formatarDataBR(str) {
+    if (!str) return 'Não informado';
+    const iso = normalizarDataParaISO(str);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        const p = iso.split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
+    return String(str);
+}
+
 // ---------- CATÁLOGOS FIXOS ----------
 const LISTA_CELULAS = [
     { id: 'somos-igreja', nome: 'Célula Somos a Igreja', dia: 'terca' },
@@ -143,12 +170,15 @@ function cadastrarMembro(dados) {
         telefone: (dados.telefone || '').trim(),
         senha: dados.senha,
         sexo: dados.sexo || '',
-        nascimento: dados.nascimento || '',
+        nascimento: normalizarDataParaISO(dados.nascimento || ''),
         estadoCivil: dados.estadoCivil || '',
         endereco: dados.endereco || '',
+        municipio: (dados.municipio || '').trim(),
+        uf: (dados.uf || 'MT').trim().toUpperCase(),
         origem: dados.origem || '',
-        batismo: dados.batismo || '',
-        dataBatismo: dados.dataBatismo || '',
+        batismo: dados.batismo || dados.batizado || '',
+        batizado: (dados.batizado === true || dados.batismo === 'sim' || dados.batizado === 'sim'),
+        dataBatismo: normalizarDataParaISO(dados.dataBatismo || ''),
         jaMembro: !!dados.jaMembro,
         celulas: celulas.lista,
         ministerios: Array.isArray(dados.ministerios) ? dados.ministerios : [],

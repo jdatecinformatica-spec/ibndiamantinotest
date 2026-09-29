@@ -128,20 +128,24 @@
         document.getElementById('telefone').value = usuario.telefone || '';
         document.getElementById('email').value = usuario.email || '';
         document.getElementById('sexo').value = usuario.sexo || '';
-        document.getElementById('nascimento').value = usuario.nascimento || '';
+        document.getElementById('nascimento').value = (typeof normalizarDataParaISO === 'function')
+            ? normalizarDataParaISO(usuario.nascimento || '')
+            : (usuario.nascimento || '');
         document.getElementById('estadoCivil').value = usuario.estadoCivil || '';
         document.getElementById('endereco').value = usuario.endereco || '';
         document.getElementById('origem').value = usuario.origem || '';
-        // batizado pode ser boolean ou "sim"/"nao"
-        const bat = usuario.batizado;
+        // batizado pode vir como batizado ou batismo (cadastro antigo)
+        const bat = usuario.batizado !== undefined && usuario.batizado !== '' ? usuario.batizado : usuario.batismo;
         if (bat === true || bat === 'sim' || bat === 'Sim') {
             document.getElementById('batizado').value = 'sim';
-        } else if (bat === false || bat === 'nao' || bat === 'Não') {
+        } else if (bat === false || bat === 'nao' || bat === 'Não' || bat === 'nao') {
             document.getElementById('batizado').value = 'nao';
         } else {
             document.getElementById('batizado').value = bat || '';
         }
-        document.getElementById('dataBatismo').value = usuario.dataBatismo || '';
+        document.getElementById('dataBatismo').value = (typeof normalizarDataParaISO === 'function')
+            ? normalizarDataParaISO(usuario.dataBatismo || '')
+            : (usuario.dataBatismo || '');
         document.getElementById('observacoes').value = usuario.observacoes || '';
 
         // Salva alterações via conta.js
@@ -157,6 +161,7 @@
                 endereco: document.getElementById('endereco').value.trim(),
                 origem: document.getElementById('origem').value.trim(),
                 batizado: document.getElementById('batizado').value === 'sim',
+                batismo: document.getElementById('batizado').value === 'sim' ? 'sim' : 'nao',
                 dataBatismo: document.getElementById('dataBatismo').value,
                 observacoes: document.getElementById('observacoes').value.trim()
             };
