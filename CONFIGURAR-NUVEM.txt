@@ -1,0 +1,71 @@
+========================================================
+NUVEM DA IGREJA — Firebase (gratuito)
+IBN Diamantino
+========================================================
+
+O site continua funcionando como hoje no celular de cada um.
+Com a nuvem ativa, cada cadastro e cada relatório de célula
+também é COPIADO para o Firebase. O admin/gestor baixa o CSV
+de QUALQUER computador.
+
+--------------------------------------------------------
+PASSO A PASSO (cerca de 15 minutos)
+--------------------------------------------------------
+
+1) Abra https://console.firebase.google.com com uma conta Google
+   da igreja (pode ser Gmail da secretaria).
+
+2) "Adicionar projeto" → nome: ibn-diamantino → continue.
+
+3) No menu: Build → Firestore Database → Criar banco de dados
+   - Comece em modo PRODUÇÃO
+   - Escolha localização (ex.: southamerica-east1)
+
+4) Aba "Regras" → publique isto (para começar):
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+
+   (Depois um técnico pode restringir só para gestores.)
+
+5) Ícone de engrenagem → Configurações do projeto → Seus apps
+   → Web (</>) → apelido "site-ibn" → Registrar app.
+
+6) Copie o objeto firebaseConfig (apiKey, authDomain, projectId...).
+
+7) No site, abra o arquivo firebase-config.js e substitua cada
+   COLE_AQUI pelos valores copiados.
+
+8) Publique de novo no GitHub Pages.
+
+9) No site, entre como admin/gestor → Painel →
+   "Abrir nuvem / baixar CSV" (ou acesse configurar-nuvem.html)
+
+10) Em cada aparelho que JÁ tinha dados, clique
+    "Enviar tudo deste aparelho" uma vez.
+
+--------------------------------------------------------
+O QUE O ADMIN BAIXA
+--------------------------------------------------------
+
+• CSV de membros — nome, telefone, e-mail, sexo, nascimento,
+  estado civil, endereço, origem, batizado, cargo, célula,
+  ministérios, status, observações...
+
+• CSV de relatórios de células — data, célula, presentes,
+  oferta PIX, espécie, total, observações, quem registrou.
+
+Senhas NÃO sobem para a nuvem.
+
+--------------------------------------------------------
+SE NÃO CONFIGURAR
+--------------------------------------------------------
+
+Nada quebra. O site segue só com dados no aparelho,
+igual antes desta atualização.

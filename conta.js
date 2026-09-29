@@ -82,6 +82,12 @@ const CONTAS_MESTRAS = [
 
 function salvarMembros(lista) {
     localStorage.setItem(CHAVE_MEMBROS, JSON.stringify(lista));
+    // Cópia na nuvem (se configurada) — não bloqueia o uso local
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
+            IBNNuvem.sincronizarMembros(lista);
+        }
+    } catch (e) { /* silencioso */ }
 }
 
 function lerMembros() {
@@ -599,6 +605,12 @@ function salvarRelatorioCelula(dados) {
     if (idx >= 0) lista[idx] = rel;
     else lista.push(rel);
     salvarRelatoriosCelula(lista);
+    // Cópia na nuvem (se configurada)
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarRelatorio) {
+            IBNNuvem.sincronizarRelatorio(rel);
+        }
+    } catch (e) { /* silencioso */ }
     return { sucesso: true, relatorio: rel };
 }
 

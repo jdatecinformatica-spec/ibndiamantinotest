@@ -1,0 +1,274 @@
+// ==============================================
+// SINCRONIZAÇÃO COM A NUVEM — IBN Diamantino
+// Não substitui o funcionamento local: grava no
+// aparelho E, se a nuvem estiver configurada,
+// envia cópia para o Firebase (admin/gestor baixa CSV).
+// ==============================================
+
+const IBNNuvem = (function () {
+    let db = null;
+    let pronto = false;
+    let ultimoErro = null;
+
+    function configValida() {
+        if (typeof FIREBASE_CONFIG === 'undefined' || typeof NUVEM_ATIVA === 'undefined') return false;
+        if (!NUVEM_ATIVA) return false;
+        const c = FIREBASE_CONFIG;
+        if (!c || !c.apiKey || !c.projectId) return false;
+        if (String(c.apiKey).indexOf('COLE_AQUI') !== -1) return false;
+        if (String(c.projectId).indexOf('COLE_AQUI') !== -1) return false;
+        return true;
+    }
+
+    function iniciar() {
+        if (pronto) return true;
+        if (!configValida()) {
+            ultimoErro = 'Nuvem não configurada (firebase-config.js). Site segue só no aparelho.';
+            return false;
+        }
+        if (typeof firebase === 'undefined') {
+            ultimoErro = 'Biblioteca Firebase não carregou.';
+            return false;
+        }
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(FIREBASE_CONFIG);
+            }
+            db = firebase.firestore();
+            pronto = true;
+            ultimoErro = null;
+            return true;
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            pronto = false;
+            return false;
+        }
+    }
+
+    function status() {
+        return {
+            configurada: configValida(),
+            conectada: pronto,
+            erro: ultimoErro
+        };
+    }
+
+    // Remove senha e resposta de segurança antes de subir
+    function membroPublico(m) {
+        if (!m) return null;
+        const copia = Object.assign({}, m);
+        delete copia.senha;
+        delete copia.respostaSeguranca;
+        return copia;
+    }
+
+    async function sincronizarMembros(lista) {
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro };
+        try {
+            const batch = db.batch();
+            const col = db.collection('membros');
+            (lista || []).forEach(function (m) {
+                if (!m || m.id === undefined || m.id === null) return;
+                const ref = col.doc(String(m.id));
+                batch.set(ref, membroPublico(m), { merge: true });
+            });
+            await batch.commit();
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            console.warn('IBNNuvem.sincronizarMembros:', ultimoErro);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function sincronizarUmMembro(m) {
+        if (!iniciar() || !db || !m) return { sucesso: false };
+        try {
+            await db.collection('membros').doc(String(m.id)).set(membroPublico(m), { merge: true });
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarMembros() {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('membros').get();
+            const lista = [];
+            snap.forEach(function (doc) {
+                lista.push(Object.assign({ id: doc.id }, doc.data()));
+            });
+            lista.sort(function (a, b) {
+                return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+            });
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    async function sincronizarRelatorio(rel) {
+        if (!iniciar() || !db || !rel) return { sucesso: false };
+        try {
+            const id = rel.id || ('rel-' + Date.now());
+            await db.collection('relatorios_celula').doc(String(id)).set(
+                Object.assign({}, rel, { id: id }),
+                { merge: true }
+            );
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarRelatorios(celulaId) {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            let snap;
+            if (celulaId) {
+                snap = await db.collection('relatorios_celula').where('celulaId', '==', celulaId).get();
+            } else {
+                snap = await db.collection('relatorios_celula').get();
+            }
+            const lista = [];
+            snap.forEach(function (doc) {
+                lista.push(Object.assign({ id: doc.id }, doc.data()));
+            });
+            lista.sort(function (a, b) {
+                return String(b.data || '').localeCompare(String(a.data || ''));
+            });
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    /** CSV de membros — mesmo formato do painel admin */
+    function csvMembros(lista) {
+        const sep = ';';
+        const header = [
+            'Nome', 'Telefone', 'E-mail', 'Sexo', 'Nascimento', 'Estado Civil',
+            'Endereço', 'Origem', 'Batizado', 'Data Batismo', 'Cargo', 'Nível',
+            'Status', 'Células', 'Ministérios', 'Observações', 'Data Cadastro'
+        ].join(sep);
+        const linhas = (lista || []).map(function (m) {
+            const celulas = Array.isArray(m.celulas)
+                ? m.celulas.map(function (c) { return c.nome || c.id || c; }).join(' | ')
+                : '';
+            const ministerios = Array.isArray(m.ministerios) ? m.ministerios.join(' | ') : (m.ministerios || '');
+            const bat = (m.batizado === true || m.batizado === 'sim' || m.batizado === 'Sim') ? 'Sim'
+                : (m.batizado === false || m.batizado === 'nao' || m.batizado === 'Não') ? 'Não'
+                : (m.batizado || '');
+            function q(v) {
+                return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            }
+            return [
+                q(m.nome), q(m.telefone), q(m.email), q(m.sexo), q(m.nascimento),
+                q(m.estadoCivil), q(m.endereco), q(m.origem), q(bat), q(m.dataBatismo),
+                q(m.cargo), q(m.nivel), q(m.status), q(celulas), q(ministerios),
+                q(m.observacoes), q(m.dataCadastro)
+            ].join(sep);
+        });
+        return '\uFEFF' + header + '\n' + linhas.join('\n');
+    }
+
+    /** CSV de relatórios de célula — mesmo formato de exportarRelatoriosCSV */
+    function csvRelatorios(lista, listaCelulas) {
+        const sep = ';';
+        const header = ['Data', 'Célula', 'Qtd presentes', 'Oferta PIX', 'Oferta espécie', 'Total ofertas', 'Observações', 'Registrado por'].join(sep);
+        const linhas = (lista || []).map(function (r) {
+            let nomeCel = r.celulaId || '';
+            if (listaCelulas && listaCelulas.length) {
+                const cel = listaCelulas.find(function (c) { return c.id === r.celulaId; });
+                if (cel) nomeCel = cel.nome;
+            }
+            function q(v) {
+                return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            }
+            function money(n) {
+                return (parseFloat(n) || 0).toFixed(2).replace('.', ',');
+            }
+            return [
+                r.data || '',
+                q(nomeCel),
+                r.qtdPresentes || 0,
+                money(r.ofertaPix),
+                money(r.ofertaEspecie),
+                money(r.totalOfertas),
+                q(r.observacoes),
+                q(r.autorNome)
+            ].join(sep);
+        });
+        return '\uFEFF' + header + '\n' + linhas.join('\n');
+    }
+
+    function baixarArquivo(conteudo, nomeArquivo) {
+        const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nomeArquivo || 'export.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function exportarMembrosCSV() {
+        const r = await buscarMembros();
+        if (!r.sucesso) return r;
+        if (!r.lista.length) return { sucesso: false, mensagem: 'Nenhum membro na nuvem ainda.' };
+        baixarArquivo(csvMembros(r.lista), 'membros-ibn-nuvem.csv');
+        return { sucesso: true, quantidade: r.lista.length };
+    }
+
+    async function exportarRelatoriosCSV(celulaId) {
+        const r = await buscarRelatorios(celulaId || null);
+        if (!r.sucesso) return r;
+        if (!r.lista.length) return { sucesso: false, mensagem: 'Nenhum relatório na nuvem ainda.' };
+        const celulas = (typeof LISTA_CELULAS !== 'undefined') ? LISTA_CELULAS : [];
+        const nome = celulaId ? ('relatorios-celula-' + celulaId + '-nuvem.csv') : 'relatorios-celulas-geral-nuvem.csv';
+        baixarArquivo(csvRelatorios(r.lista, celulas), nome);
+        return { sucesso: true, quantidade: r.lista.length };
+    }
+
+    /** Envia para a nuvem tudo que está no localStorage deste aparelho (uma vez) */
+    async function enviarTudoDoAparelho() {
+        if (!iniciar()) return { sucesso: false, mensagem: ultimoErro };
+        const membros = (typeof lerMembros === 'function') ? lerMembros() : [];
+        const rels = (typeof lerRelatoriosCelula === 'function') ? lerRelatoriosCelula() : [];
+        const r1 = await sincronizarMembros(membros);
+        let okRel = 0;
+        for (let i = 0; i < rels.length; i++) {
+            const rr = await sincronizarRelatorio(rels[i]);
+            if (rr.sucesso) okRel++;
+        }
+        return {
+            sucesso: r1.sucesso,
+            mensagem: 'Membros: ' + membros.length + ' · Relatórios enviados: ' + okRel + '/' + rels.length,
+            membros: membros.length,
+            relatorios: okRel
+        };
+    }
+
+    return {
+        iniciar: iniciar,
+        status: status,
+        sincronizarMembros: sincronizarMembros,
+        sincronizarUmMembro: sincronizarUmMembro,
+        buscarMembros: buscarMembros,
+        sincronizarRelatorio: sincronizarRelatorio,
+        buscarRelatorios: buscarRelatorios,
+        exportarMembrosCSV: exportarMembrosCSV,
+        exportarRelatoriosCSV: exportarRelatoriosCSV,
+        enviarTudoDoAparelho: enviarTudoDoAparelho,
+        csvMembros: csvMembros,
+        csvRelatorios: csvRelatorios,
+        baixarArquivo: baixarArquivo
+    };
+})();
