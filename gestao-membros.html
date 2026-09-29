@@ -10,267 +10,284 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { 
-                        primary: '#0A1A3F', 
-                        secondary: '#D4AF37', 
-                        accent: '#1E3A8A',
-                        light: '#F8F9FC' 
-                    }
+                    colors: { primary: '#0A1A3F', secondary: '#D4AF37', accent: '#1E3A8A', light: '#F8F9FC' }
                 }
             }
         }
     </script>
 </head>
 <body class="bg-light min-h-screen">
-    <!-- ✅ Verificação de Sessão -->
-    <div id="telaBloqueada" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-accent">
-        <div class="bg-white/10 backdrop-blur-sm p-8 rounded-2xl text-center max-w-md">
-            <i class="fa fa-lock text-4xl text-secondary mb-4"></i>
-            <h2 class="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
-            <p class="text-gray-300 mb-6">Apenas Gestores e Administradores autorizados</p>
-            <a href="login.html" class="inline-block bg-secondary text-primary px-8 py-3 rounded-lg font-bold hover:bg-yellow-400">
-                <i class="fa fa-sign-in"></i> Fazer Login
-            </a>
+    <header class="bg-primary text-white py-4 px-4 shadow">
+        <div class="container mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h1 class="text-xl font-bold">Gestão de Membros</h1>
+                <span id="nivelUsuario" class="text-secondary text-sm font-bold"></span>
+            </div>
+            <div class="flex gap-3 text-sm">
+                <a href="adminpainel.html" class="hover:text-secondary">← Painel</a>
+                <a href="#" id="btnSair" class="hover:text-red-300">Sair</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Filtros -->
+        <div class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Status</label>
+                <select id="filtroStatus" class="border rounded-lg px-3 py-2 text-sm">
+                    <option value="">Todos</option>
+                    <option value="pendente">Pendentes</option>
+                    <option value="aprovado">Aprovados</option>
+                    <option value="rejeitado">Rejeitados</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Buscar</label>
+                <input type="text" id="filtroBusca" placeholder="Nome, e-mail..." class="border rounded-lg px-3 py-2 text-sm">
+            </div>
+            <button id="btnFiltrar" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold">Filtrar</button>
+        </div>
+
+        <div id="lista" class="space-y-4"></div>
+        <p id="vazio" class="text-center text-gray-400 py-12 hidden">Nenhum membro encontrado.</p>
+    </main>
+
+    <!-- Modal aprovar -->
+    <div id="modalAprovar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold text-primary mb-1">Aprovar e alocar</h2>
+            <p id="modalNome" class="text-gray-600 mb-4"></p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-bold mb-1">Nível de acesso</label>
+                    <select id="alocNivel" class="w-full border rounded-lg px-3 py-2">
+                        <option value="membro">Membro</option>
+                        <option value="lider_celula">Líder de Célula</option>
+                        <option value="lider_ministerio">Líder de Ministério</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Cargo</label>
+                    <select id="alocCargo" class="w-full border rounded-lg px-3 py-2"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Função específica</label>
+                    <input type="text" id="alocFuncao" class="w-full border rounded-lg px-3 py-2" placeholder="Opcional">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Célula Terça</label>
+                    <select id="alocTerca" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhuma —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Célula Sábado</label>
+                    <select id="alocSabado" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhuma —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Ministérios</label>
+                    <div id="alocMins" class="grid grid-cols-2 gap-1 text-sm max-h-32 overflow-y-auto border rounded-lg p-2"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button id="btnConfirmarAprovar" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold">Aprovar</button>
+                <button id="btnFecharModal" class="flex-1 border py-2 rounded-lg font-bold">Cancelar</button>
+            </div>
         </div>
     </div>
 
-    <div id="conteudoPermitido" class="hidden">
-        <!-- Cabeçalho -->
-        <header class="bg-primary text-white py-4 px-4">
-            <div class="container mx-auto flex justify-between items-center">
-                <h1 class="text-xl font-bold">👥 Gestão de Membros</h1>
-                <div class="flex items-center gap-4 text-sm">
-                    <span id="nivelUsuario" class="text-secondary font-bold"></span>
-                    <a href="adminpainel.html" class="hover:text-secondary">← Painel</a>
-                    <a href="index.html" class="hover:text-secondary">Site</a>
-                    <button id="btnSair" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Sair</button>
-                </div>
-            </div>
-        </header>
-
-        <main class="container mx-auto px-4 py-8">
-            <!-- Ações Rápidas -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <div>
-                    <h2 class="text-2xl font-bold text-primary">Lista de Membros</h2>
-                    <p class="text-gray-500 text-sm" id="qtdTotal">0 membros cadastrados</p>
-                </div>
-                <div class="flex gap-3">
-                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold hover:bg-yellow-400">
-                        <i class="fa fa-user-plus"></i> Novo Cadastro
-                    </a>
-                    <button id="btnExportar" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">
-                        <i class="fa fa-download"></i> Exportar CSV
-                    </button>
-                </div>
-            </div>
-
-            <!-- Filtros -->
-            <div class="bg-white p-4 rounded-xl shadow mb-6">
-                <div class="grid md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="text-sm font-bold text-gray-600">Buscar</label>
-                        <input type="text" id="filtroNome" placeholder="Nome ou telefone..." 
-                               class="w-full p-2 border rounded-lg mt-1">
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold text-gray-600">Status</label>
-                        <select id="filtroStatus" class="w-full p-2 border rounded-lg mt-1">
-                            <option value="todos">Todos</option>
-                            <option value="admin">Administradores</option>
-                            <option value="comum">Membros Comuns</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold text-gray-600">Batismo</label>
-                        <select id="filtroBatismo" class="w-full p-2 border rounded-lg mt-1">
-                            <option value="todos">Todos</option>
-                            <option value="sim">Batizados</option>
-                            <option value="nao">Não Batizados</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lista de Membros -->
-            <div id="listaMembros" class="space-y-4">
-                <p class="text-center text-gray-400 py-8">Carregando...</p>
-            </div>
-        </main>
-    </div>
-
+    <script src="conta.js"></script>
     <script>
-        // ==========================================
-        // ✅ VERIFICAÇÃO — INTEGRADA COM O SISTEMA
-        // ==========================================
-        const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-        const ehGestor = usuarioLogado?.nivel === 'gestor';
-        const ehAdmin = ehGestor || usuarioLogado?.nivel === 'admin';
-
-        // Bloqueia se não for gestor/admin
-        if (!usuarioLogado || !ehAdmin) {
-            // Fica na tela de bloqueio
-        } else {
-            document.getElementById('telaBloqueada').classList.add('hidden');
-            document.getElementById('conteudoPermitido').classList.remove('hidden');
-            document.getElementById('nivelUsuario').textContent = ehGestor ? '👑 Gestor' : '🛡️ Administrador';
-            carregarLista();
+        const usuario = getUsuarioLogado();
+        if (!usuario || !isAdmin(usuario)) {
+            alert('Acesso restrito a gestores e administradores.');
+            window.location.href = 'login.html';
         }
 
-        // Logout
-        document.getElementById('btnSair').addEventListener('click', () => {
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html';
+        document.getElementById('nivelUsuario').textContent =
+            usuario.nivel === 'gestor' ? 'Gestor Master' : 'Administrador';
+        document.getElementById('btnSair').addEventListener('click', function(e) {
+            e.preventDefault();
+            sair();
         });
 
-        // ==========================================
-        // ✅ FUNÇÕES DE DADOS
-        // ==========================================
-        function getMembros() {
-            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
-            catch { return []; }
+        // Preenche selects do modal
+        LISTA_CARGOS.forEach(c => {
+            document.getElementById('alocCargo').innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        LISTA_CELULAS.filter(c => c.dia === 'terca').forEach(c => {
+            document.getElementById('alocTerca').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+        LISTA_CELULAS.filter(c => c.dia === 'sabado').forEach(c => {
+            document.getElementById('alocSabado').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+        LISTA_MINISTERIOS.forEach(m => {
+            document.getElementById('alocMins').innerHTML += `
+                <label class="flex items-center gap-1">
+                    <input type="checkbox" name="alocMin" value="${m}" class="accent-secondary"> ${m}
+                </label>`;
+        });
+
+        let membroAtualId = null;
+
+        function badgeStatus(s) {
+            const map = {
+                pendente: 'bg-yellow-100 text-yellow-800',
+                aprovado: 'bg-green-100 text-green-800',
+                rejeitado: 'bg-red-100 text-red-800'
+            };
+            return `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${map[s] || 'bg-gray-100'}">${s || '—'}</span>`;
         }
 
-        function getAdminsNomeados() {
-            try { return JSON.parse(localStorage.getItem('adminsNomeados') || '[]'); }
-            catch { return []; }
-        }
+        function renderizar() {
+            const status = document.getElementById('filtroStatus').value;
+            const busca = document.getElementById('filtroBusca').value.toLowerCase().trim();
+            let lista = lerMembros();
 
-        function carregarLista() {
-            const lista = getMembros();
-            const admins = getAdminsNomeados();
-            
-            document.getElementById('qtdTotal').textContent = `${lista.length} membro${lista.length !== 1 ? 's' : ''} cadastrados`;
-            
-            aplicarFiltros(lista, admins);
-        }
-
-        function aplicarFiltros(lista, admins) {
-            const filtroNome = document.getElementById('filtroNome').value.toLowerCase();
-            const filtroStatus = document.getElementById('filtroStatus').value;
-            const filtroBatismo = document.getElementById('filtroBatismo').value;
-
-            const filtrada = lista.filter(m => {
-                const buscaNome = m.nome?.toLowerCase().includes(filtroNome) || false;
-                const buscaTel = m.telefone?.includes(filtroNome) || false;
-                const ehAdminMembro = admins.some(a => a.email === m.email);
-                
-                let okStatus = true;
-                if (filtroStatus === 'admin') okStatus = ehAdminMembro;
-                if (filtroStatus === 'comum') okStatus = !ehAdminMembro;
-
-                let okBatismo = true;
-                if (filtroBatismo === 'sim') okBatismo = m.batizado === 'sim' || m.batizado === 'Sim';
-                if (filtroBatismo === 'nao') okBatismo = !m.batizado || m.batizado === 'não' || m.batizado === 'Não';
-
-                return (buscaNome || buscaTel) && okStatus && okBatismo;
-            });
-
-            renderizar(filtrada, admins);
-        }
-
-        function renderizar(lista, admins) {
-            const container = document.getElementById('listaMembros');
-            
-            if (lista.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-400 py-8">Nenhum membro encontrado com os filtros selecionados.</p>';
-                return;
+            if (status) lista = lista.filter(m => m.status === status);
+            if (busca) {
+                lista = lista.filter(m =>
+                    (m.nome || '').toLowerCase().includes(busca) ||
+                    (m.email || '').toLowerCase().includes(busca) ||
+                    (m.telefone || '').includes(busca)
+                );
             }
 
-            container.innerHTML = lista.map((m, idx) => {
-                const ehAdminMembro = admins.some(a => a.email === m.email);
+            // Pendentes primeiro
+            lista.sort((a, b) => {
+                if (a.status === 'pendente' && b.status !== 'pendente') return -1;
+                if (b.status === 'pendente' && a.status !== 'pendente') return 1;
+                return (b.dataCadastro || '').localeCompare(a.dataCadastro || '');
+            });
+
+            const container = document.getElementById('lista');
+            document.getElementById('vazio').classList.toggle('hidden', lista.length > 0);
+
+            container.innerHTML = lista.map(m => {
+                const celulasTxt = (m.celulas || []).map(c => c.nome).join(', ') || '—';
+                const minsTxt = (m.ministerios || []).join(', ') || '—';
                 return `
-                <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
-                    <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <h3 class="font-bold text-lg text-primary">${m.nome || 'Sem nome'}</h3>
-                                ${ehAdminMembro ? '<span class="bg-secondary/20 text-secondary px-2 py-0.5 rounded text-xs font-bold">🛡️ Admin</span>' : ''}
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-                                <p><strong>📞 Telefone:</strong> ${m.telefone || '-'}</p>
-                                <p><strong>📧 E-mail:</strong> ${m.email || '-'}</p>
-                                <p><strong>🎂 Nascimento:</strong> ${m.nascimento || '-'}</p>
-                                <p><strong>🏠 Endereço:</strong> ${m.endereco || '-'}</p>
-                                <p><strong>💍 Estado Civil:</strong> ${m.estadoCivil || '-'}</p>
-                                <p><strong>💧 Batizado:</strong> ${m.batizado || '-'}</p>
-                                ${m.dataBatismo ? `<p><strong>📅 Data Batismo:</strong> ${m.dataBatismo}</p>` : ''}
-                                ${m.observacoes ? `<p class="sm:col-span-2"><strong>📝 Observações:</strong> ${m.observacoes}</p>` : ''}
-                            </div>
+                <div class="bg-white rounded-xl shadow p-4 border-l-4 ${m.status === 'pendente' ? 'border-yellow-400' : m.status === 'aprovado' ? 'border-green-500' : 'border-gray-300'}">
+                    <div class="flex flex-wrap justify-between gap-2 mb-2">
+                        <div>
+                            <h3 class="font-bold text-primary text-lg">${m.nome}</h3>
+                            <p class="text-sm text-gray-500">${m.email || ''} · ${m.telefone || ''}</p>
                         </div>
-                        <div class="flex gap-2 shrink-0">
-                            <button onclick="editarMembro(${idx})" class="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600" title="Editar">
-                                <i class="fa fa-pencil"></i>
-                            </button>
-                            ${ehGestor ? `
-                            <button onclick="removerMembro(${idx})" class="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600" title="Excluir">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                            ` : ''}
-                        </div>
+                        ${badgeStatus(m.status)}
                     </div>
-                </div>
-                `;
+                    <div class="text-sm text-gray-600 grid sm:grid-cols-2 gap-1 mb-3">
+                        <p><strong>Cargo:</strong> ${m.cargo || 'Membro'}</p>
+                        <p><strong>Nível:</strong> ${m.nivel || 'membro'}</p>
+                        <p><strong>Células:</strong> ${celulasTxt}</p>
+                        <p><strong>Ministérios:</strong> ${minsTxt}</p>
+                        ${m.funcaoEspecifica ? `<p class="sm:col-span-2"><strong>Função:</strong> ${m.funcaoEspecifica}</p>` : ''}
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${m.status === 'pendente' ? `
+                            <button onclick="abrirAprovar(${m.id})" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold">
+                                <i class="fa fa-check"></i> Aprovar / Alocar
+                            </button>
+                            <button onclick="fazerRejeitar(${m.id})" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-sm font-bold">
+                                Rejeitar
+                            </button>
+                        ` : `
+                            <button onclick="abrirAprovar(${m.id})" class="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-bold">
+                                Editar alocação
+                            </button>
+                        `}
+                        <button onclick="resetSenha(${m.id})" class="border px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
+                            <i class="fa fa-key"></i> Resetar senha
+                        </button>
+                    </div>
+                </div>`;
             }).join('');
         }
 
-        // Aplicar filtros ao digitar
-        document.getElementById('filtroNome').addEventListener('input', carregarLista);
-        document.getElementById('filtroStatus').addEventListener('change', carregarLista);
-        document.getElementById('filtroBatismo').addEventListener('change', carregarLista);
-
-        // Exportar CSV
-        document.getElementById('btnExportar').addEventListener('click', () => {
-            const lista = getMembros();
-            if (!lista.length) { alert('Sem dados para exportar.'); return; }
-            
-            const cabecalho = 'Nome,Telefone,E-mail,Nascimento,Endereço,Estado Civil,Batizado,Data Batismo,Observações\n';
-            const linhas = lista.map(m => [
-                `"${m.nome || ''}"`,
-                `"${m.telefone || ''}"`,
-                `"${m.email || ''}"`,
-                `"${m.nascimento || ''}"`,
-                `"${m.endereco || ''}"`,
-                `"${m.estadoCivil || ''}"`,
-                `"${m.batizado || ''}"`,
-                `"${m.dataBatismo || ''}"`,
-                `"${m.observacoes || ''}"`
-            ].join(',')).join('\n');
-            
-            baixar(cabecalho + linhas, 'gestao-membros.csv');
-        });
-
-        function baixar(conteudo, nome) {
-            const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = nome; a.click();
-            URL.revokeObjectURL(url);
+        function abrirAprovar(id) {
+            membroAtualId = id;
+            const m = lerMembros().find(x => x.id === id);
+            if (!m) return;
+            document.getElementById('modalNome').textContent = m.nome;
+            document.getElementById('alocNivel').value = m.nivel || 'membro';
+            document.getElementById('alocCargo').value = m.cargo || 'Membro';
+            document.getElementById('alocFuncao').value = m.funcaoEspecifica || '';
+            const terca = (m.celulas || []).find(c => c.dia === 'terca');
+            const sabado = (m.celulas || []).find(c => c.dia === 'sabado');
+            document.getElementById('alocTerca').value = terca ? terca.id : '';
+            document.getElementById('alocSabado').value = sabado ? sabado.id : '';
+            document.querySelectorAll('input[name="alocMin"]').forEach(el => {
+                el.checked = (m.ministerios || []).includes(el.value);
+            });
+            const modal = document.getElementById('modalAprovar');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
-        // Funções de ação
-        window.editarMembro = function(idx) {
-            localStorage.setItem('editarMembroIdx', idx);
-            window.location.href = 'ajustar-dados.html?editar=' + idx;
-        };
+        document.getElementById('btnFecharModal').addEventListener('click', function() {
+            const modal = document.getElementById('modalAprovar');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
 
-        window.removerMembro = function(idx) {
-            if (!confirm('⚠️ Remover este membro definitivamente?')) return;
-            
-            let lista = getMembros();
-            const membro = lista[idx];
-            
-            // Remove também da lista de admins se for o caso
-            let admins = getAdminsNomeados();
-            admins = admins.filter(a => a.email !== membro.email);
-            localStorage.setItem('adminsNomeados', JSON.stringify(admins));
-            
-            lista.splice(idx, 1);
-            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
-            
-            alert('✅ Membro removido.');
-            carregarLista();
-        };
+        document.getElementById('btnConfirmarAprovar').addEventListener('click', function() {
+            const celulas = [];
+            const idT = document.getElementById('alocTerca').value;
+            const idS = document.getElementById('alocSabado').value;
+            if (idT) {
+                const c = LISTA_CELULAS.find(x => x.id === idT);
+                if (c) celulas.push(c);
+            }
+            if (idS) {
+                const c = LISTA_CELULAS.find(x => x.id === idS);
+                if (c) celulas.push(c);
+            }
+            const ministerios = [];
+            document.querySelectorAll('input[name="alocMin"]:checked').forEach(el => ministerios.push(el.value));
+
+            const r = aprovarMembro(membroAtualId, {
+                nivel: document.getElementById('alocNivel').value,
+                cargo: document.getElementById('alocCargo').value,
+                funcaoEspecifica: document.getElementById('alocFuncao').value.trim(),
+                celulas,
+                ministerios
+            });
+            if (!r.sucesso) {
+                alert(r.mensagem);
+                return;
+            }
+            document.getElementById('modalAprovar').classList.add('hidden');
+            document.getElementById('modalAprovar').classList.remove('flex');
+            renderizar();
+        });
+
+        function fazerRejeitar(id) {
+            if (!confirm('Rejeitar este cadastro?')) return;
+            rejeitarMembro(id);
+            renderizar();
+        }
+
+        function resetSenha(id) {
+            if (!confirm('Gerar senha temporária para este membro?')) return;
+            const r = resetarSenhaPorGestor(id);
+            if (r.sucesso) {
+                alert('Senha temporária:\n\n' + r.senhaTemporaria + '\n\nAnote e informe ao membro.');
+            } else {
+                alert(r.mensagem);
+            }
+        }
+
+        document.getElementById('btnFiltrar').addEventListener('click', renderizar);
+        document.getElementById('filtroBusca').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') renderizar();
+        });
+
+        renderizar();
     </script>
 </body>
 </html>
