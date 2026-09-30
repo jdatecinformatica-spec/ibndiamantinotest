@@ -237,6 +237,193 @@ const IBNNuvem = (function () {
         return { sucesso: true, quantidade: r.lista.length };
     }
 
+    // ---------- FOTOS (ministérios) ----------
+    async function salvarFotoNuvem(foto) {
+        if (!iniciar() || !db || !foto) return { sucesso: false, mensagem: ultimoErro };
+        try {
+            const id = String(foto.id || ('foto-' + Date.now()));
+            let imagemUrl = foto.imagemUrl || foto.url || '';
+            const imagem = foto.imagem || '';
+            // Sobe imagem grande para Storage (evita limite do Firestore)
+            if (imagem && String(imagem).indexOf('data:') === 0 && typeof firebase.storage === 'function') {
+                try {
+                    const ref = firebase.storage().ref('fotos/' + id);
+                    await ref.putString(imagem, 'data_url');
+                    imagemUrl = await ref.getDownloadURL();
+                } catch (e) {
+                    console.warn('Storage foto:', e);
+                    // se Storage não estiver ativo, tenta gravar só metadados
+                }
+            }
+            const doc = {
+                id: id,
+                titulo: foto.titulo || '',
+                ministerio: foto.ministerio || '',
+                autor: foto.autor || '',
+                autorId: foto.autorId || '',
+                dataFormatada: foto.dataFormatada || '',
+                mesAno: foto.mesAno || '',
+                imagemUrl: imagemUrl || (imagem && String(imagem).indexOf('http') === 0 ? imagem : ''),
+                // só grava base64 no doc se for pequena (< 800kb texto)
+                imagem: (!imagemUrl && imagem && String(imagem).length < 800000) ? imagem : '',
+                criadoEm: foto.criadoEm || new Date().toISOString()
+            };
+            await db.collection('fotos').doc(id).set(doc, { merge: true });
+            return { sucesso: true, foto: doc };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarFotos() {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('fotos').get();
+            const lista = [];
+            snap.forEach(function (doc) {
+                const d = doc.data();
+                // normaliza campo imagem para a galeria local
+                d.imagem = d.imagemUrl || d.imagem || d.url || '';
+                lista.push(d);
+            });
+            lista.sort(function (a, b) {
+                return String(b.criadoEm || '').localeCompare(String(a.criadoEm || ''));
+            });
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    // ---------- FOTOS DE CÉLULA ----------
+    async function salvarFotoCelulaNuvem(foto) {
+        if (!iniciar() || !db || !foto) return { sucesso: false };
+        try {
+            const id = String(foto.id || ('fc-' + Date.now()));
+            let url = foto.url || foto.imagemUrl || '';
+            if (foto.imagem && String(foto.imagem).indexOf('data:') === 0 && typeof firebase.storage === 'function') {
+                try {
+                    const ref = firebase.storage().ref('fotos-celulas/' + id);
+                    await ref.putString(foto.imagem, 'data_url');
+                    url = await ref.getDownloadURL();
+                } catch (e) { console.warn(e); }
+            }
+            const doc = Object.assign({}, foto, {
+                id: id,
+                url: url || foto.url || '',
+                imagemUrl: url || foto.imagemUrl || ''
+            });
+            delete doc.imagem; // não manda base64 grande
+            await db.collection('fotos_celulas').doc(id).set(doc, { merge: true });
+            return { sucesso: true, foto: doc };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarFotosCelulas() {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('fotos_celulas').get();
+            const lista = [];
+            snap.forEach(function (doc) { lista.push(Object.assign({ id: doc.id }, doc.data())); });
+            lista.sort(function (a, b) {
+                return String(b.data || '').localeCompare(String(a.data || ''));
+            });
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    // ---------- LOG DE ATIVIDADES (gestão) ----------
+    async function registrarAtividade(tipo, detalhe, usuario) {
+        if (!iniciar() || !db) return { sucesso: false };
+        try {
+            const u = usuario || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null) || {};
+            const id = 'act-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+            const doc = {
+                id: id,
+                tipo: tipo || 'outro',
+                detalhe: detalhe || '',
+                usuarioId: u.id || '',
+                usuarioNome: u.nome || '',
+                quando: new Date().toISOString()
+            };
+            await db.collection('atividades').doc(id).set(doc);
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarAtividades(limite) {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('atividades').get();
+            const lista = [];
+            snap.forEach(function (doc) { lista.push(doc.data()); });
+            lista.sort(function (a, b) {
+                return String(b.quando || '').localeCompare(String(a.quando || ''));
+            });
+            const n = limite || 200;
+            return { sucesso: true, lista: lista.slice(0, n) };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    /** Mescla lista da nuvem no localStorage (fotos ministérios) */
+    async function puxarFotosParaLocal() {
+        const r = await buscarFotos();
+        if (!r.sucesso) return r;
+        try {
+            const local = JSON.parse(localStorage.getItem('ibn_fotos') || '[]');
+            const porId = {};
+            local.forEach(function (f) { if (f && f.id) porId[String(f.id)] = f; });
+            r.lista.forEach(function (f) {
+                const id = String(f.id);
+                if (!porId[id]) {
+                    porId[id] = f;
+                } else if (!porId[id].imagem && f.imagem) {
+                    porId[id].imagem = f.imagem;
+                }
+            });
+            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
+            mesclada.sort(function (a, b) {
+                return String(b.criadoEm || b.id || '').localeCompare(String(a.criadoEm || a.id || ''));
+            });
+            localStorage.setItem('ibn_fotos', JSON.stringify(mesclada));
+            return { sucesso: true, lista: mesclada };
+        } catch (e) {
+            return { sucesso: false, mensagem: String(e) };
+        }
+    }
+
+    async function puxarFotosCelulasParaLocal() {
+        const r = await buscarFotosCelulas();
+        if (!r.sucesso) return r;
+        try {
+            const local = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]');
+            const porId = {};
+            local.forEach(function (f) { if (f && f.id) porId[String(f.id)] = f; });
+            r.lista.forEach(function (f) {
+                porId[String(f.id)] = Object.assign({}, porId[String(f.id)] || {}, f);
+            });
+            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
+            localStorage.setItem('ibn_fotos_celulas', JSON.stringify(mesclada));
+            return { sucesso: true, lista: mesclada };
+        } catch (e) {
+            return { sucesso: false, mensagem: String(e) };
+        }
+    }
+
     /** Envia para a nuvem tudo que está no localStorage deste aparelho (uma vez) */
     async function enviarTudoDoAparelho() {
         if (!iniciar()) return { sucesso: false, mensagem: ultimoErro };
@@ -248,9 +435,26 @@ const IBNNuvem = (function () {
             const rr = await sincronizarRelatorio(rels[i]);
             if (rr.sucesso) okRel++;
         }
+        let okFoto = 0;
+        try {
+            const fotos = JSON.parse(localStorage.getItem('ibn_fotos') || '[]');
+            for (let i = 0; i < fotos.length; i++) {
+                const rf = await salvarFotoNuvem(fotos[i]);
+                if (rf.sucesso) okFoto++;
+            }
+        } catch (e) {}
+        let okFc = 0;
+        try {
+            const fcs = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]');
+            for (let i = 0; i < fcs.length; i++) {
+                const rf = await salvarFotoCelulaNuvem(fcs[i]);
+                if (rf.sucesso) okFc++;
+            }
+        } catch (e) {}
         return {
             sucesso: r1.sucesso,
-            mensagem: 'Membros: ' + membros.length + ' · Relatórios enviados: ' + okRel + '/' + rels.length,
+            mensagem: 'Membros: ' + membros.length + ' · Relatórios: ' + okRel + '/' + rels.length +
+                ' · Fotos: ' + okFoto + ' · Fotos célula: ' + okFc,
             membros: membros.length,
             relatorios: okRel
         };
@@ -269,6 +473,14 @@ const IBNNuvem = (function () {
         enviarTudoDoAparelho: enviarTudoDoAparelho,
         csvMembros: csvMembros,
         csvRelatorios: csvRelatorios,
-        baixarArquivo: baixarArquivo
+        baixarArquivo: baixarArquivo,
+        salvarFotoNuvem: salvarFotoNuvem,
+        buscarFotos: buscarFotos,
+        salvarFotoCelulaNuvem: salvarFotoCelulaNuvem,
+        buscarFotosCelulas: buscarFotosCelulas,
+        registrarAtividade: registrarAtividade,
+        buscarAtividades: buscarAtividades,
+        puxarFotosParaLocal: puxarFotosParaLocal,
+        puxarFotosCelulasParaLocal: puxarFotosCelulasParaLocal
     };
 })();

@@ -70,6 +70,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="nuvem.js"></script>
     <script src="conta.js"></script>
@@ -110,7 +111,7 @@
                 const cel = LISTA_CELULAS.find(c => c.id === f.celulaId);
                 return `
                 <div class="bg-white rounded-xl shadow overflow-hidden">
-                    <img src="${f.url}" alt="${f.titulo}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x300?text=Imagem'">
+                    <img src="${f.url || f.imagemUrl || ''}" alt="${f.titulo}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x300?text=Imagem'">
                     <div class="p-3">
                         <p class="font-bold text-primary text-sm">${f.titulo}</p>
                         <p class="text-xs text-secondary">${cel ? cel.nome : f.celulaId}</p>
@@ -142,7 +143,14 @@
                 msg.className = 'text-sm mt-2 text-green-600';
                 msg.classList.remove('hidden');
                 form.reset();
-                renderGaleria();
+                (async function() {
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarFotosCelulasParaLocal) {
+                    await IBNNuvem.puxarFotosCelulasParaLocal();
+                }
+            } catch (e) {}
+            renderGaleria();
+        })();
             });
         }
 

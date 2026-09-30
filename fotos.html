@@ -216,6 +216,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="nuvem.js"></script>
     <script src="conta.js"></script>
@@ -311,10 +312,29 @@
             localStorage.setItem('ibn_fotos', JSON.stringify(lista));
         }
         function adicionarFoto(foto) {
+            if (!foto.id) foto.id = 'foto-' + Date.now();
+            if (!foto.criadoEm) foto.criadoEm = new Date().toISOString();
             const lista = carregarFotos();
             lista.unshift(foto);
             salvarFotos(lista);
             renderizarGaleria();
+            try {
+                if (typeof IBNNuvem !== 'undefined') {
+                    if (IBNNuvem.salvarFotoNuvem) IBNNuvem.salvarFotoNuvem(foto);
+                    if (IBNNuvem.registrarAtividade) {
+                        IBNNuvem.registrarAtividade('foto', 'Foto: ' + (foto.titulo || '') + ' (' + (foto.ministerio || '') + ')');
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // Busca fotos de todos os membros na nuvem e mostra na galeria
+        async function sincronizarGaleriaNuvem() {
+            try {
+                if (typeof IBNNuvem === 'undefined' || !IBNNuvem.puxarFotosParaLocal) return;
+                const r = await IBNNuvem.puxarFotosParaLocal();
+                if (r && r.sucesso) renderizarGaleria();
+            } catch (e) { console.warn(e); }
         }
 
         // ========== RENDERIZAR GALERIA ==========

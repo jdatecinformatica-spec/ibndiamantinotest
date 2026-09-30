@@ -36,6 +36,51 @@ function formatarDataBR(str) {
     return String(str);
 }
 
+
+// ---------- IDENTIDADE DA PESSOA (regra tipo gestão de membros) ----------
+// Mesma pessoa se: até 3 primeiros nomes iguais + data de nascimento igual.
+// E-mail NÃO define identidade (pode casar e mudar sobrenome / ter outro e-mail).
+const PARTICULAS_NOME = { de: 1, da: 1, do: 1, das: 1, dos: 1, e: 1, del: 1, di: 1 };
+
+function partesNomeSignificativas(nome) {
+    const bruto = String(nome || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z\s]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    const significativos = bruto.filter(function (p) { return !PARTICULAS_NOME[p]; });
+    // Usa significativos; se poucos, completa com o bruto
+    const base = significativos.length >= 2 ? significativos : bruto;
+    return base.slice(0, 3);
+}
+
+/** Chave estável: "maria|alice|silva" + nascimento ISO */
+function chaveIdentidadePessoa(nome, nascimento) {
+    const partes = partesNomeSignificativas(nome);
+    const nasc = normalizarDataParaISO(nascimento || '');
+    if (partes.length < 2 || !nasc) return '';
+    return partes.join('|') + '#' + nasc;
+}
+
+function mesmaPessoa(a, b) {
+    if (!a || !b) return false;
+    const ka = chaveIdentidadePessoa(a.nome, a.nascimento);
+    const kb = chaveIdentidadePessoa(b.nome, b.nascimento);
+    return !!(ka && kb && ka === kb);
+}
+
+/** Busca membro já cadastrado pela regra nome (3 primeiros) + aniversário */
+function buscarMesmaPessoa(nome, nascimento, lista) {
+    const chave = chaveIdentidadePessoa(nome, nascimento);
+    if (!chave) return null;
+    const arr = lista || lerMembros();
+    return arr.find(function (m) {
+        return chaveIdentidadePessoa(m.nome, m.nascimento) === chave;
+    }) || null;
+}
+
 // ---------- CATÁLOGOS FIXOS ----------
 const LISTA_CELULAS = [
     { id: 'somos-igreja', nome: 'Célula Somos a Igreja', dia: 'terca' },
@@ -151,6 +196,17 @@ function cadastrarMembro(dados) {
     const emailNorm = (dados.email || '').toLowerCase().trim();
     const telNorm = (dados.telefone || '').replace(/\D/g, '');
 
+    // Mesma pessoa: 3 primeiros nomes + data de nascimento (e-mail não define identidade)
+    const jaPessoa = buscarMesmaPessoa(dados.nome, dados.nascimento, lista);
+    if (jaPessoa) {
+        const emailMasc = (jaPessoa.email || '').replace(/(.{2}).+(@.+)/, '$1***$2');
+        return {
+            sucesso: false,
+            mensagem: 'Esta pessoa já possui cadastro (mesmo nome e data de nascimento)' +
+                (emailMasc ? '. Tente login ou recuperar senha com o e-mail ' + emailMasc : '. Use login ou recuperar senha.') +
+                ' Se casou e mudou o sobrenome, é o mesmo cadastro — não crie outro.'
+        };
+    }
     if (lista.find(m => (m.email || '').toLowerCase() === emailNorm)) {
         return { sucesso: false, mensagem: 'Este e-mail já está cadastrado!' };
     }
@@ -201,6 +257,11 @@ function cadastrarMembro(dados) {
     lista.push(novo);
     salvarMembros(lista);
     iniciarSessao(novo);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('cadastro', 'Novo cadastro no site', novo);
+        }
+    } catch (e) {}
     return { sucesso: true, mensagem: 'Cadastro realizado!', membro: novo };
 }
 
@@ -256,6 +317,11 @@ function fazerLogin(identificador, senha) {
     }
 
     iniciarSessao(membro);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('login', 'Login no site', membro);
+        }
+    } catch (e) {}
     return { sucesso: true, usuario: membro };
 }
 
@@ -335,6 +401,11 @@ function atualizarPerfil(dadosNovos) {
     lista[indice] = { ...lista[indice], ...seguros };
     salvarMembros(lista);
     iniciarSessao(lista[indice]);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('editar_perfil', 'Atualizou dados cadastrais', lista[indice]);
+        }
+    } catch (e) {}
     return { sucesso: true };
 }
 
@@ -501,6 +572,15 @@ function adicionarFotoCelula(foto) {
         data: new Date().toISOString()
     });
     salvarFotosCelulas(lista);
+    const nova = lista[0];
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.salvarFotoCelulaNuvem) IBNNuvem.salvarFotoCelulaNuvem(nova);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('foto_celula', 'Foto na célula ' + (foto.celulaId || ''), u);
+            }
+        }
+    } catch (e) {}
     return { sucesso: true };
 }
 
@@ -637,8 +717,11 @@ function salvarRelatorioCelula(dados) {
     salvarRelatoriosCelula(lista);
     // Cópia na nuvem (se configurada)
     try {
-        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarRelatorio) {
-            IBNNuvem.sincronizarRelatorio(rel);
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarRelatorio) IBNNuvem.sincronizarRelatorio(rel);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('relatorio_celula', 'Relatório célula ' + rel.celulaId + ' em ' + rel.data, u);
+            }
         }
     } catch (e) { /* silencioso */ }
     return { sucesso: true, relatorio: rel };

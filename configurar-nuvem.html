@@ -58,6 +58,16 @@
             <p id="msgCsv" class="text-sm mt-3 hidden"></p>
         </div>
 
+        
+        <div class="bg-white rounded-xl shadow p-5 border">
+            <h2 class="font-bold text-primary mb-3">3) Movimentação dos membros (log)</h2>
+            <p class="text-sm text-gray-600 mb-3">Logins, fotos, cadastros e alterações de perfil registrados na nuvem.</p>
+            <button type="button" id="btnAtividades" class="bg-primary text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-accent">
+                <i class="fa fa-list"></i> Carregar últimas atividades
+            </button>
+            <div id="listaAtividades" class="mt-4 space-y-2 text-sm max-h-80 overflow-y-auto"></div>
+        </div>
+
         <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 text-sm text-amber-950">
             <p class="font-bold mb-2"><i class="fa fa-info-circle"></i> Como ativar a nuvem (uma vez)</p>
             <ol class="list-decimal list-inside space-y-1">
@@ -90,6 +100,7 @@ service cloud.firestore {
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="nuvem.js"></script>
     <script src="conta.js"></script>
@@ -165,6 +176,27 @@ service cloud.firestore {
             }
         });
 
+        document.getElementById('btnAtividades').addEventListener('click', async function() {
+            if (!exigeGestao()) return;
+            var box = document.getElementById('listaAtividades');
+            box.innerHTML = '<p class="text-gray-500">Carregando...</p>';
+            var r = await IBNNuvem.buscarAtividades(150);
+            if (!r.sucesso) {
+                box.innerHTML = '<p class="text-red-600">' + (r.mensagem || 'Erro') + '</p>';
+                return;
+            }
+            if (!r.lista.length) {
+                box.innerHTML = '<p class="text-gray-400">Nenhuma atividade registrada ainda.</p>';
+                return;
+            }
+            box.innerHTML = r.lista.map(function(a) {
+                var quando = a.quando ? new Date(a.quando).toLocaleString('pt-BR') : '';
+                return '<div class="border rounded-lg p-2 bg-gray-50"><span class="font-semibold text-primary">' +
+                    (a.tipo || '') + '</span> · ' + (a.usuarioNome || '—') +
+                    '<br><span class="text-xs text-gray-600">' + (a.detalhe || '') +
+                    '</span><br><span class="text-xs text-gray-400">' + quando + '</span></div>';
+            }).join('');
+        });
         atualizarStatus();
     </script>
 </body>

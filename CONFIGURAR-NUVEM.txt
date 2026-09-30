@@ -69,3 +69,21 @@ SE NÃO CONFIGURAR
 
 Nada quebra. O site segue só com dados no aparelho,
 igual antes desta atualização.
+
+
+--------------------------------------------------------
+FOTOS (para todos verem a mesma galeria)
+--------------------------------------------------------
+1) No Firebase: menu Build → Storage → Começar
+2) Regras do Storage (temporárias):
+   rules_version = '2';
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /{allPaths=**} {
+         allow read, write: if true;
+       }
+     }
+   }
+3) Publique as regras.
+Sem o Storage, fotos muito grandes podem não subir;
+metadados e atividades ainda são registrados no Firestore.
