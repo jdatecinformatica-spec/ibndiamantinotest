@@ -255,6 +255,15 @@ const IBNNuvem = (function () {
                     // se Storage não estiver ativo, tenta gravar só metadados
                 }
             }
+            // Sem Storage (plano grátis): grava a foto comprimida direto no Firestore
+            let imagemFinal = '';
+            if (imagemUrl) {
+                imagemFinal = '';
+            } else if (imagem && String(imagem).length < 950000) {
+                imagemFinal = imagem;
+            } else if (imagem) {
+                throw new Error('Foto ainda grande demais após compressão. Tente outra.');
+            }
             const doc = {
                 id: id,
                 titulo: foto.titulo || '',
@@ -264,10 +273,16 @@ const IBNNuvem = (function () {
                 dataFormatada: foto.dataFormatada || '',
                 mesAno: foto.mesAno || '',
                 imagemUrl: imagemUrl || (imagem && String(imagem).indexOf('http') === 0 ? imagem : ''),
-                // só grava base64 no doc se for pequena (< 800kb texto)
-                imagem: (!imagemUrl && imagem && String(imagem).length < 800000) ? imagem : '',
-                criadoEm: foto.criadoEm || new Date().toISOString()
+                imagem: imagemFinal || (imagemUrl ? '' : ''),
+                criadoEm: foto.criadoEm || foto.dataEnvio || new Date().toISOString()
             };
+            if (!doc.imagem && !doc.imagemUrl && imagem && String(imagem).indexOf('http') === 0) {
+                doc.imagemUrl = imagem;
+            }
+            if (!doc.imagem && !doc.imagemUrl && imagemFinal) doc.imagem = imagemFinal;
+            if (!doc.imagem && !doc.imagemUrl && imagem && String(imagem).length < 950000) {
+                doc.imagem = imagem;
+            }
             await db.collection('fotos').doc(id).set(doc, { merge: true });
             return { sucesso: true, foto: doc };
         } catch (e) {

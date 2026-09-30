@@ -416,9 +416,9 @@
         }
 
         // ========== ENVIAR FOTO ==========
-        document.getElementById('formEnviar').addEventListener('submit', (e) => {
+        document.getElementById('formEnviar').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const arquivo = document.getElementById('fotoArquivo').files[0];
             const titulo = document.getElementById('fotoTitulo').value.trim();
             const ministerio = document.getElementById('fotoMinisterio').value;
@@ -428,36 +428,60 @@
 
             if (!arquivo || !titulo || !ministerio) return;
 
-            const leitor = new FileReader();
-            leitor.onload = function(evento) {
-                const dataObj = ano && mes && dia ? new Date(`${ano}-${mes}-${dia}`) : new Date();
+            const btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+            try {
+                // Comprime automaticamente — sobe na nuvem grátis (Firestore), todos veem
+                const imagemCompacta = await comprimirImagem(arquivo, 1200, 0.65);
+
+                const dataObj = ano && mes && dia ? new Date(ano + '-' + mes + '-' + dia) : new Date();
                 const dataFormatada = dataObj.toLocaleDateString('pt-BR');
                 const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][dataObj.getMonth()];
-                const mesAno = `${nomeMes} de ${dataObj.getFullYear()}`;
+                const mesAno = nomeMes + ' de ' + dataObj.getFullYear();
 
                 const novaFoto = {
-                    id: Date.now(),
-                    titulo,
-                    imagem: evento.target.result,
-                    dataFormatada,
-                    mesAno,
-                    ministerio,
-                    autor: membro.nome || 'Membro',
-                    emailAutor: membro.email || '',
-                    dataEnvio: new Date().toISOString()
+                    id: 'foto-' + Date.now(),
+                    titulo: titulo,
+                    imagem: imagemCompacta,
+                    dataFormatada: dataFormatada,
+                    mesAno: mesAno,
+                    ministerio: ministerio,
+                    autor: (membro && membro.nome) || 'Membro',
+                    autorId: (membro && membro.id) || '',
+                    emailAutor: (membro && membro.email) || '',
+                    dataEnvio: new Date().toISOString(),
+                    criadoEm: new Date().toISOString()
                 };
 
                 adicionarFoto(novaFoto);
-                
+
+                // Garante envio à nuvem e avisa se falhar
+                let msgNuvem = '';
+                try {
+                    if (typeof IBNNuvem !== 'undefined' && IBNNuvem.salvarFotoNuvem) {
+                        const r = await IBNNuvem.salvarFotoNuvem(novaFoto);
+                        msgNuvem = (r && r.sucesso)
+                            ? ' A foto já está na nuvem para todos os membros.'
+                            : ' (Salva neste aparelho; nuvem: ' + ((r && r.mensagem) || 'verifique o Firebase') + ')';
+                    }
+                } catch (err) {
+                    msgNuvem = ' (Salva neste aparelho; falha ao enviar nuvem.)';
+                }
+
                 document.getElementById('modalEnviar').classList.remove('aberto');
                 document.getElementById('formEnviar').reset();
                 selDia.value = '';
                 selMes.value = '';
                 selAno.value = '';
-                
-                alert('✅ Foto enviada com sucesso! Obrigado por compartilhar o que acontece no ministério.');
-            };
-            leitor.readAsDataURL(arquivo);
+
+                alert('✅ Foto enviada!' + msgNuvem);
+            } catch (err) {
+                console.error(err);
+                alert('Não foi possível processar a foto. Tente outra imagem.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Publicar Foto'; }
+            }
         });
 
         // ========== SOLICITAR REMOÇÃO ==========
