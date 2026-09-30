@@ -137,6 +137,9 @@
                 <p><strong>Município:</strong> ${(usuarioAtual.municipio || '') + (usuarioAtual.uf ? ' — ' + usuarioAtual.uf : '') || 'Não informado'}</p>
                 <p><strong>Endereço:</strong> ${usuarioAtual.endereco || 'Não informado'}</p>
                 <p><strong>Batizado:</strong> ${estaBatizado(usuarioAtual) ? '✅ Sim' : '❌ Não'}</p>
+                <p><strong>Células:</strong> ${Array.isArray(usuarioAtual.celulas) && usuarioAtual.celulas.length ? usuarioAtual.celulas.map(function(c){ return c.nome || c.id || c; }).join(', ') : 'Não informado'}</p>
+                <p><strong>Ministérios:</strong> ${Array.isArray(usuarioAtual.ministerios) && usuarioAtual.ministerios.length ? usuarioAtual.ministerios.join(', ') : 'Não informado'}</p>
+                <p><strong>Cargo:</strong> ${usuarioAtual.cargo || 'Membro'}${usuarioAtual.funcaoEspecifica ? ' — ' + usuarioAtual.funcaoEspecifica : ''}</p>
                 <p class="text-xs text-gray-400 mt-2">Membro desde: ${formatarData(usuarioAtual.dataCadastro)}</p>
             `;
         }
