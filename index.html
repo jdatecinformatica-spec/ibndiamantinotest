@@ -1420,16 +1420,28 @@
             setTimeout(() => m.classList.add('hidden'), 3000);
         }
 
-        // Form oração (simples — só feedback visual por enquanto)
+        // Form oração — grava na nuvem para Intercessão e gestor
         (function() {
             var formOracao = document.getElementById('formOracao');
-            if (formOracao) {
-                formOracao.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    alert('🙏 Seu pedido de oração foi recebido. Deus te abençoe!');
-                    this.reset();
-                });
-            }
+            if (!formOracao) return;
+            formOracao.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var fd = new FormData(formOracao);
+                var dados = {
+                    nome: (fd.get('nome') || '').toString(),
+                    email: (fd.get('email') || '').toString(),
+                    pedido: (fd.get('pedido') || '').toString()
+                };
+                var r = (typeof registrarPedidoOracao === 'function')
+                    ? registrarPedidoOracao(dados)
+                    : { sucesso: false };
+                if (r && r.sucesso) {
+                    alert('🙏 Seu pedido de oração foi recebido. A equipe de Intercessão e a igreja orarão por você. Deus te abençoe!');
+                    formOracao.reset();
+                } else {
+                    alert((r && r.mensagem) || 'Não foi possível enviar. Tente novamente.');
+                }
+            });
         })();
 
         // ==================================================

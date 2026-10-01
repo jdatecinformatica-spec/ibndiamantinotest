@@ -475,6 +475,54 @@ const IBNNuvem = (function () {
         };
     }
 
+
+    async function salvarPedidoOracao(item) {
+        if (!iniciar() || !db || !item) return { sucesso: false, mensagem: ultimoErro };
+        try {
+            const id = String(item.id || ('oracao-' + Date.now()));
+            await db.collection('pedidos_oracao').doc(id).set(Object.assign({}, item, { id: id }), { merge: true });
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function buscarPedidosOracao() {
+        if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('pedidos_oracao').get();
+            const lista = [];
+            snap.forEach(function (doc) { lista.push(doc.data()); });
+            lista.sort(function (a, b) {
+                return String(b.criadoEm || '').localeCompare(String(a.criadoEm || ''));
+            });
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, lista: [], mensagem: ultimoErro };
+        }
+    }
+
+    async function puxarPedidosOracaoParaLocal() {
+        const r = await buscarPedidosOracao();
+        if (!r.sucesso) return r;
+        try {
+            const local = JSON.parse(localStorage.getItem('ibn_pedidos_oracao') || '[]');
+            const porId = {};
+            local.forEach(function (p) { if (p && p.id) porId[String(p.id)] = p; });
+            r.lista.forEach(function (p) { porId[String(p.id)] = Object.assign({}, porId[String(p.id)] || {}, p); });
+            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
+            mesclada.sort(function (a, b) {
+                return String(b.criadoEm || '').localeCompare(String(a.criadoEm || ''));
+            });
+            localStorage.setItem('ibn_pedidos_oracao', JSON.stringify(mesclada));
+            return { sucesso: true, lista: mesclada };
+        } catch (e) {
+            return { sucesso: false, mensagem: String(e) };
+        }
+    }
+
     return {
         iniciar: iniciar,
         status: status,
@@ -496,6 +544,9 @@ const IBNNuvem = (function () {
         registrarAtividade: registrarAtividade,
         buscarAtividades: buscarAtividades,
         puxarFotosParaLocal: puxarFotosParaLocal,
-        puxarFotosCelulasParaLocal: puxarFotosCelulasParaLocal
+        puxarFotosCelulasParaLocal: puxarFotosCelulasParaLocal,
+        salvarPedidoOracao: salvarPedidoOracao,
+        buscarPedidosOracao: buscarPedidosOracao,
+        puxarPedidosOracaoParaLocal: puxarPedidosOracaoParaLocal
     };
 })();

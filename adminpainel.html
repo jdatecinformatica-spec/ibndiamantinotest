@@ -40,7 +40,7 @@
         <div id="conteudo" class="space-y-8">
             
             <!-- GESTOR APENAS: Nomear Administradores -->
-            <section id="secNomearAdmins" class="bg-white p-6 rounded-xl shadow">
+            <section id="secNomearAdmins" data-only-gestor="1" class="bg-white p-6 rounded-xl shadow">
                 <h2 class="text-xl font-bold text-primary mb-4">👑 Nomear Administradores</h2>
                 <p class="text-sm text-gray-500 mb-4">Gestor nomeia Admins; Admins gerenciam membros/eventos mas não nomeiam outros.</p>
                 
@@ -54,6 +54,17 @@
                 </form>
                 <div id="listaAdmins" class="space-y-2"></div>
             </section>
+
+            <section id="secTransferirGestor" class="bg-white rounded-xl shadow p-5 border border-secondary/30 mb-6">
+                <h2 class="font-bold text-primary mb-2">👑 Transferir titularidade de Gestor</h2>
+                <p class="text-xs text-gray-500 mb-3">Só o gestor master/atual. Se o pastor mudar de igreja, escolha outro membro cadastrado. A conta gestor@ continua como acesso de emergência.</p>
+                <div class="flex flex-wrap gap-2">
+                    <select id="selNovoGestor" class="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"></select>
+                    <button type="button" id="btnTransferirGestor" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm">Transferir</button>
+                </div>
+                <p id="msgTransferGestor" class="text-sm mt-2 hidden"></p>
+            </section>
+
 
             <!-- Nuvem: exportações centralizadas -->
             <section class="bg-white p-6 rounded-xl shadow border-2 border-secondary/40">
@@ -103,28 +114,67 @@
         </div>
     </main>
 
+    <script src="conta.js"></script>
     <script>
-        // === VERIFICAÇÃO DE SESSÃO ===
-        const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-        const ehGestor = usuarioLogado?.nivel === 'gestor';
-        const ehAdmin = ehGestor || usuarioLogado?.nivel === 'admin';
+        // === VERIFICAÇÃO DE SESSÃO (gestor = mandachuva; admin = secretaria) ===
+        const usuarioLogado = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+        const ehGestor = typeof isGestor === 'function' ? isGestor(usuarioLogado) : (usuarioLogado && usuarioLogado.nivel === 'gestor');
+        const ehAdmin = typeof isAdmin === 'function' ? isAdmin(usuarioLogado) : (usuarioLogado && (usuarioLogado.nivel === 'admin' || usuarioLogado.nivel === 'gestor'));
         
         if (!usuarioLogado || !ehAdmin) {
             document.getElementById('semPermissao').classList.remove('hidden');
             document.getElementById('conteudo').classList.add('hidden');
         } else {
             document.getElementById('nomeUsuario').textContent = 
-                `${ehGestor ? '👑 Gestor' : '🛡️ Admin'}: ${usuarioLogado.nome}`;
+                (ehGestor ? '👑 Gestor' : '🛡️ Secretaria') + ': ' + (usuarioLogado.nome || '');
             
+            // Só o gestor nomeia secretaria/admin
             if (!ehGestor) {
-                document.getElementById('secNomearAdmins').style.display = 'none';
+                var sec = document.getElementById('secNomearAdmins');
+                if (sec) sec.style.display = 'none';
             }
             carregarTudo();
+
+        (function(){
+            var sec = document.getElementById('secTransferirGestor');
+            if (!sec) return;
+            if (!ehGestor) { sec.style.display = 'none'; return; }
+            var sel = document.getElementById('selNovoGestor');
+            function preencher() {
+                var membros = getMembros();
+                sel.innerHTML = '<option value="">Selecione o novo gestor (pastor)...</option>';
+                membros.filter(function(m){ return m.nivel !== 'gestor'; }).forEach(function(m){
+                    sel.innerHTML += '<option value="'+m.id+'">'+(m.nome||'')+' — '+(m.email||'')+'</option>';
+                });
+            }
+            preencher();
+            document.getElementById('btnTransferirGestor').addEventListener('click', function(){
+                var id = sel.value;
+                if (!id) { alert('Selecione um membro.'); return; }
+                if (!confirm('Transferir a titularidade de GESTOR para esta pessoa?')) return;
+                var r = transferirTitularidadeGestor(id);
+                var msg = document.getElementById('msgTransferGestor');
+                msg.classList.remove('hidden');
+                if (r && r.sucesso) {
+                    msg.className = 'text-sm mt-2 text-green-600';
+                    msg.textContent = r.mensagem || 'Transferido.';
+                    preencher();
+                } else {
+                    msg.className = 'text-sm mt-2 text-red-600';
+                    msg.textContent = (r && r.mensagem) || 'Erro';
+                }
+            });
+        })();
+
         }
 
         document.getElementById('btnSair').addEventListener('click', () => {
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html';
+            if (typeof sair === 'function') sair();
+            else {
+                localStorage.removeItem('usuarioLogado');
+                localStorage.removeItem('ibn_sessao_atual');
+                window.location.href = 'login.html';
+            }
         });
 
         // === ADMINISTRADORES NOMEADOS (Gestor apenas) ===
@@ -158,10 +208,22 @@
             `).join('');
         }
         function removerAdmin(idx) {
+            if (!ehGestor) { alert('Somente o gestor pode remover admin.'); return; }
             if (!confirm('Remover este administrador? Ele voltará a ser membro comum.')) return;
-            const l = getAdminsNomeados(); 
-            l.splice(idx, 1); 
+            const l = getAdminsNomeados();
+            const removido = l[idx];
+            l.splice(idx, 1);
             salvarAdminsNomeados(l);
+            try {
+                if (removido && removido.email) {
+                    var membros = getMembros();
+                    var ix = membros.findIndex(function(m){ return (m.email||'').toLowerCase() === removido.email.toLowerCase(); });
+                    if (ix >= 0 && membros[ix].nivel === 'admin') {
+                        membros[ix].nivel = 'membro';
+                        salvarMembrosPainel(membros);
+                    }
+                }
+            } catch(e) {}
             alert('✅ Administrador removido — voltou a ser membro comum.');
         }
         document.getElementById('formNovoAdmin').addEventListener('submit', (e) => {
@@ -177,19 +239,37 @@
             const lista = getAdminsNomeados();
             if (lista.some(a => a.email === email)) { alert('Já cadastrado.'); return; }
             
-            lista.push({ nome, email, senha });
+            if (!ehGestor) { alert('Somente o gestor pode nomear a secretaria.'); return; }
+            lista.push({ nome, email, senha, papel: 'admin' });
             salvarAdminsNomeados(lista);
-            alert('✅ Administrador nomeado!');
+            // Promove membro na base unificada (ibn_membros), se já existir
+            try {
+                var membros = getMembros();
+                var ix = membros.findIndex(function(m){ return (m.email||'').toLowerCase() === email; });
+                if (ix >= 0) {
+                    membros[ix].nivel = 'admin';
+                    salvarMembrosPainel(membros);
+                } else if (typeof cadastrarMembro === 'function') {
+                    // opcional: não cria senha paralela se não for membro
+                }
+            } catch(e) {}
+            alert('✅ Secretaria (admin) nomeada! Se a pessoa já era membro, o nível foi atualizado.');
             e.target.reset();
         });
 
         // === MEMBROS — FUNÇÕES COMPLETAS ===
         function getMembros() {
-            try { return JSON.parse(localStorage.getItem('membrosCadastro') || '[]'); }
+            if (typeof lerMembros === 'function') return lerMembros();
+            try { return JSON.parse(localStorage.getItem('ibn_membros') || localStorage.getItem('membrosCadastro') || '[]'); }
             catch { return []; }
         }
-        function salvarMembros(lista) {
-            localStorage.setItem('membrosCadastro', JSON.stringify(lista));
+        function salvarMembrosPainel(lista) {
+            localStorage.setItem('ibn_membros', JSON.stringify(lista));
+            // espelho legado
+            try { localStorage.setItem('membrosCadastro', JSON.stringify(lista)); } catch(e) {}
+            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
+                try { IBNNuvem.sincronizarMembros(lista); } catch(e) {}
+            }
             renderizarMembros();
         }
         function renderizarMembros() {
@@ -270,7 +350,7 @@
             
             // Remove da lista de membros
             lista.splice(idx, 1);
-            salvarMembros(lista);
+            salvarMembrosPainel(lista);
             alert('✅ Membro removido definitivamente.');
         };
 

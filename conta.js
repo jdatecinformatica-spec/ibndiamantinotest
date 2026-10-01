@@ -8,6 +8,7 @@ const CHAVE_MEMBROS = 'ibn_membros';
 const CHAVE_SESSAO = 'ibn_sessao_atual';
 const CHAVE_FOTOS = 'ibn_fotos';
 const CHAVE_FOTOS_CELULAS = 'ibn_fotos_celulas';
+const CHAVE_ORACOES = 'ibn_pedidos_oracao';
 
 /** Converte dd/mm/aaaa ou ISO para aaaa-mm-dd (input type=date e exibição) */
 function normalizarDataParaISO(str) {
@@ -339,14 +340,73 @@ function sair() {
     window.location.href = 'index.html';
 }
 
+/**
+ * Hierarquia de governo do site (sem mudar o visual):
+ * - gestor  = autoridade máxima (pastor/direção). Última palavra. Pode tudo, inclusive nomear/remover admin (secretaria).
+ * - admin   = secretaria. Aprova membros, lideranças de célula/ministério, exporta relatórios (com o gestor).
+ * - lider_* = só a própria célula/ministério.
+ * - membro  = área do membro, fotos, etc.
+ */
 function isGestor(u) {
     u = u || getUsuarioLogado();
-    return u && u.nivel === 'gestor';
+    return !!(u && u.nivel === 'gestor');
 }
 
+/** Secretaria OU gestor (quem “manda no escritório”) */
 function isAdmin(u) {
     u = u || getUsuarioLogado();
-    return u && (u.nivel === 'admin' || u.nivel === 'gestor');
+    return !!(u && (u.nivel === 'admin' || u.nivel === 'gestor'));
+}
+
+/** Só secretaria (não inclui gestor) — raro; preferir isAdmin */
+function isSecretaria(u) {
+    u = u || getUsuarioLogado();
+    return !!(u && u.nivel === 'admin');
+}
+
+/** Aprovar membro e definir liderança de célula/ministério */
+function podeAprovarLiderancas(u) {
+    return isAdmin(u);
+}
+
+/** Buscar/exportar relatórios de células (secretaria + gestor). Líder só a própria no export filtrado. */
+function podeExportarRelatoriosGeral(u) {
+    return isAdmin(u);
+}
+
+/** Nomear ou rebaixar administradores (secretaria) — só o gestor */
+function podeNomearAdmin(u) {
+    return isGestor(u);
+}
+
+/** Define nivel admin em um membro cadastrado (só gestor) */
+function nomearComoAdmin(membroId) {
+    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode nomear a secretaria (admin).' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Não é possível alterar o gestor.' };
+    lista[idx].nivel = 'admin';
+    lista[idx].cargo = lista[idx].cargo || 'Secretaria';
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('nomear_admin', 'Nomeou admin/secretaria: ' + lista[idx].nome);
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: lista[idx] };
+}
+
+/** Remove nível admin (volta a membro) — só gestor */
+function removerNivelAdmin(membroId) {
+    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode remover admin.' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Não é possível alterar o gestor.' };
+    lista[idx].nivel = 'membro';
+    salvarMembros(lista);
+    return { sucesso: true };
 }
 
 function isLiderMinisterio(u, nomeMinisterio) {
@@ -735,8 +795,13 @@ function relatoriosDaCelula(celulaId) {
 
 function exportarRelatoriosCSV(celulaIdFiltro) {
     const u = getUsuarioLogado();
-    if (!u || !(isAdmin(u) || isGestor(u) || (celulaIdFiltro && isLiderCelula(u, celulaIdFiltro)))) {
-        return { sucesso: false, mensagem: 'Sem permissão.' };
+    if (!u) return { sucesso: false, mensagem: 'Faça login.' };
+    // Relatório geral CSV: secretaria (admin) e gestor. Uma célula: também o líder dela.
+    if (!celulaIdFiltro && !podeExportarRelatoriosGeral(u)) {
+        return { sucesso: false, mensagem: 'Relatórios gerais: somente secretaria ou gestor.' };
+    }
+    if (celulaIdFiltro && !(isAdmin(u) || isLiderCelula(u, celulaIdFiltro))) {
+        return { sucesso: false, mensagem: 'Sem permissão para exportar esta célula.' };
     }
     let lista = lerRelatoriosCelula();
     if (celulaIdFiltro) lista = lista.filter(r => r.celulaId === celulaIdFiltro);
@@ -773,3 +838,132 @@ function baixarCSV(conteudo, nomeArquivo) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+
+// ---------- PEDIDOS DE ORAÇÃO (Intercessão + gestor + secretaria) ----------
+function lerPedidosOracao() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_ORACOES) || '[]'); }
+    catch (e) { return []; }
+}
+
+function salvarPedidosOracao(lista) {
+    localStorage.setItem(CHAVE_ORACOES, JSON.stringify(lista));
+}
+
+/** Quem vê a lista: gestor, secretaria (admin), líder do ministério Intercessão */
+function podeVerPedidosOracao(u) {
+    u = u || getUsuarioLogado();
+    if (!u) return false;
+    if (isAdmin(u)) return true; // gestor + secretaria
+    if (u.nivel === 'lider_ministerio') {
+        const mins = Array.isArray(u.ministerios) ? u.ministerios : [];
+        return mins.some(function (m) {
+            return String(m).toLowerCase().indexOf('intercess') !== -1;
+        });
+    }
+    // Cargo/função mencionando intercessão
+    const blob = ((u.cargo || '') + ' ' + (u.funcaoEspecifica || '')).toLowerCase();
+    if (blob.indexOf('intercess') !== -1) return true;
+    return false;
+}
+
+function registrarPedidoOracao(dados) {
+    const nome = (dados.nome || '').trim();
+    const email = (dados.email || '').trim().toLowerCase();
+    const pedido = (dados.pedido || '').trim();
+    if (!pedido) return { sucesso: false, mensagem: 'Escreva o pedido de oração.' };
+
+    const item = {
+        id: 'oracao-' + Date.now(),
+        nome: nome || 'Anônimo',
+        email: email || '',
+        pedido: pedido,
+        status: 'novo', // novo | em_oracao | concluido
+        criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
+    };
+    const lista = lerPedidosOracao();
+    lista.unshift(item);
+    salvarPedidosOracao(lista);
+
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.salvarPedidoOracao) IBNNuvem.salvarPedidoOracao(item);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('pedido_oracao', 'Novo pedido de oração', getUsuarioLogado() || { nome: nome });
+            }
+        }
+    } catch (e) {}
+
+    return { sucesso: true, pedido: item };
+}
+
+function atualizarStatusPedidoOracao(id, status) {
+    if (!podeVerPedidosOracao()) return { sucesso: false, mensagem: 'Sem permissão.' };
+    const lista = lerPedidosOracao();
+    const idx = lista.findIndex(function (p) { return String(p.id) === String(id); });
+    if (idx === -1) return { sucesso: false, mensagem: 'Pedido não encontrado.' };
+    lista[idx].status = status;
+    lista[idx].atualizadoEm = new Date().toISOString();
+    salvarPedidosOracao(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.salvarPedidoOracao) {
+            IBNNuvem.salvarPedidoOracao(lista[idx]);
+        }
+    } catch (e) {}
+    return { sucesso: true };
+}
+
+/**
+ * Transfere a titularidade de gestor para outro membro cadastrado.
+ * Só o gestor atual (ou conta master gestor) pode fazer.
+ * O gestor atual vira admin (secretaria), salvo se for a conta master de bootstrap.
+ */
+function transferirTitularidadeGestor(novoGestorMembroId) {
+    const atual = getUsuarioLogado();
+    if (!isGestor(atual)) {
+        return { sucesso: false, mensagem: 'Somente o gestor pode transferir a titularidade.' };
+    }
+    const lista = lerMembros();
+    const idxNovo = lista.findIndex(function (m) { return String(m.id) === String(novoGestorMembroId); });
+    if (idxNovo === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (lista[idxNovo].nivel === 'gestor') {
+        return { sucesso: false, mensagem: 'Esta pessoa já é gestor.' };
+    }
+
+    // Rebaixa outros gestores "de membro" (não remove a conta master de login)
+    lista.forEach(function (m, i) {
+        if (m.nivel === 'gestor' && String(m.id) !== String(lista[idxNovo].id)) {
+            lista[i].nivel = 'admin';
+            lista[i].cargo = lista[i].cargo || 'Ex-gestor / Secretaria';
+        }
+    });
+
+    lista[idxNovo].nivel = 'gestor';
+    lista[idxNovo].cargo = 'Pastor / Gestor';
+    lista[idxNovo].status = 'aprovado';
+    salvarMembros(lista);
+
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade(
+                'transferir_gestor',
+                'Titularidade de gestor transferida para ' + lista[idxNovo].nome,
+                atual
+            );
+        }
+    } catch (e) {}
+
+    // Se o logado era um membro-gestor, atualiza sessão; master continua master
+    if (atual && atual.id && String(atual.id) === String(lista.find(function(m){ return m.nivel==='admin' && m.email===atual.email; }) || {}).id) {
+        const eu = lista.find(function (m) { return String(m.id) === String(atual.id); });
+        if (eu) iniciarSessao(eu);
+    }
+
+    return {
+        sucesso: true,
+        mensagem: 'Titularidade transferida para ' + lista[idxNovo].nome + '. A conta master gestor@ continua como acesso de emergência/controle.',
+        novoGestor: lista[idxNovo]
+    };
+}
+
