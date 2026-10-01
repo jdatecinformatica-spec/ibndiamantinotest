@@ -75,10 +75,22 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-1">Função específica</label>
-                    <input type="text" id="alocFuncao" class="w-full border rounded-lg px-3 py-2" placeholder="Opcional">
+                    <input type="text" id="alocFuncao" class="w-full border rounded-lg px-3 py-2" placeholder="Anfitrião, discipulador...">
+                </div>
+                <div id="wrapLiderCel">
+                    <label class="block text-sm font-bold mb-1">Lidera qual célula? (se for líder de célula / em treinamento)</label>
+                    <select id="alocLideraCelula" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhuma —</option>
+                    </select>
+                </div>
+                <div id="wrapLiderMin">
+                    <label class="block text-sm font-bold mb-1">Lidera qual ministério? (se for líder de ministério)</label>
+                    <select id="alocLideraMinisterio" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhum —</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-1">Célula Terça</label>
+                    <label class="block text-sm font-bold mb-1">Célula Terça (participa)</label>
                     <select id="alocTerca" class="w-full border rounded-lg px-3 py-2">
                         <option value="">— Nenhuma —</option>
                     </select>
@@ -124,6 +136,12 @@
         // Preenche selects do modal
         LISTA_CARGOS.forEach(c => {
             document.getElementById('alocCargo').innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        LISTA_CELULAS.forEach(c => {
+            document.getElementById('alocLideraCelula').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+        LISTA_MINISTERIOS.forEach(m => {
+            document.getElementById('alocLideraMinisterio').innerHTML += `<option value="${m}">${m}</option>`;
         });
         LISTA_CELULAS.filter(c => c.dia === 'terca').forEach(c => {
             document.getElementById('alocTerca').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
@@ -215,12 +233,14 @@
 
         function abrirAprovar(id) {
             membroAtualId = id;
-            const m = lerMembros().find(x => x.id === id);
+            const m = lerMembros().find(x => String(x.id) === String(id));
             if (!m) return;
             document.getElementById('modalNome').textContent = m.nome;
             document.getElementById('alocNivel').value = m.nivel || 'membro';
             document.getElementById('alocCargo').value = m.cargo || 'Membro';
             document.getElementById('alocFuncao').value = m.funcaoEspecifica || '';
+            document.getElementById('alocLideraCelula').value = m.lideraCelulaId || '';
+            document.getElementById('alocLideraMinisterio').value = m.lideraMinisterio || '';
             const terca = (m.celulas || []).find(c => c.dia === 'terca');
             const sabado = (m.celulas || []).find(c => c.dia === 'sabado');
             document.getElementById('alocTerca').value = terca ? terca.id : '';

@@ -559,6 +559,9 @@ function aprovarMembro(membroId, alocacao) {
         if (alocacao.ministerios) m.ministerios = alocacao.ministerios;
         if (alocacao.cargo) m.cargo = alocacao.cargo;
         if (alocacao.funcaoEspecifica !== undefined) m.funcaoEspecifica = alocacao.funcaoEspecifica;
+        if (alocacao.lideraCelulaId !== undefined) m.lideraCelulaId = alocacao.lideraCelulaId;
+        if (alocacao.lideraMinisterio !== undefined) m.lideraMinisterio = alocacao.lideraMinisterio;
+        if (alocacao.funcaoEspecifica !== undefined) m.funcaoEspecifica = alocacao.funcaoEspecifica;
         if (alocacao.nivel) m.nivel = alocacao.nivel;
         if (alocacao.funcoes) m.funcoes = alocacao.funcoes;
     }
