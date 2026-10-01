@@ -130,7 +130,19 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1">Função específica (opcional)</label>
-                    <input type="text" id="funcaoEspecifica" placeholder="Ex: Líder de louvor, Diácono da célula..." class="w-full px-3 py-2 border rounded-lg">
+                    <input type="text" id="funcaoEspecifica" placeholder="Ex: Anfitrião, Líder de louvor..." class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div id="blocoLiderCelula" class="hidden">
+                    <label class="block text-sm font-semibold mb-1">Qual célula você lidera? *</label>
+                    <select id="lideraCelulaId" class="w-full px-3 py-2 border rounded-lg bg-white">
+                        <option value="">— Selecione a célula —</option>
+                    </select>
+                </div>
+                <div id="blocoLiderMinisterio" class="hidden">
+                    <label class="block text-sm font-semibold mb-1">Qual ministério você lidera? *</label>
+                    <select id="lideraMinisterio" class="w-full px-3 py-2 border rounded-lg bg-white">
+                        <option value="">— Selecione o ministério —</option>
+                    </select>
                 </div>
             </div>
 
@@ -192,6 +204,21 @@
         LISTA_CARGOS.forEach(c => {
             selCargo.innerHTML += `<option value="${c}">${c}</option>`;
         });
+        const selLiderCel = document.getElementById('lideraCelulaId');
+        LISTA_CELULAS.forEach(c => {
+            selLiderCel.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+        const selLiderMin = document.getElementById('lideraMinisterio');
+        LISTA_MINISTERIOS.forEach(m => {
+            selLiderMin.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        function atualizarCamposLider() {
+            const cargo = selCargo.value;
+            document.getElementById('blocoLiderCelula').classList.toggle('hidden', cargo !== 'Líder de Célula' && cargo !== 'Líder em treinamento');
+            document.getElementById('blocoLiderMinisterio').classList.toggle('hidden', cargo !== 'Líder de Ministério');
+        }
+        selCargo.addEventListener('change', atualizarCamposLider);
+        atualizarCamposLider();
 
         const selPergunta = document.getElementById('perguntaSeguranca');
         PERGUNTAS_SEGURANCA.forEach(p => {
@@ -251,6 +278,8 @@
                 ministerios: jaMembro ? ministerios : [],
                 cargo: jaMembro ? document.getElementById('cargo').value : 'Membro',
                 funcaoEspecifica: jaMembro ? document.getElementById('funcaoEspecifica').value.trim() : '',
+                lideraCelulaId: jaMembro ? (document.getElementById('lideraCelulaId').value || '') : '',
+                lideraMinisterio: jaMembro ? (document.getElementById('lideraMinisterio').value || '') : '',
                 perguntaSeguranca: document.getElementById('perguntaSeguranca').value,
                 respostaSeguranca: document.getElementById('respostaSeguranca').value.trim()
             };

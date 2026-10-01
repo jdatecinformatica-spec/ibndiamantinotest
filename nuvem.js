@@ -178,8 +178,9 @@ const IBNNuvem = (function () {
         const sep = ';';
         const header = [
             'Nome', 'Telefone', 'E-mail', 'Sexo', 'Nascimento', 'Estado Civil',
-            'Endereço', 'Origem', 'Batizado', 'Data Batismo', 'Cargo', 'Nível',
-            'Status', 'Células', 'Ministérios', 'Observações', 'Data Cadastro'
+            'Endereço', 'Município', 'UF', 'Origem', 'Batizado', 'Data Batismo',
+            'Cargo', 'Função específica', 'Lidera célula', 'Lidera ministério',
+            'Nível', 'Status', 'Células', 'Ministérios', 'Observações', 'Data Cadastro'
         ].join(sep);
         const linhas = (lista || []).map(function (m) {
             const celulas = Array.isArray(m.celulas)
@@ -192,10 +193,17 @@ const IBNNuvem = (function () {
             function q(v) {
                 return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
             }
+            var nomeCelLider = m.lideraCelulaId || '';
+            if (m.lideraCelulaId && typeof LISTA_CELULAS !== 'undefined') {
+                var celL = LISTA_CELULAS.find(function(c){ return c.id === m.lideraCelulaId; });
+                if (celL) nomeCelLider = celL.nome;
+            }
             return [
                 q(m.nome), q(m.telefone), q(m.email), q(m.sexo), q(m.nascimento),
-                q(m.estadoCivil), q(m.endereco), q(m.origem), q(bat), q(m.dataBatismo),
-                q(m.cargo), q(m.nivel), q(m.status), q(celulas), q(ministerios),
+                q(m.estadoCivil), q(m.endereco), q(m.municipio), q(m.uf), q(m.origem),
+                q(bat), q(m.dataBatismo),
+                q(m.cargo), q(m.funcaoEspecifica), q(nomeCelLider), q(m.lideraMinisterio),
+                q(m.nivel), q(m.status), q(celulas), q(ministerios),
                 q(m.observacoes), q(m.dataCadastro)
             ].join(sep);
         });

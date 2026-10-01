@@ -108,6 +108,8 @@ const LISTA_CARGOS = [
     'Membro',
     'Líder de Célula',
     'Líder de Ministério',
+    'Líder em treinamento',
+    'Discipulador',
     'Diácono / Diaconisa',
     'Presbítero',
     'Pastor',
@@ -115,6 +117,26 @@ const LISTA_CARGOS = [
     'Voluntário',
     'Outro'
 ];
+
+const CHAVE_ULTIMOS_LOGINS = 'ibn_ultimos_logins';
+
+/** Guarda até 3 últimos identificadores de login neste aparelho */
+function registrarUltimoLogin(identificador) {
+    const id = String(identificador || '').trim();
+    if (!id) return;
+    let lista = [];
+    try { lista = JSON.parse(localStorage.getItem(CHAVE_ULTIMOS_LOGINS) || '[]'); } catch (e) { lista = []; }
+    lista = lista.filter(function (x) { return String(x).toLowerCase() !== id.toLowerCase(); });
+    lista.unshift(id);
+    lista = lista.slice(0, 3);
+    localStorage.setItem(CHAVE_ULTIMOS_LOGINS, JSON.stringify(lista));
+}
+
+function lerUltimosLogins() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_ULTIMOS_LOGINS) || '[]'); }
+    catch (e) { return []; }
+}
+
 
 const PERGUNTAS_SEGURANCA = [
     'Nome da mãe (primeiro nome)',
@@ -241,6 +263,8 @@ function cadastrarMembro(dados) {
         ministerios: Array.isArray(dados.ministerios) ? dados.ministerios : [],
         cargo: dados.cargo || 'Membro',
         funcaoEspecifica: (dados.funcaoEspecifica || '').trim(),
+        lideraCelulaId: dados.lideraCelulaId || '',
+        lideraMinisterio: dados.lideraMinisterio || '',
         perguntaSeguranca: dados.perguntaSeguranca || '',
         respostaSeguranca: (dados.respostaSeguranca || '').toLowerCase().trim(),
         status: dados.jaMembro ? 'pendente' : 'aprovado',
@@ -251,7 +275,8 @@ function cadastrarMembro(dados) {
         inscricoes: []
     };
 
-    if (novo.cargo === 'Líder de Ministério' || novo.cargo === 'Líder de Célula') {
+    if (novo.cargo === 'Líder de Ministério' || novo.cargo === 'Líder de Célula' ||
+        novo.cargo === 'Líder em treinamento' || novo.cargo === 'Discipulador') {
         novo.status = 'pendente';
     }
 
@@ -303,6 +328,7 @@ function fazerLogin(identificador, senha) {
     );
     if (master) {
         iniciarSessao(master);
+        try { registrarUltimoLogin(identificador); } catch (e) {}
         return { sucesso: true, usuario: master };
     }
 
@@ -318,6 +344,7 @@ function fazerLogin(identificador, senha) {
     }
 
     iniciarSessao(membro);
+    try { registrarUltimoLogin(identificador); } catch (e) {}
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
             IBNNuvem.registrarAtividade('login', 'Login no site', membro);
@@ -436,6 +463,50 @@ function podePostarFotoCelula(celulaId) {
     if (!u) return false;
     if (isAdmin(u)) return true;
     return Array.isArray(u.celulas) && u.celulas.some(c => c.id === celulaId);
+}
+
+
+/** Normaliza nome/slug de ministério para comparação */
+function normalizarNomeMinisterio(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '')
+        .trim();
+}
+
+/**
+ * Pode postar foto neste ministério?
+ * - admin/gestor: qualquer
+ * - ministério "geral" / "outros": qualquer membro logado
+ * - demais: só se o membro participa daquele ministério no cadastro
+ */
+function podePostarFotoMinisterio(nomeOuSlug) {
+    const u = getUsuarioLogado();
+    if (!u) return false;
+    if (isAdmin(u)) return true;
+    const alvo = normalizarNomeMinisterio(nomeOuSlug);
+    if (!alvo || alvo === 'geral' || alvo === 'geraloutros' || alvo === 'outros') return true;
+    const mins = Array.isArray(u.ministerios) ? u.ministerios : [];
+    if (!mins.length) return false;
+    return mins.some(function (m) {
+        const n = normalizarNomeMinisterio(m);
+        return n === alvo || n.indexOf(alvo) !== -1 || alvo.indexOf(n) !== -1;
+    });
+}
+
+/** Lista legível dos ministérios em que o membro pode postar (+ Geral) */
+function ministeriosQuePodePostar() {
+    const u = getUsuarioLogado();
+    if (!u) return ['Geral / Outros'];
+    if (isAdmin(u)) {
+        return (typeof LISTA_MINISTERIOS !== 'undefined' ? LISTA_MINISTERIOS.slice() : []).concat(['Geral / Outros']);
+    }
+    const mins = Array.isArray(u.ministerios) ? u.ministerios.slice() : [];
+    if (mins.indexOf('Geral / Outros') === -1 && mins.indexOf('Geral') === -1) {
+        mins.push('Geral / Outros');
+    }
+    return mins.length ? mins : ['Geral / Outros'];
 }
 
 function podeGerenciarFotosMinisterio(nomeMinisterio) {
@@ -782,16 +853,22 @@ function membrosDoMinisterio(nomeMinisterio) {
 /** Papéis na célula a partir do cargo / funcaoEspecifica */
 function equipeDaCelula(celulaId) {
     const membros = membrosDaCelula(celulaId);
+    const todos = lerMembros().filter(function (m) {
+        const st = (m.status || 'aprovado').toLowerCase();
+        return st !== 'rejeitado' && st !== 'recusado';
+    });
     const lider = membros.find(m =>
         m.nivel === 'lider_celula' ||
         m.cargo === 'Líder de Célula' ||
+        (m.lideraCelulaId && m.lideraCelulaId === celulaId && m.cargo === 'Líder de Célula') ||
         (m.funcaoEspecifica || '').toLowerCase().includes('líder de célula') ||
         (m.funcaoEspecifica || '').toLowerCase().includes('lider de celula')
-    ) || null;
+    ) || todos.find(m => m.lideraCelulaId === celulaId && (m.cargo === 'Líder de Célula' || m.nivel === 'lider_celula')) || null;
     const anfitriao = membros.find(m =>
         (m.funcaoEspecifica || '').toLowerCase().includes('anfitri')
     ) || null;
     const liderTreino = membros.find(m =>
+        m.cargo === 'Líder em treinamento' ||
         (m.funcaoEspecifica || '').toLowerCase().includes('treinament') ||
         (m.funcaoEspecifica || '').toLowerCase().includes('em treinamento')
     ) || null;
