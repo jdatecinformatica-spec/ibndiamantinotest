@@ -92,6 +92,31 @@ const IBNNuvem = (function () {
         }
     }
 
+
+    async function puxarMembrosParaLocal() {
+        const r = await buscarMembros();
+        if (!r.sucesso) return r;
+        try {
+            const local = (typeof lerMembros === 'function') ? lerMembros() : [];
+            const porId = {};
+            local.forEach(function (m) { if (m && m.id !== undefined) porId[String(m.id)] = m; });
+            (r.lista || []).forEach(function (m) {
+                const id = String(m.id);
+                if (!porId[id]) porId[id] = m;
+                else porId[id] = Object.assign({}, porId[id], m);
+            });
+            let mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
+            // Grava e deduplica por nome+nascimento
+            localStorage.setItem('ibn_membros', JSON.stringify(mesclada));
+            if (typeof deduplicarMembrosLocais === 'function') {
+                mesclada = deduplicarMembrosLocais();
+            }
+            return { sucesso: true, lista: mesclada };
+        } catch (e) {
+            return { sucesso: false, mensagem: String(e) };
+        }
+    }
+
     async function buscarMembros() {
         if (!iniciar() || !db) return { sucesso: false, lista: [], mensagem: ultimoErro };
         try {
@@ -529,6 +554,7 @@ const IBNNuvem = (function () {
         sincronizarMembros: sincronizarMembros,
         sincronizarUmMembro: sincronizarUmMembro,
         buscarMembros: buscarMembros,
+        puxarMembrosParaLocal: puxarMembrosParaLocal,
         sincronizarRelatorio: sincronizarRelatorio,
         buscarRelatorios: buscarRelatorios,
         exportarMembrosCSV: exportarMembrosCSV,

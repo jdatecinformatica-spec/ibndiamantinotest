@@ -303,6 +303,66 @@
             selAno.appendChild(opt);
         }
 
+        // ========== COMPRIMIR FOTO (iPhone JPEG/PNG + nuvem grátis) ==========
+        function comprimirImagem(arquivo, maxLado, qualidade) {
+            maxLado = maxLado || 1200;
+            qualidade = qualidade || 0.65;
+            return new Promise(async function(resolve, reject) {
+                function paraJpeg(source, w0, h0) {
+                    var w = w0, h = h0;
+                    if (w > maxLado || h > maxLado) {
+                        if (w > h) { h = Math.round(h * maxLado / w); w = maxLado; }
+                        else { w = Math.round(w * maxLado / h); h = maxLado; }
+                    }
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(source, 0, 0, w, h);
+                    var q = qualidade;
+                    var dataUrl = canvas.toDataURL('image/jpeg', q);
+                    while (dataUrl.length > 850000 && q > 0.3) {
+                        q -= 0.08;
+                        dataUrl = canvas.toDataURL('image/jpeg', q);
+                    }
+                    return dataUrl;
+                }
+                try {
+                    if (typeof createImageBitmap === 'function') {
+                        var bmp = await createImageBitmap(arquivo);
+                        var out = paraJpeg(bmp, bmp.width, bmp.height);
+                        if (bmp.close) try { bmp.close(); } catch (e) {}
+                        resolve(out);
+                        return;
+                    }
+                } catch (e1) { console.warn(e1); }
+                try {
+                    var url = URL.createObjectURL(arquivo);
+                    var img = new Image();
+                    img.onload = function() {
+                        try {
+                            var out = paraJpeg(img, img.width, img.height);
+                            URL.revokeObjectURL(url);
+                            resolve(out);
+                        } catch (e3) {
+                            URL.revokeObjectURL(url);
+                            reject(e3);
+                        }
+                    };
+                    img.onerror = function() {
+                        URL.revokeObjectURL(url);
+                        var fr = new FileReader();
+                        fr.onload = function() {
+                            if (fr.result && String(fr.result).length < 950000) resolve(fr.result);
+                            else reject(new Error('HEIC/formato não suportado. Use JPEG ou PNG.'));
+                        };
+                        fr.onerror = function() { reject(new Error('Falha ao ler arquivo')); };
+                        fr.readAsDataURL(arquivo);
+                    };
+                    img.src = url;
+                } catch (e2) { reject(e2); }
+            });
+        }
+
         // ========== BANCO DE FOTOS ==========
         function carregarFotos() {
             const salvas = localStorage.getItem('ibn_fotos');
@@ -478,7 +538,7 @@
                 alert('✅ Foto enviada!' + msgNuvem);
             } catch (err) {
                 console.error(err);
-                alert('Não foi possível processar a foto. Tente outra imagem.');
+                alert('Não foi possível processar a foto. No iPhone evite HEIC: use JPEG/PNG ou "Formato mais compatível".');
             } finally {
                 if (btn) { btn.disabled = false; btn.textContent = 'Publicar Foto'; }
             }

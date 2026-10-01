@@ -433,5 +433,51 @@
         <p class="text-xs text-gray-500 mt-1">Cada um tem o seu valor. Juntos fazemos a igreja ser o que é.</p>
     </footer>
 
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="nuvem.js"></script>
+    <script src="conta.js"></script>
+
+    <script>
+    (async function() {
+        try {
+            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarMembrosParaLocal) {
+                await IBNNuvem.puxarMembrosParaLocal();
+            }
+        } catch (e) {}
+        if (typeof membrosDoMinisterio !== 'function') return;
+        var mapaNomes = {
+            'atmosfera': 'Atmosfera', 'acolhimento': 'Acolhimento', 'mulheres': 'Mulheres',
+            'homens': 'Homens', 'intercessao': 'Intercessão', 'evangelismo': 'Evangelismo',
+            'danca': 'Dança', 'empreendedorismo': 'Empreendedorismo', 'batismo': 'Batismo',
+            'zeladoria': 'Zeladoria', 'projetos-sociais': 'Projetos Sociais', 'casais': 'Casais',
+            'jovens': 'Jovens', 'adolescentes': 'Adolescentes', 'louvor': 'Louvor',
+            'midias': 'Mídias Sociais', 'infantil': 'Infantil', 'artes': 'Artes',
+            'ensino': 'Ensino', 'cantina': 'Cantina', 'projeto-kids': 'Projeto Kids'
+        };
+        document.querySelectorAll('a[href*="fotos.html?ministerio="]').forEach(function(a) {
+            var m = (a.getAttribute('href') || '').match(/ministerio=([^&]+)/);
+            if (!m) return;
+            var slug = decodeURIComponent(m[1]);
+            var nome = mapaNomes[slug] || slug;
+            var membros = membrosDoMinisterio(nome);
+            var box = document.createElement('div');
+            box.className = 'mt-3 text-left text-xs text-gray-600 border-t pt-2';
+            if (!membros.length) {
+                box.innerHTML = '<p class="text-gray-400">Nenhum membro vinculado ainda neste cadastro.</p>';
+            } else {
+                box.innerHTML = '<p class="font-bold text-primary mb-1">Integrantes (' + membros.length + ')</p><ul class="space-y-1">' +
+                    membros.map(function(p) {
+                        var papel = p.cargo || p.funcaoEspecifica || 'Membro';
+                        return '<li><span class="font-semibold">' + (p.nome || '—') + '</span> <span class="text-gray-400">— ' + papel + '</span></li>';
+                    }).join('') + '</ul>';
+            }
+            a.parentNode.insertBefore(box, a);
+        });
+    })();
+    </script>
+
 </body>
 </html>

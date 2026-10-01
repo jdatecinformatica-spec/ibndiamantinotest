@@ -305,7 +305,16 @@
         } else if (isAdmin(usuario) || isGestor(usuario)) {
             document.getElementById('barraAdmin').classList.remove('hidden');
         }
-        renderLista();
+        (async function initCelulas() {
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarMembrosParaLocal) {
+                    await IBNNuvem.puxarMembrosParaLocal();
+                } else if (typeof deduplicarMembrosLocais === 'function') {
+                    deduplicarMembrosLocais();
+                }
+            } catch (e) { console.warn(e); }
+            renderLista();
+        })();
 
         // Abre célula se veio na URL ?id=
         var params = new URLSearchParams(window.location.search);

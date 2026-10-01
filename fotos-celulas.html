@@ -44,9 +44,12 @@
                     <input type="text" id="fotoTitulo" required placeholder="Ex: Encontro de terça" class="w-full border rounded-lg px-3 py-2">
                 </div>
                 <div>
+                    <label class="block text-sm font-bold mb-1">Foto do celular (recomendado)</label>
+                    <input type="file" id="fotoArquivoCelula" accept="image/*,image/jpeg,image/png,.jpg,.jpeg,.png" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <p class="text-xs text-gray-400 mt-1 mb-2">Ou cole um link:</p>
                     <label class="block text-sm font-bold mb-1">URL da imagem</label>
-                    <input type="url" id="fotoUrl" required placeholder="https://..." class="w-full border rounded-lg px-3 py-2">
-                    <p class="text-xs text-gray-400 mt-1">Cole o link de uma imagem (Imgur, Google Drive público, etc.)</p>
+                    <input type="url" id="fotoUrl" placeholder="https://..." class="w-full border rounded-lg px-3 py-2">
+                    <p class="text-xs text-gray-400 mt-1">Imgur, Drive público, etc. (opcional se escolher arquivo)</p>
                 </div>
                 <button type="submit" class="bg-secondary text-primary px-6 py-2 rounded-lg font-bold">Publicar</button>
             </form>
@@ -111,7 +114,7 @@
                 const cel = LISTA_CELULAS.find(c => c.id === f.celulaId);
                 return `
                 <div class="bg-white rounded-xl shadow overflow-hidden">
-                    <img src="${f.url || f.imagemUrl || ''}" alt="${f.titulo}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x300?text=Imagem'">
+                    <img src="${f.url || f.imagemUrl || f.imagem || ''}" alt="${f.titulo}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/400x300?text=Imagem'">
                     <div class="p-3">
                         <p class="font-bold text-primary text-sm">${f.titulo}</p>
                         <p class="text-xs text-secondary">${cel ? cel.nome : f.celulaId}</p>
@@ -123,16 +126,62 @@
 
         document.getElementById('filtroCelula').addEventListener('change', renderGaleria);
 
+        function comprimirImgCelula(arquivo) {
+            return new Promise(async function(resolve, reject) {
+                try {
+                    if (typeof createImageBitmap === 'function') {
+                        var bmp = await createImageBitmap(arquivo);
+                        var max = 1200, w = bmp.width, h = bmp.height;
+                        if (w > max || h > max) {
+                            if (w > h) { h = Math.round(h * max / w); w = max; }
+                            else { w = Math.round(w * max / h); h = max; }
+                        }
+                        var c = document.createElement('canvas');
+                        c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+                        var q = 0.65, d = c.toDataURL('image/jpeg', q);
+                        while (d.length > 850000 && q > 0.3) { q -= 0.08; d = c.toDataURL('image/jpeg', q); }
+                        if (bmp.close) try { bmp.close(); } catch(e) {}
+                        resolve(d);
+                        return;
+                    }
+                } catch (e) {}
+                var fr = new FileReader();
+                fr.onload = function() { resolve(fr.result); };
+                fr.onerror = reject;
+                fr.readAsDataURL(arquivo);
+            });
+        }
+
         const form = document.getElementById('formFoto');
         if (form) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                const msg = document.getElementById('msgFoto');
+                var url = (document.getElementById('fotoUrl').value || '').trim();
+                var arq = document.getElementById('fotoArquivoCelula') && document.getElementById('fotoArquivoCelula').files[0];
+                if (!url && !arq) {
+                    msg.textContent = 'Escolha uma foto do celular ou cole a URL.';
+                    msg.className = 'text-sm mt-2 text-red-500';
+                    msg.classList.remove('hidden');
+                    return;
+                }
+                if (arq) {
+                    try {
+                        url = await comprimirImgCelula(arq);
+                    } catch (err) {
+                        msg.textContent = 'Não foi possível processar a imagem. Use JPEG/PNG.';
+                        msg.className = 'text-sm mt-2 text-red-500';
+                        msg.classList.remove('hidden');
+                        return;
+                    }
+                }
                 const r = adicionarFotoCelula({
                     celulaId: document.getElementById('fotoCelula').value,
                     titulo: document.getElementById('fotoTitulo').value.trim(),
-                    url: document.getElementById('fotoUrl').value.trim()
+                    url: url,
+                    imagem: url.indexOf('data:') === 0 ? url : ''
                 });
-                const msg = document.getElementById('msgFoto');
                 if (!r.sucesso) {
                     msg.textContent = r.mensagem;
                     msg.className = 'text-sm mt-2 text-red-500';

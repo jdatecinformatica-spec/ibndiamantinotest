@@ -711,9 +711,72 @@ function salvarRelatoriosCelula(lista) {
 }
 
 /** Membros vinculados a uma célula (por id) */
+function idCelulaDe(c) {
+    if (!c) return '';
+    if (typeof c === 'string') return c;
+    return c.id || '';
+}
+
+/** Membros da célula (aprovados e pendentes — já vinculados no cadastro) */
 function membrosDaCelula(celulaId) {
-    const lista = lerMembros().filter(m => m.status === 'aprovado' || !m.status);
-    return lista.filter(m => Array.isArray(m.celulas) && m.celulas.some(c => c.id === celulaId));
+    const lista = lerMembros().filter(function (m) {
+        const st = (m.status || 'aprovado').toLowerCase();
+        return st !== 'rejeitado' && st !== 'recusado';
+    });
+    return lista.filter(function (m) {
+        if (!Array.isArray(m.celulas)) return false;
+        return m.celulas.some(function (c) {
+            return idCelulaDe(c) === celulaId;
+        });
+    });
+}
+
+/** Membros de um ministério (nome como no cadastro, ex.: Atmosfera) */
+
+
+/** Remove duplicatas locais pela regra nome+nascimento (mantém o cadastro mais completo/recente) */
+function deduplicarMembrosLocais() {
+    const lista = lerMembros();
+    const porChave = {};
+    const semChave = [];
+    lista.forEach(function (m) {
+        const k = chaveIdentidadePessoa(m.nome, m.nascimento);
+        if (!k) { semChave.push(m); return; }
+        if (!porChave[k]) {
+            porChave[k] = m;
+            return;
+        }
+        // Mantém o que tem mais dados / id mais antigo como principal e mescla e-mails
+        const atual = porChave[k];
+        const prefer = (m.dataCadastro || '') > (atual.dataCadastro || '') ? m : atual;
+        const outro = prefer === m ? atual : m;
+        prefer.telefone = prefer.telefone || outro.telefone;
+        prefer.email = prefer.email || outro.email;
+        prefer.endereco = prefer.endereco || outro.endereco;
+        prefer.municipio = prefer.municipio || outro.municipio;
+        if ((!prefer.celulas || !prefer.celulas.length) && outro.celulas) prefer.celulas = outro.celulas;
+        if ((!prefer.ministerios || !prefer.ministerios.length) && outro.ministerios) prefer.ministerios = outro.ministerios;
+        porChave[k] = prefer;
+    });
+    const nova = semChave.concat(Object.keys(porChave).map(function (k) { return porChave[k]; }));
+    salvarMembros(nova);
+    return nova;
+}
+
+function membrosDoMinisterio(nomeMinisterio) {
+    const alvo = String(nomeMinisterio || '').toLowerCase().trim();
+    if (!alvo) return [];
+    const lista = lerMembros().filter(function (m) {
+        const st = (m.status || 'aprovado').toLowerCase();
+        return st !== 'rejeitado' && st !== 'recusado';
+    });
+    return lista.filter(function (m) {
+        const mins = Array.isArray(m.ministerios) ? m.ministerios : [];
+        return mins.some(function (x) {
+            const s = String(x).toLowerCase();
+            return s === alvo || s.indexOf(alvo) !== -1 || alvo.indexOf(s) !== -1;
+        });
+    });
 }
 
 /** Papéis na célula a partir do cargo / funcaoEspecifica */
@@ -867,18 +930,39 @@ function podeVerPedidosOracao(u) {
     return false;
 }
 
+/** WhatsApp da igreja para avisar a intercessão (número em formato internacional, só dígitos) */
+const WHATSAPP_INTERCESSAO = '5565996292021';
+
+function montarLinkWhatsAppOracao(item) {
+    const texto =
+        '*Pedido de oração — IBN Diamantino*%0A%0A' +
+        '*Nome:* ' + encodeURIComponent(item.nome || '') + '%0A' +
+        (item.email ? ('*Contato:* ' + encodeURIComponent(item.email) + '%0A') : '') +
+        (item.membroId ? '*Membro cadastrado:* sim%0A' : '*Visitante do site*%0A') +
+        '%0A*Pedido:*%0A' + encodeURIComponent(item.pedido || '');
+    return 'https://wa.me/' + WHATSAPP_INTERCESSAO + '?text=' + texto;
+}
+
 function registrarPedidoOracao(dados) {
     const nome = (dados.nome || '').trim();
     const email = (dados.email || '').trim().toLowerCase();
     const pedido = (dados.pedido || '').trim();
-    if (!pedido) return { sucesso: false, mensagem: 'Escreva o pedido de oração.' };
+    if (!nome || nome.length < 2) {
+        return { sucesso: false, mensagem: 'Informe pelo menos o primeiro nome ou um apelido — para orarmos por alguém de verdade.' };
+    }
+    if (!pedido || pedido.length < 5) {
+        return { sucesso: false, mensagem: 'Escreva o pedido de oração.' };
+    }
 
+    const logado = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
     const item = {
         id: 'oracao-' + Date.now(),
-        nome: nome || 'Anônimo',
-        email: email || '',
+        nome: nome,
+        email: email || (logado && logado.email) || '',
         pedido: pedido,
-        status: 'novo', // novo | em_oracao | concluido
+        membroId: logado ? (logado.id || '') : '',
+        membroLogado: !!logado,
+        status: 'novo',
         criadoEm: new Date().toISOString(),
         atualizadoEm: new Date().toISOString()
     };
@@ -895,7 +979,11 @@ function registrarPedidoOracao(dados) {
         }
     } catch (e) {}
 
-    return { sucesso: true, pedido: item };
+    return {
+        sucesso: true,
+        pedido: item,
+        whatsappUrl: montarLinkWhatsAppOracao(item)
+    };
 }
 
 function atualizarStatusPedidoOracao(id, status) {
