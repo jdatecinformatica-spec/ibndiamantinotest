@@ -358,12 +358,26 @@ const IBNNuvem = (function () {
                     url = await ref.getDownloadURL();
                 } catch (e) { console.warn(e); }
             }
-            const doc = Object.assign({}, foto, {
+            // Sem Storage: grava base64 comprimido no Firestore (plano grátis)
+            let imagemB64 = '';
+            if (!url && foto.imagem && String(foto.imagem).indexOf('data:') === 0 && String(foto.imagem).length < 950000) {
+                imagemB64 = foto.imagem;
+            }
+            if (!url && foto.url && String(foto.url).indexOf('data:') === 0 && String(foto.url).length < 950000) {
+                imagemB64 = foto.url;
+                url = '';
+            }
+            const doc = {
                 id: id,
-                url: url || foto.url || '',
-                imagemUrl: url || foto.imagemUrl || ''
-            });
-            delete doc.imagem; // não manda base64 grande
+                celulaId: foto.celulaId || '',
+                titulo: foto.titulo || '',
+                autorNome: foto.autorNome || foto.autor || '',
+                autorId: foto.autorId || '',
+                data: foto.data || foto.criadoEm || new Date().toISOString(),
+                url: url || (imagemB64 ? '' : (foto.url || '')),
+                imagemUrl: url || '',
+                imagem: imagemB64 || ''
+            };
             await db.collection('fotos_celulas').doc(id).set(doc, { merge: true });
             return { sucesso: true, foto: doc };
         } catch (e) {
@@ -377,7 +391,12 @@ const IBNNuvem = (function () {
         try {
             const snap = await db.collection('fotos_celulas').get();
             const lista = [];
-            snap.forEach(function (doc) { lista.push(Object.assign({ id: doc.id }, doc.data())); });
+            snap.forEach(function (doc) {
+                const d = Object.assign({ id: doc.id }, doc.data());
+                d.url = d.url || d.imagemUrl || d.imagem || '';
+                d.imagem = d.imagem || d.url || d.imagemUrl || '';
+                lista.push(d);
+            });
             lista.sort(function (a, b) {
                 return String(b.data || '').localeCompare(String(a.data || ''));
             });
@@ -439,8 +458,10 @@ const IBNNuvem = (function () {
                 const id = String(f.id);
                 if (!porId[id]) {
                     porId[id] = f;
-                } else if (!porId[id].imagem && f.imagem) {
-                    porId[id].imagem = f.imagem;
+                } else {
+                    porId[id] = Object.assign({}, porId[id], f);
+                    if (f.imagem) porId[id].imagem = f.imagem;
+                    if (f.imagemUrl) porId[id].imagemUrl = f.imagemUrl;
                 }
             });
             const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });

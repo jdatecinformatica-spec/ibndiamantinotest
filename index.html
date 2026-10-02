@@ -436,45 +436,56 @@
                     <p class="text-secondary font-bold text-sm tracking-wide mb-2">TODOS OS DIAS</p>
                     <h2 class="text-3xl md:text-4xl font-bold mb-3">📖 Devocional Diário</h2>
                     <p class="text-white/80 max-w-xl mx-auto">
-                        Ouça o devocional de hoje e dos dias anteriores aqui mesmo. Também pode entrar nos grupos ou abrir no Spotify.
+                        Veja os <strong>últimos devocionais</strong> e toque no episódio desejado. Só aparecem datas que já têm postagem no Spotify.
                     </p>
                 </div>
 
-                <!-- Player Spotify embutido (show completo = episódios atuais e anteriores) -->
-                <div class="bg-black/30 rounded-2xl p-3 md:p-4 shadow-xl border border-white/10 mb-8">
+                <div class="bg-black/30 rounded-2xl p-3 md:p-4 shadow-xl border border-white/10 mb-6">
+                    <p class="text-secondary text-sm font-bold mb-2 text-center">Veja os últimos devocionais</p>
                     <iframe
                         style="border-radius:12px"
                         src="https://open.spotify.com/embed/show/5hSS9sP5fa0GYBJNP5IqEQ?utm_source=generator&theme=0"
                         width="100%"
-                        height="352"
+                        height="232"
                         frameBorder="0"
                         allowfullscreen=""
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         loading="lazy"
                         title="Devocional Diário IBN Diamantino">
                     </iframe>
-                    <p class="text-center text-xs text-white/50 mt-2">Toque no episódio desejado para ouvir · lista com dias anteriores</p>
+                    <p class="text-center text-xs text-white/50 mt-2">Lista fina de episódios · só dias com postagem no Spotify</p>
                 </div>
 
-                <div class="grid sm:grid-cols-3 gap-4">
-                    <a href="https://chat.whatsapp.com/BtY8qLwdyfF6vu3zL4scXr" target="_blank" rel="noopener"
-                       class="bg-green-500 hover:bg-green-600 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
-                        <i class="fa fa-whatsapp text-3xl"></i>
-                        <span class="font-bold">WhatsApp</span>
-                        <span class="text-xs text-white/90">Grupo do devocional</span>
-                    </a>
-                    <a href="https://t.me/joinchat/BFI7ldqPUxMxNmMx" target="_blank" rel="noopener"
-                       class="bg-sky-500 hover:bg-sky-600 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
-                        <span class="text-3xl leading-none">✈️</span>
-                        <span class="font-bold">Telegram</span>
-                        <span class="text-xs text-white/90">Grupo do devocional</span>
-                    </a>
+                <div class="flex justify-center mb-10">
                     <a href="https://open.spotify.com/show/5hSS9sP5fa0GYBJNP5IqEQ" target="_blank" rel="noopener"
-                       class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl p-5 flex flex-col items-center gap-2 shadow-lg transition transform hover:-translate-y-1">
-                        <span class="text-3xl leading-none">🎧</span>
+                       class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 py-3 flex items-center gap-2 shadow-lg transition">
+                        <span class="text-xl">🎧</span>
                         <span class="font-bold">Abrir no Spotify</span>
-                        <span class="text-xs text-white/90">App ou site</span>
                     </a>
+                </div>
+
+                <!-- Prévia das galerias (público vê logos; membro vê fotos reais) -->
+                <div class="grid md:grid-cols-2 gap-6 mt-4">
+                    <div class="bg-white/10 border border-white/15 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-lg">📷 Fotos das Células</h3>
+                            <a href="fotos-celulas.html" id="linkGaleriaCelulas" class="text-xs text-secondary font-bold hover:underline">Ver todas →</a>
+                        </div>
+                        <div id="previewFotosCelulas" class="grid grid-cols-4 gap-2">
+                            <!-- preenchido por JS -->
+                        </div>
+                        <p class="text-xs text-white/50 mt-2">Últimas postagens · toque para abrir a galeria</p>
+                    </div>
+                    <div class="bg-white/10 border border-white/15 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-lg">📷 Fotos dos Ministérios</h3>
+                            <a href="fotos.html" id="linkGaleriaMinisterios" class="text-xs text-secondary font-bold hover:underline">Ver todas →</a>
+                        </div>
+                        <div id="previewFotosMinisterios" class="grid grid-cols-4 gap-2">
+                            <!-- preenchido por JS -->
+                        </div>
+                        <p class="text-xs text-white/50 mt-2">Últimas postagens · toque para abrir a galeria</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -486,9 +497,10 @@
                 <h2 class="text-3xl font-bold text-center mb-6 text-primary">Pedido de Oração</h2>
                 <p class="text-center text-lg italic text-gray-600 mb-8">"Confessai as vossas culpas uns aos outros, e orai uns pelos outros." — Tiago 5:16</p>
                 <form id="formOracao" class="space-y-4">
-                    <input type="text" name="nome" placeholder="Seu nome" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
-                    <input type="email" name="email" placeholder="Seu e-mail" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
-                    <textarea name="pedido" placeholder="Seu pedido de oração" rows="4" required class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none"></textarea>
+                    <p class="text-sm text-gray-500 text-center">Para orarmos por você, pedimos pelo menos o <strong>primeiro nome ou apelido</strong>. Pedidos anônimos não são aceitos.</p>
+                    <input type="text" name="nome" id="oracaoNome" placeholder="Seu nome ou apelido *" required minlength="2" class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
+                    <input type="email" name="email" id="oracaoEmail" placeholder="E-mail ou WhatsApp (opcional)" class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none">
+                    <textarea name="pedido" placeholder="Seu pedido de oração *" rows="4" required minlength="5" class="w-full p-3 border rounded-md focus:ring-2 focus:ring-secondary outline-none"></textarea>
                     <button type="submit" class="w-full bg-primary text-white p-3 rounded-md font-bold hover:bg-accent">Enviar Pedido</button>
                 </form>
             </div>
@@ -1420,28 +1432,123 @@
             setTimeout(() => m.classList.add('hidden'), 3000);
         }
 
-        // Form oração — grava na nuvem para Intercessão e gestor
+        // Form oração — grava na nuvem + avisa no WhatsApp da intercessão
         (function() {
             var formOracao = document.getElementById('formOracao');
             if (!formOracao) return;
+
+            // Membro logado: preenche nome e e-mail
+            try {
+                var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+                if (u) {
+                    var elN = document.getElementById('oracaoNome');
+                    var elE = document.getElementById('oracaoEmail');
+                    if (elN && !elN.value) elN.value = u.nome || '';
+                    if (elE && !elE.value) elE.value = u.email || u.telefone || '';
+                }
+            } catch (e) {}
+
             formOracao.addEventListener('submit', function(e) {
                 e.preventDefault();
                 var fd = new FormData(formOracao);
                 var dados = {
-                    nome: (fd.get('nome') || '').toString(),
-                    email: (fd.get('email') || '').toString(),
-                    pedido: (fd.get('pedido') || '').toString()
+                    nome: (fd.get('nome') || '').toString().trim(),
+                    email: (fd.get('email') || '').toString().trim(),
+                    pedido: (fd.get('pedido') || '').toString().trim()
                 };
+                if (!dados.nome || dados.nome.length < 2) {
+                    alert('Informe pelo menos o primeiro nome ou um apelido.');
+                    return;
+                }
                 var r = (typeof registrarPedidoOracao === 'function')
                     ? registrarPedidoOracao(dados)
                     : { sucesso: false };
                 if (r && r.sucesso) {
-                    alert('🙏 Seu pedido de oração foi recebido. A equipe de Intercessão e a igreja orarão por você. Deus te abençoe!');
                     formOracao.reset();
+                    // Reabre pré-preenchimento se ainda logado
+                    try {
+                        var u2 = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+                        if (u2) {
+                            var n2 = document.getElementById('oracaoNome');
+                            var e2 = document.getElementById('oracaoEmail');
+                            if (n2) n2.value = u2.nome || '';
+                            if (e2) e2.value = u2.email || u2.telefone || '';
+                        }
+                    } catch (err) {}
+                    var abrirWa = confirm(
+                        '🙏 Pedido registrado para a Intercessão!\n\n' +
+                        'Deseja também enviar este pedido pelo WhatsApp da igreja agora?\n' +
+                        '(Recomendado — avisa na hora quem intercede.)'
+                    );
+                    if (abrirWa && r.whatsappUrl) {
+                        window.open(r.whatsappUrl, '_blank');
+                    } else {
+                        alert('Deus te abençoe! Seu pedido já está na lista da Intercessão.');
+                    }
                 } else {
                     alert((r && r.mensagem) || 'Não foi possível enviar. Tente novamente.');
                 }
             });
+        })();
+
+
+        // Prévia de fotos na home (membros veem reais; visitante vê logos + convite ao cadastro)
+        (async function previewGaleriasHome() {
+            var boxC = document.getElementById('previewFotosCelulas');
+            var boxM = document.getElementById('previewFotosMinisterios');
+            if (!boxC || !boxM) return;
+
+            function logos(n, destino) {
+                var html = '';
+                for (var i = 0; i < n; i++) {
+                    html += '<button type="button" data-destino="' + destino + '" class="btn-foto-exclusiva aspect-square rounded-lg overflow-hidden border border-white/20 bg-black/20">' +
+                        '<img src="icon-192.png" alt="IBN" class="w-full h-full object-cover opacity-90">' +
+                        '</button>';
+                }
+                return html;
+            }
+
+            function thumbs(lista, destino, campoImg) {
+                if (!lista || !lista.length) return logos(4, destino);
+                return lista.slice(0, 4).map(function (f) {
+                    var src = f[campoImg] || f.imagem || f.imagemUrl || f.url || 'icon-192.png';
+                    return '<a href="' + destino + '" class="aspect-square rounded-lg overflow-hidden border border-white/20 block">' +
+                        '<img src="' + src + '" alt="" class="w-full h-full object-cover" onerror="this.src=\'icon-192.png\'">' +
+                        '</a>';
+                }).join('');
+            }
+
+            var logado = (typeof getUsuarioLogado === 'function') && getUsuarioLogado();
+
+            if (!logado) {
+                boxC.innerHTML = logos(4, 'cadastro.html');
+                boxM.innerHTML = logos(4, 'cadastro.html');
+                document.querySelectorAll('.btn-foto-exclusiva').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        alert('🔒 Conteúdo exclusivo para membros cadastrados.\\n\\nFaça seu cadastro ou login para ver as fotos da igreja.');
+                        window.location.href = 'cadastro.html';
+                    });
+                });
+                var l1 = document.getElementById('linkGaleriaCelulas');
+                var l2 = document.getElementById('linkGaleriaMinisterios');
+                if (l1) l1.href = 'cadastro.html';
+                if (l2) l2.href = 'cadastro.html';
+                return;
+            }
+
+            try {
+                if (typeof IBNNuvem !== 'undefined') {
+                    if (IBNNuvem.puxarFotosCelulasParaLocal) await IBNNuvem.puxarFotosCelulasParaLocal();
+                    if (IBNNuvem.puxarFotosParaLocal) await IBNNuvem.puxarFotosParaLocal();
+                }
+            } catch (e) {}
+
+            var cel = [];
+            var min = [];
+            try { cel = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]'); } catch (e) {}
+            try { min = JSON.parse(localStorage.getItem('ibn_fotos') || '[]'); } catch (e) {}
+            boxC.innerHTML = thumbs(cel, 'fotos-celulas.html', 'url');
+            boxM.innerHTML = thumbs(min, 'fotos.html', 'imagem');
         })();
 
         // ==================================================

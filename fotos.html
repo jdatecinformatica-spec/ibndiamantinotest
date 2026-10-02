@@ -280,6 +280,29 @@
                     <p class="text-sm text-gray-300">${membro.nome || 'Membro'}</p>
                     <a href="area-membro.html" class="text-secondary text-sm hover:underline">Minha Área</a>
                 `;
+
+        // Só mostra ministérios em que o membro pode postar (+ Geral). Lista de integrantes fica silenciosa.
+        (function restringirSelectMinisterio() {
+            var sel = document.getElementById('fotoMinisterio');
+            if (!sel || !membro) return;
+            if (typeof isAdmin === 'function' && isAdmin(membro)) return; // admin vê todos
+            var pode = (typeof ministeriosQuePodePostar === 'function') ? ministeriosQuePodePostar() : [];
+            var opts = Array.prototype.slice.call(sel.options);
+            opts.forEach(function(opt) {
+                if (!opt.value) return;
+                if (opt.value === 'geral') return; // sempre
+                var ok = typeof podePostarFotoMinisterio === 'function' && podePostarFotoMinisterio(opt.value);
+                if (!ok) opt.remove();
+            });
+            // Garante Geral
+            if (!sel.querySelector('option[value="geral"]')) {
+                var o = document.createElement('option');
+                o.value = 'geral';
+                o.textContent = 'Geral / Outros';
+                sel.appendChild(o);
+            }
+        })();
+
             }
         }
 
@@ -427,7 +450,7 @@
                 const nomeMin = NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral';
                 return `
                 <div class="photo-card card-glass rounded-lg overflow-hidden cursor-pointer transition" data-id="${idxOriginal}">
-                    <img src="${foto.imagem}" alt="${foto.titulo}" class="w-full h-40 object-cover">
+                    <img src="${foto.imagem || foto.imagemUrl || ''}" alt="${foto.titulo}" class="w-full h-40 object-cover">
                     <div class="p-3">
                         <h3 class="font-bold text-sm truncate">${foto.titulo}</h3>
                         <p class="text-xs text-secondary mt-1">${nomeMin}</p>
@@ -487,6 +510,19 @@
             const ano = selAno.value;
 
             if (!arquivo || !titulo || !ministerio) return;
+
+            if (typeof podePostarFotoMinisterio === 'function' && !podePostarFotoMinisterio(ministerio)) {
+                var pode = (typeof ministeriosQuePodePostar === 'function') ? ministeriosQuePodePostar() : ['Geral / Outros'];
+                alert(
+                    'Você não participa deste ministério.\n\n' +
+                    'Pode postar em:\n• ' + pode.join('\n• ') + '\n\n' +
+                    'Se não for de nenhum ministério específico, use "Geral / Outros".'
+                );
+                // força geral se existir option
+                var sel = document.getElementById('fotoMinisterio');
+                if (sel.querySelector('option[value="geral"]')) sel.value = 'geral';
+                return;
+            }
 
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -551,7 +587,15 @@
 
         // ========== CONTROLE DOS MODAIS ==========
         document.getElementById('btnEnviar').addEventListener('click', () => {
-            document.getElementById('modalEnviar').classList.add('aberto');
+            var regras = document.getElementById('boxRegrasFoto');
+            if (regras) {
+                regras.classList.remove('hidden');
+                regras.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            // Pequeno atraso para a pessoa ver as regras antes do formulário
+            setTimeout(function() {
+                document.getElementById('modalEnviar').classList.add('aberto');
+            }, 400);
         });
 
         document.querySelectorAll('.fechar').forEach(btn => {
@@ -575,10 +619,19 @@
         const minUrl = params.get('ministerio');
         if (minUrl && NOMES_MINISTERIO[minUrl]) {
             document.getElementById('filtroMinisterio').value = minUrl;
+            var selPost = document.getElementById('fotoMinisterio');
+            if (selPost) {
+                if (typeof podePostarFotoMinisterio === 'function' && !podePostarFotoMinisterio(minUrl)) {
+                    if (selPost.querySelector('option[value="geral"]')) selPost.value = 'geral';
+                } else if (selPost.querySelector('option[value="' + minUrl + '"]')) {
+                    selPost.value = minUrl;
+                }
+            }
         }
 
-        // Iniciar
+        // Iniciar: mostra local e busca fotos de todos na nuvem
         renderizarGaleria();
+        sincronizarGaleriaNuvem();
     </script>
 
 </body>
