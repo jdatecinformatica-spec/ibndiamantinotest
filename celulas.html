@@ -27,7 +27,7 @@
 
     <main class="container mx-auto px-4 py-8 max-w-4xl">
         <h1 class="text-2xl md:text-3xl font-bold text-primary mb-2">Células da IBN</h1>
-        <p class="text-gray-600 mb-2">Terça-feira às 20h nas casas · Sábado: Adolescentes (18h) e Jovens (20h) no prédio da igreja</p>
+        <p class="text-gray-600 mb-2">Terça-feira às 20h nas casas · Sábado: Adolescentes (18h) e Jovens (20h) — local definido pelo líder da célula</p>
         <p class="text-sm text-gray-500 mb-6">Toque em uma célula para ver equipe, membros, fotos e relatórios.</p>
 
         <div id="avisoLogin" class="hidden mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-900">
@@ -78,6 +78,23 @@
                 <a id="linkMapa" href="index.html#celulas" class="inline-block border border-primary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary hover:text-white">
                     <i class="fa fa-map-marker"></i> Ver no mapa
                 </a>
+            </div>
+
+            <!-- Local ajustável (só células de sábado) -->
+            <div id="blocoLocalSabado" class="hidden mb-6 border rounded-xl p-4 bg-amber-50 border-amber-200">
+                <h3 class="font-bold text-primary mb-1"><i class="fa fa-map-marker"></i> Local deste sábado</h3>
+                <p id="localSabadoPublico" class="text-sm text-gray-700 mb-3">Ainda não definido pelo líder.</p>
+                <a id="linkLocalSabado" href="#" target="_blank" rel="noopener" class="hidden text-sm text-secondary font-bold underline mb-3 inline-block">Abrir no Google Maps / localização</a>
+                <div id="formLocalSabado" class="hidden space-y-2 border-t border-amber-200 pt-3 mt-2">
+                    <p class="text-xs text-gray-600">Você é líder desta célula — informe onde será o encontro:</p>
+                    <input type="text" id="localAnfitriao" placeholder="Hoje na casa de..." class="w-full p-2 border rounded-lg text-sm">
+                    <input type="text" id="localEndereco" placeholder="Endereço completo (rua, número, bairro)" class="w-full p-2 border rounded-lg text-sm">
+                    <input type="url" id="localMaps" placeholder="Link do Google Maps (opcional)" class="w-full p-2 border rounded-lg text-sm">
+                    <button type="button" id="btnSalvarLocalSabado" class="w-full bg-primary text-white py-2 rounded-lg font-bold text-sm hover:bg-accent">
+                        <i class="fa fa-save"></i> Publicar local deste sábado
+                    </button>
+                    <p id="msgLocalSabado" class="text-xs text-center hidden"></p>
+                </div>
             </div>
 
             <!-- Relatórios -->
@@ -148,9 +165,37 @@
             'atos2': { endereco: 'Rua 2, próximo ao ginásio — Buriti, Diamantino', dia: 'Terça 20h' },
             'primeiro-mandamento': { endereco: 'Rua Manoel Ferreira de Arruda, 33 — Buriti, Diamantino', dia: 'Terça 20h' },
             'missao': { endereco: 'Alto Paraguai — MT', dia: 'Terça 20h' },
-            'adolescentes': { endereco: 'Prédio da igreja — Av. Ministro Gilmar Ferreira Mendes, S/N', dia: 'Sábado 18h' },
-            'jovens': { endereco: 'Prédio da igreja — Av. Ministro Gilmar Ferreira Mendes, S/N', dia: 'Sábado 20h' }
+            'adolescentes': { endereco: 'Local definido pelo líder a cada sábado', dia: 'Sábado 18h', localAjustavel: true },
+            'jovens': { endereco: 'Local definido pelo líder a cada sábado', dia: 'Sábado 20h', localAjustavel: true }
         };
+
+
+        const CHAVE_LOCAIS_SABADO = 'ibn_locais_celulas_sabado';
+        const CELULAS_LOCAL_AJUSTAVEL = ['adolescentes', 'jovens'];
+
+        function lerLocaisSabado() {
+            try { return JSON.parse(localStorage.getItem(CHAVE_LOCAIS_SABADO) || '{}'); }
+            catch (e) { return {}; }
+        }
+        function salvarLocaisSabado(obj) {
+            localStorage.setItem(CHAVE_LOCAIS_SABADO, JSON.stringify(obj));
+        }
+        function localAtualCelula(id) {
+            var todos = lerLocaisSabado();
+            return todos[id] || null;
+        }
+        function textoEnderecoCelula(id) {
+            var meta = META_CELULAS[id] || {};
+            if (!CELULAS_LOCAL_AJUSTAVEL.includes(id)) return meta.endereco || '';
+            var loc = localAtualCelula(id);
+            if (loc && (loc.anfitriao || loc.endereco)) {
+                var partes = [];
+                if (loc.anfitriao) partes.push(loc.anfitriao);
+                if (loc.endereco) partes.push(loc.endereco);
+                return partes.join(' — ');
+            }
+            return 'Local definido pelo líder a cada sábado';
+        }
 
         let celulaAberta = null;
         const usuario = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
@@ -168,7 +213,7 @@
                 return (
                     '<button type="button" data-id="' + c.id + '" class="btn-celula w-full text-left p-4 bg-white rounded-xl border shadow-sm hover:border-secondary hover:shadow-md transition">' +
                     '<p class="font-bold text-primary">' + c.nome + '</p>' +
-                    '<p class="text-xs text-gray-500 mt-1">' + (meta.dia || '') + ' · ' + (meta.endereco || '') + '</p>' +
+                    '<p class="text-xs text-gray-500 mt-1">' + (meta.dia || '') + ' · ' + textoEnderecoCelula(c.id) + '</p>' +
                     '<p class="text-xs text-secondary mt-1">' + n + ' membro(s) · Líder: ' + nomeOuTraco(eq.lider) + '</p>' +
                     '</button>'
                 );
@@ -188,7 +233,7 @@
             const eq = equipeDaCelula(id);
 
             document.getElementById('painelTitulo').textContent = cel ? cel.nome : id;
-            document.getElementById('painelMeta').textContent = (meta.dia || '') + ' · ' + (meta.endereco || '');
+            document.getElementById('painelMeta').textContent = (meta.dia || '') + ' · ' + textoEnderecoCelula(id);
             document.getElementById('papelLider').textContent = nomeOuTraco(eq.lider);
             document.getElementById('papelAnfitriao').textContent = nomeOuTraco(eq.anfitriao);
             document.getElementById('papelTreino').textContent = nomeOuTraco(eq.liderTreino);
@@ -206,6 +251,42 @@
             document.getElementById('linkFotosCelula').href = 'fotos-celulas.html?celula=' + encodeURIComponent(id);
             document.getElementById('painelCelula').classList.remove('hidden');
             document.getElementById('painelCelula').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Local ajustável — células de sábado
+            var blocoLoc = document.getElementById('blocoLocalSabado');
+            if (CELULAS_LOCAL_AJUSTAVEL.includes(id)) {
+                blocoLoc.classList.remove('hidden');
+                var loc = localAtualCelula(id);
+                var pub = document.getElementById('localSabadoPublico');
+                var linkL = document.getElementById('linkLocalSabado');
+                if (loc && (loc.anfitriao || loc.endereco)) {
+                    pub.textContent = (loc.anfitriao ? loc.anfitriao : '') +
+                        (loc.endereco ? (loc.anfitriao ? ' — ' : '') + loc.endereco : '');
+                    if (loc.maps) {
+                        linkL.href = loc.maps;
+                        linkL.classList.remove('hidden');
+                    } else if (loc.endereco) {
+                        linkL.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc.endereco);
+                        linkL.classList.remove('hidden');
+                    } else {
+                        linkL.classList.add('hidden');
+                    }
+                    document.getElementById('localAnfitriao').value = loc.anfitriao || '';
+                    document.getElementById('localEndereco').value = loc.endereco || '';
+                    document.getElementById('localMaps').value = loc.maps || '';
+                } else {
+                    pub.textContent = 'Ainda não definido pelo líder. Aguarde o anúncio do local deste sábado.';
+                    linkL.classList.add('hidden');
+                    document.getElementById('localAnfitriao').value = '';
+                    document.getElementById('localEndereco').value = '';
+                    document.getElementById('localMaps').value = '';
+                }
+                var podeEditarLocal = (typeof podeEditarRelatorioCelula === 'function' && podeEditarRelatorioCelula(id)) ||
+                    (usuario && (typeof isAdmin === 'function' && isAdmin(usuario)));
+                document.getElementById('formLocalSabado').classList.toggle('hidden', !podeEditarLocal);
+            } else {
+                blocoLoc.classList.add('hidden');
+            }
 
             // Relatórios: só líder da célula ou admin/gestor
             var pode = podeEditarRelatorioCelula(id);
@@ -297,6 +378,37 @@
             var r = exportarRelatoriosCSV(null);
             if (!r.sucesso) { alert(r.mensagem || 'Nada para exportar.'); return; }
             baixarCSV(r.csv, r.nomeArquivo);
+        });
+
+        document.getElementById('btnSalvarLocalSabado').addEventListener('click', function() {
+            if (!celulaAberta || !CELULAS_LOCAL_AJUSTAVEL.includes(celulaAberta)) return;
+            var anfitriao = document.getElementById('localAnfitriao').value.trim();
+            var endereco = document.getElementById('localEndereco').value.trim();
+            var maps = document.getElementById('localMaps').value.trim();
+            if (!anfitriao && !endereco) {
+                alert('Informe pelo menos "Hoje na casa de..." ou o endereço.');
+                return;
+            }
+            var todos = lerLocaisSabado();
+            todos[celulaAberta] = {
+                anfitriao: anfitriao,
+                endereco: endereco,
+                maps: maps,
+                atualizadoEm: new Date().toISOString(),
+                por: (usuario && usuario.nome) || 'Líder'
+            };
+            salvarLocaisSabado(todos);
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+                    IBNNuvem.registrarAtividade('local_celula', 'Local sábado ' + celulaAberta + ': ' + (anfitriao || endereco), usuario);
+                }
+            } catch (e) {}
+            var msg = document.getElementById('msgLocalSabado');
+            msg.className = 'text-xs text-center text-green-600 font-bold';
+            msg.textContent = '✅ Local publicado para este sábado!';
+            msg.classList.remove('hidden');
+            abrirCelula(celulaAberta);
+            renderLista();
         });
 
         // Init

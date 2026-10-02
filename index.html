@@ -218,35 +218,47 @@
                     </button>
                 </div>
             </div>
-            <button class="md:hidden text-2xl" id="btnMenu">
-                <i class="fa fa-bars"></i>
+            <button type="button" class="md:hidden flex items-center gap-2 bg-secondary text-primary px-3 py-2 rounded-lg font-bold text-sm shadow" id="btnMenu" aria-label="Abrir menu">
+                <i class="fa fa-bars text-lg" id="iconMenu"></i>
+                <span id="txtMenu">Menu</span>
             </button>
         </div>
-        <!-- ✅ Menu Mobile -->
-        <div id="menuMobile" class="md:hidden hidden bg-accent px-4 pb-4">
-            <nav class="flex flex-col gap-3">
-                <a href="#inicio" class="py-2 border-b border-white/20">Início</a>
-                <a href="#celulas" class="py-2 border-b border-white/20">Células</a>
-                <a href="#eventos" class="py-2 border-b border-white/20">Programação</a>
-                <a href="eventos.html" class="py-2 border-b border-white/20 font-bold text-secondary">Eventos</a>
-                <a href="#transmissoes" class="py-2 border-b border-white/20">Ao Vivo</a>
-                <a href="ministerios.html" class="py-2 border-b border-white/20">Ministérios</a>
-                <a href="fotos.html" class="py-2 border-b border-white/20">Fotos</a>
-                <a href="#devocional" class="py-2 border-b border-white/20">Devocional</a>
-                <a href="#oracao" class="py-2 border-b border-white/20">Oração</a>
-                <a href="#doacao" class="py-2 border-b border-white/20">Doação</a>
-                <a href="adminlogin.html" id="linkGestaoMobile" class="py-2 border-b border-white/20 hidden">Gestão</a>
-                <a href="#mais" class="py-2">Mais</a>
-                <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-3">
-                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-2 rounded-md font-bold text-center">Seja Membro</a>
-                    <a href="login.html" class="border border-white px-4 py-2 rounded-md text-center">Entrar</a>
+        <!-- ✅ Menu Mobile — painel completo com fechar/voltar -->
+        <div id="menuMobile" class="md:hidden hidden fixed inset-0 z-[60] bg-primary/95 backdrop-blur-sm overflow-y-auto">
+            <div class="min-h-full flex flex-col max-w-lg mx-auto px-4 py-4">
+                <div class="flex items-center justify-between mb-4 border-b border-white/20 pb-3">
+                    <span class="font-bold text-secondary text-lg">Menu do site</span>
+                    <button type="button" id="btnFecharMenu" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-bold">
+                        <i class="fa fa-times"></i> Voltar ao site
+                    </button>
                 </div>
-                <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-3">
-                    <a href="area-membro.html" class="border border-white/30 px-4 py-2 rounded-md text-center">Minha Área</a>
-                    <a href="ajustar-dados.html" class="border border-white/30 px-4 py-2 rounded-md text-center">Editar Dados</a>
-                    <a href="#" id="btnSairMobile" class="text-red-300 px-4 py-2 rounded-md text-center">Sair</a>
+                <nav class="flex flex-col gap-1 text-base">
+                    <a href="#inicio" class="menu-link py-3 px-2 border-b border-white/15">Início</a>
+                    <a href="#celulas" class="menu-link py-3 px-2 border-b border-white/15">Células</a>
+                    <a href="#eventos" class="menu-link py-3 px-2 border-b border-white/15">Programação</a>
+                    <a href="eventos.html" class="menu-link py-3 px-2 border-b border-white/15 font-bold text-secondary">Eventos</a>
+                    <a href="#transmissoes" class="menu-link py-3 px-2 border-b border-white/15">Ao Vivo</a>
+                    <a href="ministerios.html" class="menu-link py-3 px-2 border-b border-white/15">Ministérios</a>
+                    <a href="fotos.html" class="menu-link py-3 px-2 border-b border-white/15">Fotos</a>
+                    <a href="#devocional" class="menu-link py-3 px-2 border-b border-white/15">Devocional</a>
+                    <a href="#oracao" class="menu-link py-3 px-2 border-b border-white/15">Oração</a>
+                    <a href="#doacao" class="menu-link py-3 px-2 border-b border-white/15">Doação</a>
+                    <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 px-2 border-b border-white/15 hidden">Gestão</a>
+                    <a href="#mais" class="menu-link py-3 px-2 border-b border-white/15">Mais</a>
+                </nav>
+                <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-5">
+                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold text-center">Seja Membro</a>
+                    <a href="login.html" class="border border-white px-4 py-3 rounded-lg text-center font-semibold">Entrar</a>
                 </div>
-            </nav>
+                <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-5">
+                    <a href="area-membro.html" class="border border-white/40 px-4 py-3 rounded-lg text-center font-semibold">Minha Área</a>
+                    <a href="ajustar-dados.html" class="border border-white/40 px-4 py-3 rounded-lg text-center">Editar Dados</a>
+                    <a href="#" id="btnSairMobile" class="text-red-300 px-4 py-3 rounded-lg text-center">Sair</a>
+                </div>
+                <button type="button" id="btnFecharMenu2" class="mt-6 mb-8 w-full border border-white/30 py-3 rounded-lg font-bold text-sm">
+                    ← Voltar ao site
+                </button>
+            </div>
         </div>
     </header>
 
@@ -291,7 +303,7 @@
             <div class="container mx-auto px-4">
                 <h2 class="text-3xl font-bold text-center mb-4 text-primary">Encontre a Célula Mais Próxima</h2>
                 <p class="text-center text-gray-600 mb-2">Terça-feira às 20h — nas casas</p>
-                <p class="text-center text-gray-500 text-sm mb-8">Sábado: Adolescentes (18h) e Jovens (20h) no prédio da igreja</p>
+                <p class="text-center text-gray-500 text-sm mb-8">Sábado: Adolescentes (18h) e Jovens (20h) — local definido pelo líder da célula (veja na página da célula ou com o líder; o local do dia pode ser anunciado minutos antes)</p>
 
                 <div class="max-w-3xl mx-auto mb-6">
                     <div class="flex flex-col sm:flex-row gap-3 justify-center mb-4">
@@ -348,7 +360,7 @@
                         <h3 class="font-bold text-xl text-primary">Sábado</h3>
                         <p class="font-semibold">Célula de Adolescentes — 18:00</p>
                         <p class="font-semibold mt-1">Célula de Jovens — 20:00</p>
-                        <p class="text-sm text-gray-500 mt-1"><i class="fa fa-map-marker text-secondary"></i> No prédio da igreja</p>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fa fa-map-marker text-secondary"></i> Local definido pelo líder a cada sábado</p>
                     </div>
                     <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
                         <h3 class="font-bold text-xl text-primary">Domingo</h3>
@@ -356,7 +368,7 @@
                         <p class="text-sm text-gray-500 mt-1">1º domingo do mês: Culto de Ceia</p>
                     </div>
                     <div class="border-l-4 border-gray-300 pl-6 py-4 bg-gray-50 rounded-r-lg">
-                        <h3 class="font-bold text-xl text-gray-600">Última sexta do mês</h3>
+                        <h3 class="font-bold text-xl text-gray-600">Sexta antes do 1º domingo do mês</h3>
                         <p class="font-semibold text-gray-500">Vigília</p>
                     </div>
 
@@ -656,10 +668,40 @@
             }
         });
 
-        // Menu mobile
-        document.getElementById('btnMenu').addEventListener('click', function() {
-            document.getElementById('menuMobile').classList.toggle('hidden');
-        });
+        // Menu mobile — abre/fecha e "Voltar ao site"
+        (function() {
+            var menu = document.getElementById('menuMobile');
+            var btn = document.getElementById('btnMenu');
+            var icon = document.getElementById('iconMenu');
+            var txt = document.getElementById('txtMenu');
+            function abrirMenu() {
+                menu.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                if (icon) icon.className = 'fa fa-times text-lg';
+                if (txt) txt.textContent = 'Fechar';
+            }
+            function fecharMenu() {
+                menu.classList.add('hidden');
+                document.body.style.overflow = '';
+                if (icon) icon.className = 'fa fa-bars text-lg';
+                if (txt) txt.textContent = 'Menu';
+            }
+            function toggleMenu() {
+                if (menu.classList.contains('hidden')) abrirMenu();
+                else fecharMenu();
+            }
+            if (btn) btn.addEventListener('click', toggleMenu);
+            var f1 = document.getElementById('btnFecharMenu');
+            var f2 = document.getElementById('btnFecharMenu2');
+            if (f1) f1.addEventListener('click', fecharMenu);
+            if (f2) f2.addEventListener('click', fecharMenu);
+            menu.querySelectorAll('a.menu-link, #areaVisitanteMobile a, #areaLogadoMobile a').forEach(function(a) {
+                a.addEventListener('click', function() {
+                    // fecha ao escolher uma opção (links # e páginas)
+                    setTimeout(fecharMenu, 80);
+                });
+            });
+        })();
 
         // ==================================================
         // 🎵 PLAYER DE LOUVORES
@@ -876,8 +918,8 @@
             { id: 'atos2', nome: "Célula Atos 2", endereco: "Rua 2, próximo ao ginásio de esportes", bairro: "Buriti", localidade: "Diamantino", lat: -14.4135, lng: -56.4495 },
             { id: 'primeiro-mandamento', nome: "Célula Primeiro Mandamento", endereco: "Rua Manoel Ferreira de Arruda, 33", bairro: "Buriti", localidade: "Diamantino", lat: -14.4145, lng: -56.4505 },
             { id: 'missao', nome: "Célula Missão", endereco: "Centro", bairro: "Centro", localidade: "Alto Paraguai", lat: -14.5200, lng: -56.4800 },
-            { id: 'adolescentes', nome: "Célula de Adolescentes", endereco: "Av. Ministro Gilmar Ferreira Mendes, S/N (prédio da igreja)", bairro: "Centro", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 },
-            { id: 'jovens', nome: "Célula de Jovens", endereco: "Av. Ministro Gilmar Ferreira Mendes, S/N (prédio da igreja)", bairro: "Centro", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 }
+            { id: 'adolescentes', nome: "Célula de Adolescentes", endereco: "Local definido pelo líder a cada sábado", bairro: "A definir", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 },
+            { id: 'jovens', nome: "Célula de Jovens", endereco: "Local definido pelo líder a cada sábado", bairro: "A definir", localidade: "Diamantino", lat: -14.4089, lng: -56.4458 }
         ];
 
         function carregarCoordsSalvas() {
@@ -1498,57 +1540,93 @@
             var boxM = document.getElementById('previewFotosMinisterios');
             if (!boxC || !boxM) return;
 
-            function logos(n, destino) {
+            function srcFoto(f) {
+                if (!f) return '';
+                var s = f.imagem || f.imagemUrl || f.url || '';
+                if (s && String(s).length > 10) return s;
+                return '';
+            }
+
+            function logosVisitante() {
                 var html = '';
-                for (var i = 0; i < n; i++) {
-                    html += '<button type="button" data-destino="' + destino + '" class="btn-foto-exclusiva aspect-square rounded-lg overflow-hidden border border-white/20 bg-black/20">' +
+                for (var i = 0; i < 4; i++) {
+                    html += '<button type="button" class="btn-foto-exclusiva aspect-square rounded-lg overflow-hidden border border-white/20 bg-black/20">' +
                         '<img src="icon-192.png" alt="IBN" class="w-full h-full object-cover opacity-90">' +
                         '</button>';
                 }
                 return html;
             }
 
-            function thumbs(lista, destino, campoImg) {
-                if (!lista || !lista.length) return logos(4, destino);
-                return lista.slice(0, 4).map(function (f) {
-                    var src = f[campoImg] || f.imagem || f.imagemUrl || f.url || 'icon-192.png';
-                    return '<a href="' + destino + '" class="aspect-square rounded-lg overflow-hidden border border-white/20 block">' +
-                        '<img src="' + src + '" alt="" class="w-full h-full object-cover" onerror="this.src=\'icon-192.png\'">' +
+            function vazioLogado(destino) {
+                return '<a href="' + destino + '" class="col-span-4 text-center text-xs text-white/60 py-4 border border-dashed border-white/20 rounded-lg block">Nenhuma foto na nuvem ainda — abrir galeria</a>';
+            }
+
+            function thumbs(lista, destino) {
+                var comImg = (lista || []).filter(function (f) { return !!srcFoto(f); });
+                if (!comImg.length) return null;
+                return comImg.slice(0, 4).map(function (f) {
+                    var src = srcFoto(f);
+                    return '<a href="' + destino + '" class="aspect-square rounded-lg overflow-hidden border border-white/20 block bg-black/20">' +
+                        '<img src="' + src + '" alt="" class="w-full h-full object-cover" loading="lazy">' +
                         '</a>';
                 }).join('');
             }
 
-            var logado = (typeof getUsuarioLogado === 'function') && getUsuarioLogado();
+            var logado = null;
+            try {
+                if (typeof getUsuarioLogado === 'function') logado = getUsuarioLogado();
+                if (!logado) {
+                    var raw = localStorage.getItem('ibn_sessao_atual') || localStorage.getItem('usuarioLogado');
+                    if (raw) logado = JSON.parse(raw);
+                }
+            } catch (e) {}
 
             if (!logado) {
-                boxC.innerHTML = logos(4, 'cadastro.html');
-                boxM.innerHTML = logos(4, 'cadastro.html');
+                boxC.innerHTML = logosVisitante();
+                boxM.innerHTML = logosVisitante();
+                function conviteMembro(e) {
+                    if (e) e.preventDefault();
+                    alert('🔒 Conteúdo exclusivo para membros.\n\nPara ver as fotos, entre na sua conta ou inscreva-se para ter acesso ao conteúdo.');
+                    window.location.href = 'cadastro.html';
+                }
                 document.querySelectorAll('.btn-foto-exclusiva').forEach(function (btn) {
-                    btn.addEventListener('click', function () {
-                        alert('🔒 Conteúdo exclusivo para membros cadastrados.\\n\\nFaça seu cadastro ou login para ver as fotos da igreja.');
-                        window.location.href = 'cadastro.html';
-                    });
+                    btn.addEventListener('click', conviteMembro);
                 });
                 var l1 = document.getElementById('linkGaleriaCelulas');
                 var l2 = document.getElementById('linkGaleriaMinisterios');
-                if (l1) l1.href = 'cadastro.html';
-                if (l2) l2.href = 'cadastro.html';
+                if (l1) { l1.href = 'cadastro.html'; l1.addEventListener('click', conviteMembro); }
+                if (l2) { l2.href = 'cadastro.html'; l2.addEventListener('click', conviteMembro); }
                 return;
             }
 
             try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.iniciar) IBNNuvem.iniciar();
                 if (typeof IBNNuvem !== 'undefined') {
                     if (IBNNuvem.puxarFotosCelulasParaLocal) await IBNNuvem.puxarFotosCelulasParaLocal();
                     if (IBNNuvem.puxarFotosParaLocal) await IBNNuvem.puxarFotosParaLocal();
                 }
-            } catch (e) {}
+            } catch (e) { console.warn('preview nuvem', e); }
 
             var cel = [];
             var min = [];
             try { cel = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]'); } catch (e) {}
             try { min = JSON.parse(localStorage.getItem('ibn_fotos') || '[]'); } catch (e) {}
-            boxC.innerHTML = thumbs(cel, 'fotos-celulas.html', 'url');
-            boxM.innerHTML = thumbs(min, 'fotos.html', 'imagem');
+
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.buscarFotos) {
+                    var rM = await IBNNuvem.buscarFotos();
+                    if (rM && rM.sucesso && rM.lista && rM.lista.length) min = rM.lista;
+                }
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.buscarFotosCelulas) {
+                    var rC = await IBNNuvem.buscarFotosCelulas();
+                    if (rC && rC.sucesso && rC.lista && rC.lista.length) cel = rC.lista;
+                }
+            } catch (e2) { console.warn(e2); }
+
+            var htmlC = thumbs(cel, 'fotos-celulas.html');
+            var htmlM = thumbs(min, 'fotos.html');
+            boxC.innerHTML = htmlC || vazioLogado('fotos-celulas.html');
+            boxM.innerHTML = htmlM || vazioLogado('fotos.html');
         })();
 
         // ==================================================
@@ -1558,8 +1636,12 @@
             const agora = new Date();
             const diaSemana = agora.getDay(); // 0=dom, 1=seg, 2=ter, 3=qua, 4=qui, 5=sex, 6=sab
             const diaMes = agora.getDate();
-            const ultimoDiaMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
-            const isUltimaSexta = diaSemana === 5 && (ultimoDiaMes - diaMes) < 7;
+            // Vigília = sexta que antecede o primeiro domingo do mês (não a última sexta)
+            const isSextaVigilia = (function() {
+                if (diaSemana !== 5) return false;
+                const domingo = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 2);
+                return domingo.getDay() === 0 && domingo.getDate() <= 7;
+            })();
             const isPrimeiroDomingo = diaSemana === 0 && diaMes <= 7;
 
             let texto = '';
@@ -1579,7 +1661,7 @@
                 link = 'Ver programação →';
                 href = '#eventos';
             } else if (diaSemana === 6) { // Sábado
-                texto = '🔥 Hoje: Célula de Adolescentes (18h) e Jovens (20h) no prédio da igreja.';
+                texto = '🔥 Hoje: Célula de Adolescentes (18h) e Jovens (20h) — local definido pelo líder (consulte a célula ou o líder).';
                 link = 'Ver programação →';
                 href = '#eventos';
             } else if (diaSemana === 0) { // Domingo
@@ -1590,8 +1672,8 @@
                 }
                 link = 'Ver transmissões →';
                 href = '#transmissoes';
-            } else if (isUltimaSexta) {
-                texto = '🕯️ Hoje: Vigília (última sexta do mês).';
+            } else if (isSextaVigilia) {
+                texto = '🕯️ Hoje: Vigília (sexta que antecede o 1º domingo do mês).';
                 link = 'Ver programação →';
                 href = '#eventos';
             }
