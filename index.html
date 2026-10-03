@@ -223,42 +223,28 @@
                 <span id="txtMenu">Menu</span>
             </button>
         </div>
-        <!-- ✅ Menu Mobile — painel completo com fechar/voltar -->
-        <div id="menuMobile" class="md:hidden hidden fixed inset-0 z-[60] overflow-y-auto" style="background-color:#0A1A3F;">
-            <div class="min-h-full flex flex-col max-w-lg mx-auto px-4 py-4 text-white">
-                <div class="flex items-center justify-between mb-2 border-b border-white/20 pb-3 sticky top-0" style="background-color:#0A1A3F;">
-                    <span class="font-bold text-lg" style="color:#D4AF37;">Menu do site</span>
-                    <button type="button" id="btnFecharMenu" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-white" style="background-color:rgba(255,255,255,0.15);">
-                        <i class="fa fa-times"></i> Voltar ao site
-                    </button>
-                </div>
-                <nav class="flex flex-col text-base">
-                    <a href="#inicio" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Início</a>
-                    <a href="#celulas" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Células</a>
-                    <a href="#eventos" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Programação</a>
-                    <a href="eventos.html" class="menu-link py-3.5 px-2 border-b border-white/20 font-bold" style="color:#D4AF37;">Eventos</a>
-                    <a href="#transmissoes" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Ao Vivo</a>
-                    <a href="ministerios.html" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Ministérios</a>
-                    <a href="fotos.html" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Fotos</a>
-                    <a href="#devocional" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Devocional</a>
-                    <a href="#oracao" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Oração</a>
-                    <a href="#doacao" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Doação</a>
-                    <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3.5 px-2 border-b border-white/20 text-white hidden">Gestão</a>
-                    <a href="#mais" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Mais</a>
-                </nav>
-                <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-5">
-                    <a href="cadastro.html" class="px-4 py-3 rounded-lg font-bold text-center" style="background-color:#D4AF37;color:#0A1A3F;">Seja Membro</a>
-                    <a href="login.html" class="border border-white px-4 py-3 rounded-lg text-center font-semibold text-white">Entrar</a>
-                </div>
-                <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-5">
-                    <a href="area-membro.html" class="border border-white/40 px-4 py-3 rounded-lg text-center font-semibold text-white">Minha Área</a>
-                    <a href="ajustar-dados.html" class="border border-white/40 px-4 py-3 rounded-lg text-center text-white">Editar Dados</a>
-                    <a href="#" id="btnSairMobile" class="px-4 py-3 rounded-lg text-center" style="color:#fca5a5;">Sair</a>
-                </div>
-                <button type="button" id="btnFecharMenu2" class="mt-6 mb-10 w-full border border-white/40 py-3 rounded-lg font-bold text-sm text-white">
-                    ← Voltar ao site
-                </button>
+        <!-- Menu mobile reduzido (sem tela cheia — evita travar) -->
+        <div id="menuMobile" class="md:hidden hidden px-4 pb-4 border-t border-white/10" style="background-color:#0A1A3F;">
+            <nav class="flex flex-col text-white text-sm pt-2">
+                <a href="#celulas" class="menu-link py-3 border-b border-white/15">Células</a>
+                <a href="#eventos" class="menu-link py-3 border-b border-white/15">Programação</a>
+                <a href="eventos.html" class="menu-link py-3 border-b border-white/15 font-bold" style="color:#D4AF37;">Eventos</a>
+                <a href="ministerios.html" class="menu-link py-3 border-b border-white/15">Ministérios</a>
+                <a href="#devocional" class="menu-link py-3 border-b border-white/15">Devocional</a>
+                <a href="#oracao" class="menu-link py-3 border-b border-white/15">Oração</a>
+                <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 border-b border-white/15 hidden">Gestão</a>
+            </nav>
+            <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-3">
+                <a href="cadastro.html" class="px-4 py-2.5 rounded-lg font-bold text-center" style="background-color:#D4AF37;color:#0A1A3F;">Seja Membro</a>
+                <a href="login.html" class="border border-white px-4 py-2.5 rounded-lg text-center">Entrar</a>
             </div>
+            <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-3">
+                <a href="area-membro.html" class="border border-white/40 px-4 py-2.5 rounded-lg text-center">Minha Área</a>
+                <a href="#" id="btnSairMobile" class="px-4 py-2.5 rounded-lg text-center" style="color:#fca5a5;">Sair</a>
+            </div>
+            <button type="button" id="btnFecharMenu" class="mt-3 w-full py-2.5 rounded-lg text-sm font-bold text-white border border-white/30">
+                Fechar menu
+            </button>
         </div>
     </header>
 
@@ -269,9 +255,17 @@
                 <p class="inline-block bg-white/10 px-4 py-1 rounded-full text-sm mb-8">● Boas-vindas à nossa família</p>
                 <h1 class="text-5xl md:text-7xl font-bold mb-4 text-secondary tracking-wider">JESUS</h1>
                 <h2 class="text-2xl md:text-3xl mb-6 font-light">Ele é o caminho, a verdade e a vida</h2>
-                <p class="text-lg md:text-xl mb-8 text-gray-200 max-w-2xl mx-auto">
+                <p class="text-lg md:text-xl mb-6 text-gray-200 max-w-2xl mx-auto">
                     Uma comunidade de fé, amor e esperança. Venha crescer espiritualmente conosco.
                 </p>
+                <div class="mb-6 flex flex-wrap justify-center gap-3">
+                    <a href="cadastro.html" class="inline-flex items-center gap-2 bg-secondary text-primary px-6 py-3 rounded-lg font-bold text-base shadow-lg hover:bg-yellow-400 transition">
+                        <i class="fa fa-user-plus"></i> Seja Membro
+                    </a>
+                    <a href="login.html" class="inline-flex items-center gap-2 border-2 border-white/50 px-5 py-3 rounded-lg font-semibold text-sm hover:bg-white/10 transition">
+                        Entrar
+                    </a>
+                </div>
                 <div id="destaqueVideo" class="max-w-2xl mx-auto mb-8 bg-black/30 rounded-xl p-6 backdrop-blur-sm">
                     <span class="text-gray-300">Última transmissão — 22/09/2026</span>
                     <a href="https://youtu.be/2kOBSVtDEpM" target="_blank" rel="noopener" class="block mt-4">
@@ -431,8 +425,8 @@
                     </div>
                 </div>
                 <div class="text-center mt-6 space-y-4">
-                    <a href="fotos.html" class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400 mr-2">
-                        <i class="fa fa-camera mr-2"></i> Ver Galeria de Fotos
+                    <a href="ministerios.html" class="inline-block bg-secondary text-primary px-6 py-3 rounded-md font-bold hover:bg-yellow-400 mr-2">
+                        <i class="fa fa-users mr-2"></i> Conheça e faça parte dos nossos Ministérios
                     </a>
                     <a href="https://www.youtube.com/@ibndiamantino/streams" target="_blank" 
                        class="inline-block bg-primary text-white px-6 py-3 rounded-md font-bold hover:bg-accent">
@@ -668,38 +662,31 @@
             }
         });
 
-        // Menu mobile — abre/fecha e "Voltar ao site"
+        // Menu mobile reduzido (abre abaixo do cabeçalho, sem travar a tela)
         (function() {
             var menu = document.getElementById('menuMobile');
             var btn = document.getElementById('btnMenu');
             var icon = document.getElementById('iconMenu');
             var txt = document.getElementById('txtMenu');
-            function abrirMenu() {
-                menu.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                if (icon) icon.className = 'fa fa-times text-lg';
-                if (txt) txt.textContent = 'Fechar';
-            }
+            if (!menu || !btn) return;
             function fecharMenu() {
                 menu.classList.add('hidden');
-                document.body.style.overflow = '';
                 if (icon) icon.className = 'fa fa-bars text-lg';
                 if (txt) txt.textContent = 'Menu';
             }
-            function toggleMenu() {
+            function abrirMenu() {
+                menu.classList.remove('hidden');
+                if (icon) icon.className = 'fa fa-times text-lg';
+                if (txt) txt.textContent = 'Fechar';
+            }
+            btn.addEventListener('click', function() {
                 if (menu.classList.contains('hidden')) abrirMenu();
                 else fecharMenu();
-            }
-            if (btn) btn.addEventListener('click', toggleMenu);
+            });
             var f1 = document.getElementById('btnFecharMenu');
-            var f2 = document.getElementById('btnFecharMenu2');
             if (f1) f1.addEventListener('click', fecharMenu);
-            if (f2) f2.addEventListener('click', fecharMenu);
-            menu.querySelectorAll('a.menu-link, #areaVisitanteMobile a, #areaLogadoMobile a').forEach(function(a) {
-                a.addEventListener('click', function() {
-                    // fecha ao escolher uma opção (links # e páginas)
-                    setTimeout(fecharMenu, 80);
-                });
+            menu.querySelectorAll('a').forEach(function(a) {
+                a.addEventListener('click', function() { setTimeout(fecharMenu, 50); });
             });
         })();
 
