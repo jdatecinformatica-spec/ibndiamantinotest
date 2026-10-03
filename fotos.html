@@ -46,8 +46,8 @@
             </div>
         </div>
 
-        <!-- Aviso de direitos de imagem -->
-        <div class="card-glass rounded-xl p-5 mb-6 border-l-4 border-secondary/50">
+        <!-- Aviso de direitos — só ao postar -->
+        <div id="boxRegrasFoto" class="hidden card-glass rounded-xl p-5 mb-6 border-l-4 border-secondary/50">
             <h3 class="font-bold text-lg mb-2">📋 Regras de Uso e Direito de Imagem</h3>
             <ul class="text-sm text-gray-300 space-y-2 mb-4">
                 <li><i class="fa fa-check text-green-400 mr-2"></i> Ao publicar, você confirma que a imagem é de sua autoria ou tem permissão para compartilhar</li>
@@ -62,9 +62,12 @@
 
         <!-- Botão Enviar + Filtros -->
         <div class="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center justify-between">
-            <button id="btnEnviar" class="bg-secondary text-primary px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">
-                <i class="fa fa-upload mr-2"></i> Enviar Nova Foto
-            </button>
+            <div class="flex flex-col gap-1">
+                <button id="btnEnviar" class="bg-secondary text-primary px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition">
+                    <i class="fa fa-camera mr-2"></i> Poste aqui
+                </button>
+                <p id="avisoPostarMinisterio" class="text-xs text-gray-400 max-w-sm"></p>
+            </div>
 
             <div class="flex flex-wrap gap-3">
                 <div>
@@ -586,13 +589,62 @@
         });
 
         // ========== CONTROLE DOS MODAIS ==========
+        function ministerioFiltroAtual() {
+            var sel = document.getElementById('filtroMinisterio');
+            return sel ? sel.value : 'todos';
+        }
+
+        function atualizarAvisoPostar() {
+            var aviso = document.getElementById('avisoPostarMinisterio');
+            var btn = document.getElementById('btnEnviar');
+            if (!aviso || !btn) return;
+            var min = ministerioFiltroAtual();
+            var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+            if (!u) {
+                aviso.textContent = 'Faça login para postar. Só quem participa do ministério pode enviar fotos nele.';
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (min === 'todos') {
+                var lista = (typeof ministeriosQuePodePostar === 'function') ? ministeriosQuePodePostar() : [];
+                aviso.textContent = 'Ao postar, escolha um ministério do qual você participa' +
+                    (lista.length ? (': ' + lista.join(', ')) : '') + '.';
+                return;
+            }
+            var pode = typeof podePostarFotoMinisterio === 'function' && podePostarFotoMinisterio(min);
+            var nome = (typeof NOMES_MINISTERIO !== 'undefined' && NOMES_MINISTERIO[min]) ? NOMES_MINISTERIO[min] : min;
+            if (pode) {
+                aviso.textContent = 'Você participa de ' + nome + ' — pode postar fotos aqui.';
+                aviso.className = 'text-xs text-green-400 max-w-sm';
+            } else {
+                var lista2 = (typeof ministeriosQuePodePostar === 'function') ? ministeriosQuePodePostar() : [];
+                aviso.textContent = 'Você não participa de ' + nome + '. Só pode postar em: ' +
+                    (lista2.length ? lista2.join(', ') : 'Geral / Outros') + '.';
+                aviso.className = 'text-xs text-amber-300 max-w-sm';
+            }
+        }
+
         document.getElementById('btnEnviar').addEventListener('click', () => {
+            var min = ministerioFiltroAtual();
+            // Se filtro em um ministério específico e não participa — bloqueia
+            if (min && min !== 'todos' && typeof podePostarFotoMinisterio === 'function' && !podePostarFotoMinisterio(min)) {
+                var lista = (typeof ministeriosQuePodePostar === 'function') ? ministeriosQuePodePostar() : [];
+                alert('Você não pode postar neste ministério.\n\nSó quem participa pode enviar fotos nele.\n\nVocê pode postar em: ' +
+                    (lista.length ? lista.join(', ') : 'Geral / Outros'));
+                return;
+            }
             var regras = document.getElementById('boxRegrasFoto');
             if (regras) {
                 regras.classList.remove('hidden');
                 regras.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
-            // Pequeno atraso para a pessoa ver as regras antes do formulário
+            var selPost = document.getElementById('fotoMinisterio');
+            if (selPost && min && min !== 'todos' && selPost.querySelector('option[value="' + min + '"]')) {
+                selPost.value = min;
+            }
             setTimeout(function() {
                 document.getElementById('modalEnviar').classList.add('aberto');
             }, 400);
@@ -611,26 +663,26 @@
         });
 
         // Filtros
-        document.getElementById('filtroMinisterio').addEventListener('change', renderizarGaleria);
+        document.getElementById('filtroMinisterio').addEventListener('change', function() {
+            renderizarGaleria();
+            atualizarAvisoPostar();
+        });
         document.getElementById('filtroMes').addEventListener('change', renderizarGaleria);
 
-        // Aplicar filtro da URL (?ministerio=atmosfera)
+        // Aplicar filtro da URL (?ministerio=atmosfera) — só galeria, sem abrir postagem
         const params = new URLSearchParams(window.location.search);
         const minUrl = params.get('ministerio');
         if (minUrl && NOMES_MINISTERIO[minUrl]) {
             document.getElementById('filtroMinisterio').value = minUrl;
             var selPost = document.getElementById('fotoMinisterio');
-            if (selPost) {
-                if (typeof podePostarFotoMinisterio === 'function' && !podePostarFotoMinisterio(minUrl)) {
-                    if (selPost.querySelector('option[value="geral"]')) selPost.value = 'geral';
-                } else if (selPost.querySelector('option[value="' + minUrl + '"]')) {
-                    selPost.value = minUrl;
-                }
+            if (selPost && typeof podePostarFotoMinisterio === 'function' && podePostarFotoMinisterio(minUrl)) {
+                if (selPost.querySelector('option[value="' + minUrl + '"]')) selPost.value = minUrl;
             }
         }
 
-        // Iniciar: mostra local e busca fotos de todos na nuvem
+        // Iniciar: galeria primeiro; postar só se participar do ministério
         renderizarGaleria();
+        atualizarAvisoPostar();
         sincronizarGaleriaNuvem();
     </script>
 
