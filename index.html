@@ -224,38 +224,38 @@
             </button>
         </div>
         <!-- ✅ Menu Mobile — painel completo com fechar/voltar -->
-        <div id="menuMobile" class="md:hidden hidden fixed inset-0 z-[60] bg-primary/95 backdrop-blur-sm overflow-y-auto">
-            <div class="min-h-full flex flex-col max-w-lg mx-auto px-4 py-4">
-                <div class="flex items-center justify-between mb-4 border-b border-white/20 pb-3">
-                    <span class="font-bold text-secondary text-lg">Menu do site</span>
-                    <button type="button" id="btnFecharMenu" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-bold">
+        <div id="menuMobile" class="md:hidden hidden fixed inset-0 z-[60] overflow-y-auto" style="background-color:#0A1A3F;">
+            <div class="min-h-full flex flex-col max-w-lg mx-auto px-4 py-4 text-white">
+                <div class="flex items-center justify-between mb-2 border-b border-white/20 pb-3 sticky top-0" style="background-color:#0A1A3F;">
+                    <span class="font-bold text-lg" style="color:#D4AF37;">Menu do site</span>
+                    <button type="button" id="btnFecharMenu" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-white" style="background-color:rgba(255,255,255,0.15);">
                         <i class="fa fa-times"></i> Voltar ao site
                     </button>
                 </div>
-                <nav class="flex flex-col gap-1 text-base">
-                    <a href="#inicio" class="menu-link py-3 px-2 border-b border-white/15">Início</a>
-                    <a href="#celulas" class="menu-link py-3 px-2 border-b border-white/15">Células</a>
-                    <a href="#eventos" class="menu-link py-3 px-2 border-b border-white/15">Programação</a>
-                    <a href="eventos.html" class="menu-link py-3 px-2 border-b border-white/15 font-bold text-secondary">Eventos</a>
-                    <a href="#transmissoes" class="menu-link py-3 px-2 border-b border-white/15">Ao Vivo</a>
-                    <a href="ministerios.html" class="menu-link py-3 px-2 border-b border-white/15">Ministérios</a>
-                    <a href="fotos.html" class="menu-link py-3 px-2 border-b border-white/15">Fotos</a>
-                    <a href="#devocional" class="menu-link py-3 px-2 border-b border-white/15">Devocional</a>
-                    <a href="#oracao" class="menu-link py-3 px-2 border-b border-white/15">Oração</a>
-                    <a href="#doacao" class="menu-link py-3 px-2 border-b border-white/15">Doação</a>
-                    <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 px-2 border-b border-white/15 hidden">Gestão</a>
-                    <a href="#mais" class="menu-link py-3 px-2 border-b border-white/15">Mais</a>
+                <nav class="flex flex-col text-base">
+                    <a href="#inicio" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Início</a>
+                    <a href="#celulas" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Células</a>
+                    <a href="#eventos" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Programação</a>
+                    <a href="eventos.html" class="menu-link py-3.5 px-2 border-b border-white/20 font-bold" style="color:#D4AF37;">Eventos</a>
+                    <a href="#transmissoes" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Ao Vivo</a>
+                    <a href="ministerios.html" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Ministérios</a>
+                    <a href="fotos.html" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Fotos</a>
+                    <a href="#devocional" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Devocional</a>
+                    <a href="#oracao" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Oração</a>
+                    <a href="#doacao" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Doação</a>
+                    <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3.5 px-2 border-b border-white/20 text-white hidden">Gestão</a>
+                    <a href="#mais" class="menu-link py-3.5 px-2 border-b border-white/20 text-white">Mais</a>
                 </nav>
                 <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-5">
-                    <a href="cadastro.html" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold text-center">Seja Membro</a>
-                    <a href="login.html" class="border border-white px-4 py-3 rounded-lg text-center font-semibold">Entrar</a>
+                    <a href="cadastro.html" class="px-4 py-3 rounded-lg font-bold text-center" style="background-color:#D4AF37;color:#0A1A3F;">Seja Membro</a>
+                    <a href="login.html" class="border border-white px-4 py-3 rounded-lg text-center font-semibold text-white">Entrar</a>
                 </div>
                 <div id="areaLogadoMobile" class="hidden flex flex-col gap-2 mt-5">
-                    <a href="area-membro.html" class="border border-white/40 px-4 py-3 rounded-lg text-center font-semibold">Minha Área</a>
-                    <a href="ajustar-dados.html" class="border border-white/40 px-4 py-3 rounded-lg text-center">Editar Dados</a>
-                    <a href="#" id="btnSairMobile" class="text-red-300 px-4 py-3 rounded-lg text-center">Sair</a>
+                    <a href="area-membro.html" class="border border-white/40 px-4 py-3 rounded-lg text-center font-semibold text-white">Minha Área</a>
+                    <a href="ajustar-dados.html" class="border border-white/40 px-4 py-3 rounded-lg text-center text-white">Editar Dados</a>
+                    <a href="#" id="btnSairMobile" class="px-4 py-3 rounded-lg text-center" style="color:#fca5a5;">Sair</a>
                 </div>
-                <button type="button" id="btnFecharMenu2" class="mt-6 mb-8 w-full border border-white/30 py-3 rounded-lg font-bold text-sm">
+                <button type="button" id="btnFecharMenu2" class="mt-6 mb-10 w-full border border-white/40 py-3 rounded-lg font-bold text-sm text-white">
                     ← Voltar ao site
                 </button>
             </div>
