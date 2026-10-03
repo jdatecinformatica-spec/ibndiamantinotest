@@ -364,7 +364,7 @@ function exigirLogin() {
 function sair() {
     localStorage.removeItem(CHAVE_SESSAO);
     localStorage.removeItem('usuarioLogado');
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
 }
 
 /**

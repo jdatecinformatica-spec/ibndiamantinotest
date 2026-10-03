@@ -141,11 +141,16 @@
         </div>
     </div>
 
-    <!-- ✅ Aviso de usuário logado (uma única mensagem) -->
+    <!-- ✅ Aviso de usuário logado (uma única mensagem) + Sair -->
     <div id="avisoLogado" class="bg-green-50 border-b border-green-200 py-2 px-4 text-center hidden">
-        <span class="text-green-700 text-sm">
-            <i class="fa fa-check-circle mr-1"></i>
-            Olá, <strong id="nomeUsuario"></strong>! Você está logado(a).
+        <span class="text-green-700 text-sm inline-flex flex-wrap items-center justify-center gap-2">
+            <span>
+                <i class="fa fa-check-circle mr-1"></i>
+                Olá, <strong id="nomeUsuario"></strong>! Você está logado(a).
+            </span>
+            <button type="button" id="btnSairBanner" class="text-xs font-bold text-red-600 border border-red-300 bg-white px-3 py-1 rounded-full hover:bg-red-50">
+                Sair / Trocar conta
+            </button>
         </span>
     </div>
 
@@ -647,18 +652,23 @@
             }
         }
 
-        // Botão Sair
+        // Botão Sair (banner, menu e desktop) — pede confirmação
         document.addEventListener('click', function(e) {
-            if (e.target.id === 'btnSairMobile' || e.target.closest('#btnSairMobile') ||
-                e.target.id === 'btnSairDesktop' || e.target.closest('#btnSairDesktop')) {
-                e.preventDefault();
-                if (typeof sair === 'function') {
-                    sair();
-                } else {
-                    localStorage.removeItem('ibn_sessao_atual');
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'index.html';
-                }
+            var alvo = e.target.closest('#btnSairBanner, #btnSairMobile, #btnSairDesktop');
+            if (!alvo) return;
+            e.preventDefault();
+            var ok = confirm(
+                'Deseja sair da sua conta?\n\n' +
+                'Você poderá entrar com outro membro ou usuário em seguida.\n\n' +
+                'Toque em OK para sair ou Cancelar para continuar logado.'
+            );
+            if (!ok) return;
+            if (typeof sair === 'function') {
+                sair();
+            } else {
+                localStorage.removeItem('ibn_sessao_atual');
+                localStorage.removeItem('usuarioLogado');
+                window.location.href = 'login.html';
             }
         });
 
