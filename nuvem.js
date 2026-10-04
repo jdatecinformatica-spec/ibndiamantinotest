@@ -272,30 +272,34 @@ const IBNNuvem = (function () {
 
     // ---------- FOTOS (ministérios) ----------
     async function salvarFotoNuvem(foto) {
+        // Mesma lógica das fotos de célula: Storage se houver; senão base64 no Firestore
         if (!iniciar() || !db || !foto) return { sucesso: false, mensagem: ultimoErro };
         try {
             const id = String(foto.id || ('foto-' + Date.now()));
-            let imagemUrl = foto.imagemUrl || foto.url || '';
+            let url = foto.imagemUrl || foto.url || '';
             const imagem = foto.imagem || '';
-            // Sobe imagem grande para Storage (evita limite do Firestore)
             if (imagem && String(imagem).indexOf('data:') === 0 && typeof firebase.storage === 'function') {
                 try {
                     const ref = firebase.storage().ref('fotos/' + id);
                     await ref.putString(imagem, 'data_url');
-                    imagemUrl = await ref.getDownloadURL();
+                    url = await ref.getDownloadURL();
                 } catch (e) {
-                    console.warn('Storage foto:', e);
-                    // se Storage não estiver ativo, tenta gravar só metadados
+                    console.warn('Storage foto ministerio:', e);
                 }
             }
-            // Sem Storage (plano grátis): grava a foto comprimida direto no Firestore
-            let imagemFinal = '';
-            if (imagemUrl) {
-                imagemFinal = '';
-            } else if (imagem && String(imagem).length < 950000) {
-                imagemFinal = imagem;
-            } else if (imagem) {
-                throw new Error('Foto ainda grande demais após compressão. Tente outra.');
+            let imagemB64 = '';
+            if (!url && imagem && String(imagem).indexOf('data:') === 0) {
+                if (String(imagem).length < 950000) {
+                    imagemB64 = imagem;
+                } else {
+                    throw new Error('Foto ainda grande demais após compressão. Tente outra ou reduza a resolução.');
+                }
+            }
+            if (!url && !imagemB64 && imagem && String(imagem).indexOf('http') === 0) {
+                url = imagem;
+            }
+            if (!url && !imagemB64) {
+                throw new Error('Nenhuma imagem para enviar à nuvem.');
             }
             const doc = {
                 id: id,
@@ -305,17 +309,11 @@ const IBNNuvem = (function () {
                 autorId: foto.autorId || '',
                 dataFormatada: foto.dataFormatada || '',
                 mesAno: foto.mesAno || '',
-                imagemUrl: imagemUrl || (imagem && String(imagem).indexOf('http') === 0 ? imagem : ''),
-                imagem: imagemFinal || (imagemUrl ? '' : ''),
+                imagemUrl: url || '',
+                url: url || '',
+                imagem: imagemB64 || '',
                 criadoEm: foto.criadoEm || foto.dataEnvio || new Date().toISOString()
             };
-            if (!doc.imagem && !doc.imagemUrl && imagem && String(imagem).indexOf('http') === 0) {
-                doc.imagemUrl = imagem;
-            }
-            if (!doc.imagem && !doc.imagemUrl && imagemFinal) doc.imagem = imagemFinal;
-            if (!doc.imagem && !doc.imagemUrl && imagem && String(imagem).length < 950000) {
-                doc.imagem = imagem;
-            }
             await db.collection('fotos').doc(id).set(doc, { merge: true });
             return { sucesso: true, foto: doc };
         } catch (e) {
@@ -330,9 +328,12 @@ const IBNNuvem = (function () {
             const snap = await db.collection('fotos').get();
             const lista = [];
             snap.forEach(function (doc) {
-                const d = doc.data();
-                // normaliza campo imagem para a galeria local
-                d.imagem = d.imagemUrl || d.imagem || d.url || '';
+                const d = Object.assign({ id: doc.id }, doc.data());
+                // normaliza para a galeria e para a prévia da home
+                var src = d.imagemUrl || d.url || d.imagem || '';
+                d.imagem = src;
+                d.imagemUrl = d.imagemUrl || (src.indexOf('http') === 0 ? src : '');
+                d.url = d.url || src;
                 lista.push(d);
             });
             lista.sort(function (a, b) {
