@@ -915,6 +915,234 @@ function equipeDaCelula(celulaId) {
     return { lider, anfitriao, liderTreino, membros };
 }
 
+
+/** Adiciona membro já cadastrado a uma célula (líder/admin/gestor) */
+function adicionarMembroACelula(membroId, celulaId) {
+    if (!podeGerenciarPessoasCelula(celulaId)) {
+        return { sucesso: false, mensagem: 'Somente o líder ou o anfitrião desta célula podem adicionar pessoas.' };
+    }
+    const cel = (typeof LISTA_CELULAS !== 'undefined' ? LISTA_CELULAS : []).find(c => c.id === celulaId);
+    if (!cel) return { sucesso: false, mensagem: 'Célula inválida.' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx < 0) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    const m = lista[idx];
+    if (!Array.isArray(m.celulas)) m.celulas = [];
+    if (m.celulas.some(c => idCelulaDe(c) === celulaId)) {
+        return { sucesso: false, mensagem: 'Esta pessoa já está nesta célula.' };
+    }
+    const v = validarCelulas(m.celulas.concat([{ id: cel.id, nome: cel.nome, dia: cel.dia }]));
+    if (v.erro) return { sucesso: false, mensagem: v.erro };
+    m.celulas = v.lista;
+    lista[idx] = m;
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarUmMembro) IBNNuvem.sincronizarUmMembro(m);
+            if (IBNNuvem.registrarAtividade) IBNNuvem.registrarAtividade('vincular_celula', 'Vinculou ' + (m.nome || '') + ' à célula ' + cel.nome, getUsuarioLogado());
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: m };
+}
+
+/** Cadastro rápido de visitante vinculado à célula */
+function cadastrarVisitanteCelula(dados, celulaId) {
+    if (!podeGerenciarPessoasCelula(celulaId)) {
+        return { sucesso: false, mensagem: 'Somente o líder ou o anfitrião desta célula podem cadastrar visitante.' };
+    }
+    const cel = (typeof LISTA_CELULAS !== 'undefined' ? LISTA_CELULAS : []).find(c => c.id === celulaId);
+    if (!cel) return { sucesso: false, mensagem: 'Célula inválida.' };
+    const nome = String(dados.nome || '').trim();
+    if (nome.length < 2) return { sucesso: false, mensagem: 'Informe o nome do visitante.' };
+    const nasc = normalizarDataParaISO(dados.nascimento || '');
+    // mesma pessoa?
+    const lista = lerMembros();
+    const existente = lista.find(function (m) {
+        return typeof mesmaPessoa === 'function' && mesmaPessoa(m, { nome: nome, nascimento: nasc });
+    });
+    if (existente) {
+        return adicionarMembroACelula(existente.id, celulaId);
+    }
+    const novo = {
+        id: Date.now(),
+        nome: nome,
+        email: (dados.email || '').trim() || ('visitante_' + Date.now() + '@ibn.local'),
+        telefone: (dados.telefone || '').trim(),
+        nascimento: nasc,
+        endereco: (dados.endereco || '').trim(),
+        municipio: (dados.municipio || '').trim(),
+        uf: (dados.uf || 'MT').trim() || 'MT',
+        estadoCivil: (dados.estadoCivil || '').trim(),
+        batizado: !!dados.batizado,
+        dataBatismo: dados.batizado ? (normalizarDataParaISO(dados.dataBatismo || '') || '') : '',
+        celulas: [{ id: cel.id, nome: cel.nome, dia: cel.dia }],
+        ministerios: [],
+        cargo: 'Visitante',
+        nivel: 'membro',
+        status: 'visitante',
+        tipo: 'visitante',
+        dataCadastro: new Date().toISOString().slice(0, 10),
+        senha: '',
+        origem: 'celula:' + celulaId
+    };
+    lista.push(novo);
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarUmMembro) IBNNuvem.sincronizarUmMembro(novo);
+            if (IBNNuvem.registrarAtividade) IBNNuvem.registrarAtividade('visitante_celula', 'Cadastrou visitante ' + nome + ' na ' + cel.nome, getUsuarioLogado());
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: novo };
+}
+
+function buscarMembrosParaCelula(termo, celulaId) {
+    termo = String(termo || '').toLowerCase().trim();
+    if (termo.length < 2) return [];
+    return lerMembros().filter(function (m) {
+        const st = (m.status || '').toLowerCase();
+        if (st === 'rejeitado' || st === 'recusado') return false;
+        const ja = Array.isArray(m.celulas) && m.celulas.some(function (c) { return idCelulaDe(c) === celulaId; });
+        if (ja) return false;
+        const nome = String(m.nome || '').toLowerCase();
+        const email = String(m.email || '').toLowerCase();
+        const tel = String(m.telefone || '');
+        return nome.indexOf(termo) !== -1 || email.indexOf(termo) !== -1 || tel.indexOf(termo) !== -1;
+    }).slice(0, 12);
+}
+
+function isAnfitriaoCelula(u, celulaId) {
+    u = u || getUsuarioLogado();
+    if (!u || !celulaId) return false;
+    const eq = (typeof equipeDaCelula === 'function') ? equipeDaCelula(celulaId) : null;
+    if (eq && eq.anfitriao && String(eq.anfitriao.id) === String(u.id)) return true;
+    // cargo / função no próprio cadastro
+    const fn = String(u.funcaoEspecifica || u.cargo || '').toLowerCase();
+    if (fn.indexOf('anfitri') === -1) return false;
+    if (!Array.isArray(u.celulas)) return false;
+    return u.celulas.some(function (c) {
+        return (typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id)) === celulaId;
+    });
+}
+
+/** Líder ou anfitrião da célula: adicionar membros/visitantes e chamada */
+function podeGerenciarPessoasCelula(celulaId) {
+    const u = getUsuarioLogado();
+    if (!u || !celulaId) return false;
+    if (isLiderCelula(u, celulaId)) return true;
+    if (isAnfitriaoCelula(u, celulaId)) return true;
+    return false;
+}
+
+/** Relatório com ofertas: só líder da célula (secretaria/gestor também veem/exportam) */
+
+/** Remove vínculo do membro com a célula (continua membro da igreja) */
+function removerMembroDaCelula(membroId, celulaId) {
+    if (!podeGerenciarPessoasCelula(celulaId)) {
+        return { sucesso: false, mensagem: 'Somente o líder ou o anfitrião podem remover desta célula.' };
+    }
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx < 0) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    const m = lista[idx];
+    if (!Array.isArray(m.celulas)) m.celulas = [];
+    m.celulas = m.celulas.filter(function (c) {
+        return (typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id)) !== celulaId;
+    });
+    // se era líder desta célula no cargo, não remove nível global automaticamente
+    lista[idx] = m;
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarUmMembro) IBNNuvem.sincronizarUmMembro(m);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('desvincular_celula', 'Removeu ' + (m.nome || '') + ' da célula ' + celulaId, getUsuarioLogado());
+            }
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: m };
+}
+
+function podeGerenciarPessoasMinisterio(nomeMinisterio) {
+    const u = getUsuarioLogado();
+    if (!u || !nomeMinisterio) return false;
+    if (isAdmin(u) || isGestor(u)) return true;
+    return isLiderMinisterio(u, nomeMinisterio);
+}
+
+function adicionarMembroAoMinisterio(membroId, nomeMinisterio) {
+    if (!podeGerenciarPessoasMinisterio(nomeMinisterio)) {
+        return { sucesso: false, mensagem: 'Somente o líder deste ministério pode adicionar membros.' };
+    }
+    const nome = String(nomeMinisterio || '').trim();
+    if (!nome) return { sucesso: false, mensagem: 'Ministério inválido.' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx < 0) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    const m = lista[idx];
+    if (!Array.isArray(m.ministerios)) m.ministerios = [];
+    const ja = m.ministerios.some(function (x) {
+        return normalizarNomeMinisterio(x) === normalizarNomeMinisterio(nome);
+    });
+    if (ja) return { sucesso: false, mensagem: 'Esta pessoa já está neste ministério.' };
+    m.ministerios.push(nome);
+    lista[idx] = m;
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarUmMembro) IBNNuvem.sincronizarUmMembro(m);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('vincular_ministerio', 'Vinculou ' + (m.nome || '') + ' ao ministério ' + nome, getUsuarioLogado());
+            }
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: m };
+}
+
+/** Remove só do ministério — continua membro da igreja (e de células/outros ministérios) */
+function removerMembroDoMinisterio(membroId, nomeMinisterio) {
+    if (!podeGerenciarPessoasMinisterio(nomeMinisterio)) {
+        return { sucesso: false, mensagem: 'Somente o líder deste ministério pode remover membros.' };
+    }
+    const nome = String(nomeMinisterio || '').trim();
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx < 0) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    const m = lista[idx];
+    if (!Array.isArray(m.ministerios)) m.ministerios = [];
+    m.ministerios = m.ministerios.filter(function (x) {
+        return normalizarNomeMinisterio(x) !== normalizarNomeMinisterio(nome);
+    });
+    lista[idx] = m;
+    salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarUmMembro) IBNNuvem.sincronizarUmMembro(m);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('desvincular_ministerio', 'Removeu ' + (m.nome || '') + ' do ministério ' + nome, getUsuarioLogado());
+            }
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: m };
+}
+
+function buscarMembrosParaMinisterio(termo, nomeMinisterio) {
+    termo = String(termo || '').toLowerCase().trim();
+    if (termo.length < 2) return [];
+    const alvo = normalizarNomeMinisterio(nomeMinisterio);
+    return lerMembros().filter(function (m) {
+        const st = (m.status || '').toLowerCase();
+        if (st === 'rejeitado' || st === 'recusado') return false;
+        const mins = Array.isArray(m.ministerios) ? m.ministerios : [];
+        const ja = mins.some(function (x) { return normalizarNomeMinisterio(x) === alvo; });
+        if (ja) return false;
+        const nome = String(m.nome || '').toLowerCase();
+        const email = String(m.email || '').toLowerCase();
+        const tel = String(m.telefone || '');
+        return nome.indexOf(termo) !== -1 || email.indexOf(termo) !== -1 || tel.indexOf(termo) !== -1;
+    }).slice(0, 12);
+}
+
 function podeEditarRelatorioCelula(celulaId) {
     const u = getUsuarioLogado();
     if (!u) return false;

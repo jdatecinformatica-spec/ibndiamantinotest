@@ -69,7 +69,55 @@
             </div>
 
             <h3 class="font-bold text-primary mb-2"><i class="fa fa-users"></i> Membros da célula</h3>
-            <ul id="listaMembrosCelula" class="mb-6 text-sm space-y-1 border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto"></ul>
+            <ul id="listaMembrosCelula" class="mb-4 text-sm space-y-1 border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto"></ul>
+
+            <!-- Adicionar membro ou visitante (líder / admin / gestor) -->
+            <div id="blocoAddPessoaCelula" class="hidden mb-6 border rounded-xl p-4 bg-white border-secondary/40">
+                <h3 class="font-bold text-primary mb-2"><i class="fa fa-user-plus"></i> Adicionar à célula / chamada</h3>
+                <p class="text-xs text-gray-500 mb-2">Disponível para <strong>líder</strong> ou <strong>anfitrião</strong> desta célula.</p>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button type="button" id="tabAddMembro" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-primary text-white">Membro cadastrado</button>
+                    <button type="button" id="tabAddVisitante" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-primary text-primary">Visitante</button>
+                </div>
+                <div id="painelAddMembro">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Buscar membro (nome, e-mail ou telefone)</label>
+                    <input type="text" id="buscaMembroCelula" class="w-full p-2 border rounded-lg text-sm mb-2" placeholder="Digite pelo menos 2 letras..." autocomplete="off">
+                    <div id="resultBuscaMembro" class="text-sm space-y-1 max-h-40 overflow-y-auto mb-2"></div>
+                    <p class="text-xs text-gray-400">Aparecem só nomes já cadastrados no sistema que ainda não estão nesta célula.</p>
+                </div>
+                <div id="painelAddVisitante" class="hidden space-y-2">
+                    <p class="text-xs text-gray-500 mb-1">Cadastro rápido de visitante nesta célula:</p>
+                    <input type="text" id="visNome" class="w-full p-2 border rounded-lg text-sm" placeholder="Nome completo *">
+                    <input type="text" id="visEndereco" class="w-full p-2 border rounded-lg text-sm" placeholder="Endereço">
+                    <div class="grid sm:grid-cols-2 gap-2">
+                        <input type="text" id="visMunicipio" class="w-full p-2 border rounded-lg text-sm" placeholder="Município" value="Diamantino">
+                        <input type="text" id="visTelefone" class="w-full p-2 border rounded-lg text-sm" placeholder="Telefone">
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-0.5">Data de nascimento</label>
+                            <input type="date" id="visNascimento" class="w-full p-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-0.5">Estado civil</label>
+                            <select id="visEstadoCivil" class="w-full p-2 border rounded-lg text-sm">
+                                <option value="">—</option>
+                                <option value="solteiro">Solteiro(a)</option>
+                                <option value="casado">Casado(a)</option>
+                                <option value="uniao">União estável</option>
+                                <option value="divorciado">Divorciado(a)</option>
+                                <option value="viuvo">Viúvo(a)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="visBatizado"> É batizado(a)</label>
+                    <input type="date" id="visDataBatismo" class="w-full p-2 border rounded-lg text-sm hidden" placeholder="Data do batismo">
+                    <button type="button" id="btnSalvarVisitante" class="w-full bg-secondary text-primary py-2 rounded-lg font-bold text-sm hover:bg-yellow-400">
+                        <i class="fa fa-save"></i> Cadastrar visitante na célula
+                    </button>
+                </div>
+                <p id="msgAddPessoa" class="text-sm text-center mt-2 hidden"></p>
+            </div>
 
             <div class="flex flex-wrap gap-2 mb-6">
                 <a id="linkFotosCelula" href="fotos-celulas.html" class="inline-block bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-400">
@@ -99,8 +147,8 @@
 
             <!-- Relatórios -->
             <div id="blocoRelatorios" class="hidden border-t pt-5">
-                <h3 class="font-bold text-primary mb-3"><i class="fa fa-file-text-o"></i> Relatórios de participação</h3>
-                <p class="text-xs text-gray-500 mb-3">Visível apenas para o líder desta célula e para gestores/administradores.</p>
+                <h3 class="font-bold text-primary mb-3"><i class="fa fa-file-text-o"></i> Relatório de presença e ofertas</h3>
+                <p class="text-xs text-gray-500 mb-3">Somente o <strong>líder da célula</strong> preenche (presença + ofertas PIX/espécie) para envio à <strong>secretaria</strong> e à <strong>tesouraria</strong>. Gestores/admin também acessam.</p>
 
                 <form id="formRelatorio" class="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border">
                     <input type="hidden" id="relCelulaId">
@@ -242,13 +290,42 @@
             if (!eq.membros.length) {
                 ul.innerHTML = '<li class="text-gray-400">Nenhum membro vinculado a esta célula no cadastro.</li>';
             } else {
+                var podeRem = (typeof podeGerenciarPessoasCelula === 'function') && podeGerenciarPessoasCelula(id);
                 ul.innerHTML = eq.membros.map(function(m) {
                     var papel = m.cargo || m.funcaoEspecifica || 'Membro';
-                    return '<li class="flex justify-between gap-2 border-b border-gray-100 py-1"><span>' + (m.nome || '—') + '</span><span class="text-xs text-gray-400">' + papel + '</span></li>';
+                    if (m.status === 'visitante' || m.tipo === 'visitante') papel = 'Visitante';
+                    var btn = podeRem
+                        ? '<button type="button" class="btn-rem-cel text-xs text-red-600 font-bold" data-id="' + m.id + '" data-nome="' + String(m.nome || '').replace(/"/g, '') + '">Remover</button>'
+                        : '';
+                    return '<li class="flex justify-between gap-2 items-center border-b border-gray-100 py-1"><span>' + (m.nome || '—') + ' <span class="text-xs text-gray-400">(' + papel + ')</span></span><span>' + btn + '</span></li>';
                 }).join('');
+                ul.querySelectorAll('.btn-rem-cel').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var nome = btn.getAttribute('data-nome') || 'esta pessoa';
+                        if (!confirm('Remover ' + nome + ' desta célula?\n\nContinua membro da igreja; só sai desta célula.')) return;
+                        var r = removerMembroDaCelula(btn.getAttribute('data-id'), id);
+                        if (r.sucesso) { abrirCelula(id); renderLista(); }
+                        else alert(r.mensagem || 'Não foi possível remover.');
+                    });
+                });
             }
 
             document.getElementById('linkFotosCelula').href = 'fotos-celulas.html?celula=' + encodeURIComponent(id);
+
+            // Bloco adicionar membro/visitante
+            var blocoAdd = document.getElementById('blocoAddPessoaCelula');
+            var podeAdd = (typeof podeGerenciarPessoasCelula === 'function') && podeGerenciarPessoasCelula(id);
+            if (blocoAdd) {
+                blocoAdd.classList.toggle('hidden', !podeAdd);
+                document.getElementById('buscaMembroCelula').value = '';
+                document.getElementById('resultBuscaMembro').innerHTML = '';
+                document.getElementById('msgAddPessoa').classList.add('hidden');
+                document.getElementById('painelAddMembro').classList.remove('hidden');
+                document.getElementById('painelAddVisitante').classList.add('hidden');
+                document.getElementById('tabAddMembro').className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-primary text-white';
+                document.getElementById('tabAddVisitante').className = 'px-3 py-1.5 rounded-lg text-sm font-bold border border-primary text-primary';
+            }
+
             document.getElementById('painelCelula').classList.remove('hidden');
             document.getElementById('painelCelula').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -409,6 +486,86 @@
             msg.classList.remove('hidden');
             abrirCelula(celulaAberta);
             renderLista();
+        });
+
+
+        document.getElementById('tabAddMembro').addEventListener('click', function() {
+            document.getElementById('painelAddMembro').classList.remove('hidden');
+            document.getElementById('painelAddVisitante').classList.add('hidden');
+            this.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-primary text-white';
+            document.getElementById('tabAddVisitante').className = 'px-3 py-1.5 rounded-lg text-sm font-bold border border-primary text-primary';
+        });
+        document.getElementById('tabAddVisitante').addEventListener('click', function() {
+            document.getElementById('painelAddMembro').classList.add('hidden');
+            document.getElementById('painelAddVisitante').classList.remove('hidden');
+            this.className = 'px-3 py-1.5 rounded-lg text-sm font-bold bg-primary text-white';
+            document.getElementById('tabAddMembro').className = 'px-3 py-1.5 rounded-lg text-sm font-bold border border-primary text-primary';
+        });
+        document.getElementById('visBatizado').addEventListener('change', function() {
+            document.getElementById('visDataBatismo').classList.toggle('hidden', !this.checked);
+        });
+        document.getElementById('buscaMembroCelula').addEventListener('input', function() {
+            var box = document.getElementById('resultBuscaMembro');
+            if (!celulaAberta) { box.innerHTML = ''; return; }
+            var lista = (typeof buscarMembrosParaCelula === 'function')
+                ? buscarMembrosParaCelula(this.value, celulaAberta) : [];
+            if (!lista.length) {
+                box.innerHTML = this.value.trim().length >= 2
+                    ? '<p class="text-gray-400 text-xs">Nenhum membro encontrado ou todos já estão na célula.</p>' : '';
+                return;
+            }
+            box.innerHTML = lista.map(function(m) {
+                var extra = (m.status === 'visitante' || m.tipo === 'visitante') ? ' · visitante' : '';
+                return '<button type="button" class="btn-vincular-membro w-full text-left p-2 rounded border hover:border-secondary hover:bg-yellow-50" data-id="' + m.id + '">' +
+                    '<span class="font-semibold">' + (m.nome || '—') + '</span>' +
+                    '<span class="text-xs text-gray-500"> · ' + (m.telefone || m.email || '') + extra + '</span></button>';
+            }).join('');
+            box.querySelectorAll('.btn-vincular-membro').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var r = adicionarMembroACelula(btn.getAttribute('data-id'), celulaAberta);
+                    var msg = document.getElementById('msgAddPessoa');
+                    msg.classList.remove('hidden');
+                    if (r.sucesso) {
+                        msg.className = 'text-sm text-center mt-2 text-green-600 font-bold';
+                        msg.textContent = '✅ Membro adicionado à célula!';
+                        abrirCelula(celulaAberta);
+                        renderLista();
+                    } else {
+                        msg.className = 'text-sm text-center mt-2 text-red-500 font-bold';
+                        msg.textContent = r.mensagem || 'Não foi possível adicionar.';
+                    }
+                });
+            });
+        });
+        document.getElementById('btnSalvarVisitante').addEventListener('click', function() {
+            if (!celulaAberta) return;
+            var r = cadastrarVisitanteCelula({
+                nome: document.getElementById('visNome').value,
+                endereco: document.getElementById('visEndereco').value,
+                municipio: document.getElementById('visMunicipio').value,
+                telefone: document.getElementById('visTelefone').value,
+                nascimento: document.getElementById('visNascimento').value,
+                estadoCivil: document.getElementById('visEstadoCivil').value,
+                batizado: document.getElementById('visBatizado').checked,
+                dataBatismo: document.getElementById('visDataBatismo').value
+            }, celulaAberta);
+            var msg = document.getElementById('msgAddPessoa');
+            msg.classList.remove('hidden');
+            if (r.sucesso) {
+                msg.className = 'text-sm text-center mt-2 text-green-600 font-bold';
+                msg.textContent = '✅ Visitante cadastrado e vinculado à célula!';
+                document.getElementById('visNome').value = '';
+                document.getElementById('visEndereco').value = '';
+                document.getElementById('visTelefone').value = '';
+                document.getElementById('visNascimento').value = '';
+                document.getElementById('visBatizado').checked = false;
+                document.getElementById('visDataBatismo').classList.add('hidden');
+                abrirCelula(celulaAberta);
+                renderLista();
+            } else {
+                msg.className = 'text-sm text-center mt-2 text-red-500 font-bold';
+                msg.textContent = r.mensagem || 'Erro ao cadastrar.';
+            }
         });
 
         // Init

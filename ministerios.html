@@ -392,6 +392,21 @@
     </footer>
 
 
+    <section id="painelGestaoMinisterio" class="container mx-auto px-4 pb-12 hidden">
+        <div class="max-w-xl mx-auto bg-white rounded-xl shadow-md border border-secondary/40 p-5">
+            <h2 class="font-bold text-primary text-lg mb-1"><i class="fa fa-users"></i> Gerenciar membros do ministério</h2>
+            <p class="text-xs text-gray-500 mb-3">Só o <strong>líder do ministério</strong> (ou admin/gestor). Remover tira só do ministério — continua na igreja.</p>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Ministério</label>
+            <select id="selMinGestao" class="w-full p-2 border rounded-lg text-sm mb-3"></select>
+            <h3 class="font-semibold text-sm text-primary mb-1">Membros neste ministério</h3>
+            <ul id="listaMembrosMin" class="text-sm border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto mb-4 space-y-1"></ul>
+            <h3 class="font-semibold text-sm text-primary mb-1">Adicionar membro cadastrado</h3>
+            <input type="text" id="buscaMembroMin" class="w-full p-2 border rounded-lg text-sm mb-2" placeholder="Buscar nome, e-mail ou telefone..." autocomplete="off">
+            <div id="resultBuscaMin" class="text-sm space-y-1 max-h-36 overflow-y-auto mb-2"></div>
+            <p id="msgGestaoMin" class="text-sm text-center hidden"></p>
+        </div>
+    </section>
+
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
@@ -460,6 +475,99 @@
     })();
     </script>
 
+<script>
+(function() {
+    function minsQueLidera() {
+        var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+        if (!u) return [];
+        if (typeof isAdmin === 'function' && isAdmin(u)) {
+            return (typeof LISTA_MINISTERIOS !== 'undefined') ? LISTA_MINISTERIOS.slice() : [];
+        }
+        var out = [];
+        var lista = (typeof LISTA_MINISTERIOS !== 'undefined') ? LISTA_MINISTERIOS : [];
+        lista.forEach(function(nome) {
+            if (typeof isLiderMinisterio === 'function' && isLiderMinisterio(u, nome)) out.push(nome);
+        });
+        if (!out.length && Array.isArray(u.ministerios)) {
+            var cargo = String(u.cargo || u.funcaoEspecifica || '').toLowerCase();
+            if (cargo.indexOf('lider') !== -1 || cargo.indexOf('líder') !== -1 || u.nivel === 'lider_ministerio') {
+                u.ministerios.forEach(function(m) { if (out.indexOf(m) === -1) out.push(m); });
+            }
+        }
+        return out;
+    }
+    function renderListaMin() {
+        var sel = document.getElementById('selMinGestao');
+        var ul = document.getElementById('listaMembrosMin');
+        if (!sel || !ul) return;
+        var nome = sel.value;
+        var membros = (typeof membrosDoMinisterio === 'function') ? membrosDoMinisterio(nome) : [];
+        if (!membros.length) {
+            ul.innerHTML = '<li class="text-gray-400 text-xs">Nenhum membro vinculado ainda.</li>';
+            return;
+        }
+        ul.innerHTML = membros.map(function(m) {
+            return '<li class="flex justify-between items-center border-b border-gray-100 py-1"><span>' + (m.nome || '—') +
+                '</span><button type="button" class="btn-rem-min text-xs text-red-600 font-bold" data-id="' + m.id +
+                '" data-nome="' + String(m.nome||'').replace(/"/g,'') + '">Remover</button></li>';
+        }).join('');
+        ul.querySelectorAll('.btn-rem-min').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('Remover ' + (btn.getAttribute('data-nome')||'') + ' deste ministério?\n\nContinua membro da igreja.')) return;
+                var r = removerMembroDoMinisterio(btn.getAttribute('data-id'), nome);
+                var msg = document.getElementById('msgGestaoMin');
+                msg.classList.remove('hidden');
+                if (r.sucesso) { msg.className = 'text-sm text-center text-green-600 font-bold'; msg.textContent = 'Removido do ministério.'; renderListaMin(); }
+                else { msg.className = 'text-sm text-center text-red-500 font-bold'; msg.textContent = r.mensagem || 'Erro'; }
+            });
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var painel = document.getElementById('painelGestaoMinisterio');
+        var sel = document.getElementById('selMinGestao');
+        if (!painel || !sel) return;
+        var mins = minsQueLidera();
+        if (!mins.length) return;
+        painel.classList.remove('hidden');
+        sel.innerHTML = mins.map(function(n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
+        renderListaMin();
+        sel.addEventListener('change', function() {
+            document.getElementById('buscaMembroMin').value = '';
+            document.getElementById('resultBuscaMin').innerHTML = '';
+            renderListaMin();
+        });
+        document.getElementById('buscaMembroMin').addEventListener('input', function() {
+            var box = document.getElementById('resultBuscaMin');
+            var nomeMin = sel.value;
+            var lista = (typeof buscarMembrosParaMinisterio === 'function') ? buscarMembrosParaMinisterio(this.value, nomeMin) : [];
+            if (!lista.length) {
+                box.innerHTML = this.value.trim().length >= 2 ? '<p class="text-xs text-gray-400">Nenhum resultado ou já está no ministério.</p>' : '';
+                return;
+            }
+            box.innerHTML = lista.map(function(m) {
+                return '<button type="button" class="btn-add-min w-full text-left p-2 rounded border hover:bg-yellow-50 text-sm" data-id="' + m.id + '"><strong>' + (m.nome||'') + '</strong> <span class="text-xs text-gray-500">' + (m.telefone||m.email||'') + '</span></button>';
+            }).join('');
+            box.querySelectorAll('.btn-add-min').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var r = adicionarMembroAoMinisterio(btn.getAttribute('data-id'), nomeMin);
+                    var msg = document.getElementById('msgGestaoMin');
+                    msg.classList.remove('hidden');
+                    if (r.sucesso) {
+                        msg.className = 'text-sm text-center text-green-600 font-bold';
+                        msg.textContent = 'Membro adicionado ao ministério.';
+                        document.getElementById('buscaMembroMin').value = '';
+                        box.innerHTML = '';
+                        renderListaMin();
+                    } else {
+                        msg.className = 'text-sm text-center text-red-500 font-bold';
+                        msg.textContent = r.mensagem || 'Erro';
+                    }
+                });
+            });
+        });
+    });
+})();
 </script>
+
 </body>
 </html>
