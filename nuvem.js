@@ -272,52 +272,54 @@ const IBNNuvem = (function () {
 
     // ---------- FOTOS (ministérios) ----------
     async function salvarFotoNuvem(foto) {
-        // Mesma lógica das fotos de célula: Storage se houver; senão base64 no Firestore
-        if (!iniciar() || !db || !foto) return { sucesso: false, mensagem: ultimoErro };
+        // Firestore-first (Storage costuma travar no celular sem bucket configurado)
+        if (!iniciar() || !db || !foto) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
             const id = String(foto.id || ('foto-' + Date.now()));
-            let url = foto.imagemUrl || foto.url || '';
-            const imagem = foto.imagem || '';
-            if (imagem && String(imagem).indexOf('data:') === 0 && typeof firebase.storage === 'function') {
-                try {
-                    const ref = firebase.storage().ref('fotos/' + id);
-                    await ref.putString(imagem, 'data_url');
-                    url = await ref.getDownloadURL();
-                } catch (e) {
-                    console.warn('Storage foto ministerio:', e);
+            let src = foto.imagemUrl || foto.url || foto.imagem || '';
+            // Se for http(s), grava só o link (leve)
+            if (src && String(src).indexOf('http') === 0) {
+                const doc = {
+                    id: id,
+                    titulo: foto.titulo || '',
+                    ministerio: foto.ministerio || '',
+                    autor: foto.autor || '',
+                    autorId: foto.autorId || '',
+                    dataFormatada: foto.dataFormatada || '',
+                    mesAno: foto.mesAno || '',
+                    imagemUrl: src,
+                    url: src,
+                    imagem: '',
+                    criadoEm: foto.criadoEm || foto.dataEnvio || new Date().toISOString()
+                };
+                await db.collection('fotos').doc(id).set(doc, { merge: true });
+                return { sucesso: true, foto: doc };
+            }
+            // data:URL base64 — precisa caber no Firestore (~1MB)
+            if (src && String(src).indexOf('data:') === 0) {
+                if (String(src).length > 900000) {
+                    throw new Error('Foto grande demais para a nuvem. Use outra com menos resolução.');
                 }
+                const doc = {
+                    id: id,
+                    titulo: foto.titulo || '',
+                    ministerio: foto.ministerio || '',
+                    autor: foto.autor || '',
+                    autorId: foto.autorId || '',
+                    dataFormatada: foto.dataFormatada || '',
+                    mesAno: foto.mesAno || '',
+                    imagemUrl: '',
+                    url: '',
+                    imagem: src,
+                    criadoEm: foto.criadoEm || foto.dataEnvio || new Date().toISOString()
+                };
+                await db.collection('fotos').doc(id).set(doc, { merge: true });
+                return { sucesso: true, foto: Object.assign({}, doc, { imagem: src, url: src }) };
             }
-            let imagemB64 = '';
-            if (!url && imagem && String(imagem).indexOf('data:') === 0) {
-                if (String(imagem).length < 950000) {
-                    imagemB64 = imagem;
-                } else {
-                    throw new Error('Foto ainda grande demais após compressão. Tente outra ou reduza a resolução.');
-                }
-            }
-            if (!url && !imagemB64 && imagem && String(imagem).indexOf('http') === 0) {
-                url = imagem;
-            }
-            if (!url && !imagemB64) {
-                throw new Error('Nenhuma imagem para enviar à nuvem.');
-            }
-            const doc = {
-                id: id,
-                titulo: foto.titulo || '',
-                ministerio: foto.ministerio || '',
-                autor: foto.autor || '',
-                autorId: foto.autorId || '',
-                dataFormatada: foto.dataFormatada || '',
-                mesAno: foto.mesAno || '',
-                imagemUrl: url || '',
-                url: url || '',
-                imagem: imagemB64 || '',
-                criadoEm: foto.criadoEm || foto.dataEnvio || new Date().toISOString()
-            };
-            await db.collection('fotos').doc(id).set(doc, { merge: true });
-            return { sucesso: true, foto: doc };
+            throw new Error('Nenhuma imagem válida para enviar.');
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
+            console.warn('salvarFotoNuvem:', ultimoErro);
             return { sucesso: false, mensagem: ultimoErro };
         }
     }
@@ -348,41 +350,48 @@ const IBNNuvem = (function () {
 
     // ---------- FOTOS DE CÉLULA ----------
     async function salvarFotoCelulaNuvem(foto) {
-        if (!iniciar() || !db || !foto) return { sucesso: false };
+        // Mesma estratégia das fotos de ministério: Firestore direto
+        if (!iniciar() || !db || !foto) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
             const id = String(foto.id || ('fc-' + Date.now()));
-            let url = foto.url || foto.imagemUrl || '';
-            if (foto.imagem && String(foto.imagem).indexOf('data:') === 0 && typeof firebase.storage === 'function') {
-                try {
-                    const ref = firebase.storage().ref('fotos-celulas/' + id);
-                    await ref.putString(foto.imagem, 'data_url');
-                    url = await ref.getDownloadURL();
-                } catch (e) { console.warn(e); }
+            let src = foto.url || foto.imagemUrl || foto.imagem || '';
+            if (src && String(src).indexOf('http') === 0) {
+                const doc = {
+                    id: id,
+                    celulaId: foto.celulaId || '',
+                    titulo: foto.titulo || '',
+                    autorNome: foto.autorNome || foto.autor || '',
+                    autorId: foto.autorId || '',
+                    data: foto.data || foto.criadoEm || new Date().toISOString(),
+                    url: src,
+                    imagemUrl: src,
+                    imagem: ''
+                };
+                await db.collection('fotos_celulas').doc(id).set(doc, { merge: true });
+                return { sucesso: true, foto: doc };
             }
-            // Sem Storage: grava base64 comprimido no Firestore (plano grátis)
-            let imagemB64 = '';
-            if (!url && foto.imagem && String(foto.imagem).indexOf('data:') === 0 && String(foto.imagem).length < 950000) {
-                imagemB64 = foto.imagem;
+            if (src && String(src).indexOf('data:') === 0) {
+                if (String(src).length > 900000) {
+                    throw new Error('Foto grande demais para a nuvem. Use outra com menos resolução.');
+                }
+                const doc = {
+                    id: id,
+                    celulaId: foto.celulaId || '',
+                    titulo: foto.titulo || '',
+                    autorNome: foto.autorNome || foto.autor || '',
+                    autorId: foto.autorId || '',
+                    data: foto.data || foto.criadoEm || new Date().toISOString(),
+                    url: '',
+                    imagemUrl: '',
+                    imagem: src
+                };
+                await db.collection('fotos_celulas').doc(id).set(doc, { merge: true });
+                return { sucesso: true, foto: Object.assign({}, doc, { url: src, imagem: src }) };
             }
-            if (!url && foto.url && String(foto.url).indexOf('data:') === 0 && String(foto.url).length < 950000) {
-                imagemB64 = foto.url;
-                url = '';
-            }
-            const doc = {
-                id: id,
-                celulaId: foto.celulaId || '',
-                titulo: foto.titulo || '',
-                autorNome: foto.autorNome || foto.autor || '',
-                autorId: foto.autorId || '',
-                data: foto.data || foto.criadoEm || new Date().toISOString(),
-                url: url || (imagemB64 ? '' : (foto.url || '')),
-                imagemUrl: url || '',
-                imagem: imagemB64 || ''
-            };
-            await db.collection('fotos_celulas').doc(id).set(doc, { merge: true });
-            return { sucesso: true, foto: doc };
+            throw new Error('Nenhuma imagem válida para enviar.');
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
+            console.warn('salvarFotoCelulaNuvem:', ultimoErro);
             return { sucesso: false, mensagem: ultimoErro };
         }
     }

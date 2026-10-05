@@ -370,6 +370,12 @@
                         <h3 class="font-bold text-xl text-gray-600">Sexta antes do 1º domingo do mês</h3>
                         <p class="font-semibold text-gray-500">Vigília</p>
                     </div>
+                    <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
+                        <h3 class="font-bold text-xl text-primary">40 Dias de Jejum e Oração</h3>
+                        <p class="font-semibold mt-1">Todos os dias · 05:30 e 18:00 · na Igreja</p>
+                        <p class="text-sm text-gray-500 mt-1">Início: segunda 05/10/2026 (1º dia) · até completar 40 dias</p>
+                        <p id="contador40Dias" class="text-sm font-bold text-secondary mt-2"></p>
+                    </div>
 
                 </div>
                 <div class="text-center mt-8">
@@ -1645,14 +1651,39 @@
             let link = '';
             let href = '#eventos';
 
+            // 40 dias de jejum e oração — 1º dia = segunda 05/10/2026
+            const inicio40 = new Date(2026, 9, 5); // mês 0-index: 9 = outubro
+            inicio40.setHours(0, 0, 0, 0);
+            const hoje0 = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+            const diff40 = Math.floor((hoje0 - inicio40) / 86400000);
+            const dia40 = diff40 + 1; // dia 1 no início
+            const emCampanha40 = dia40 >= 1 && dia40 <= 40;
+            const antes40 = diff40 < 0;
+            let texto40 = '';
+            if (emCampanha40) {
+                texto40 = '🙏 40 Dias de Jejum e Oração — ' + dia40 + 'º dia · hoje às 05:30 e 18:00 na Igreja.';
+            } else if (antes40) {
+                const faltam = Math.abs(diff40);
+                texto40 = '🙏 Em breve: 40 Dias de Jejum e Oração (início 05/10) · 05:30 e 18:00 na Igreja' +
+                    (faltam === 1 ? ' · começa amanhã!' : ' · faltam ' + faltam + ' dias.');
+            }
+            const cont40 = document.getElementById('contador40Dias');
+            if (cont40) {
+                if (emCampanha40) cont40.textContent = 'Hoje é o ' + dia40 + 'º dia dos 40.';
+                else if (antes40) cont40.textContent = 'Começa em ' + Math.abs(diff40) + ' dia(s) — 05/10/2026.';
+                else cont40.textContent = 'Campanha concluída. Glória a Deus!';
+            }
+
             if (diaSemana === 1) { // Segunda
                 texto = '⚽ Hoje: Futebol dos Homens — comunhão e esporte!';
                 link = 'Ver programação →';
                 href = '#eventos';
             } else if (diaSemana === 2) { // Terça
-                texto = '📍 Hoje tem Célula! Procure a mais próxima de você.';
-                link = 'Ver mapa →';
-                href = '#celulas';
+                texto = emCampanha40
+                    ? texto40 + ' Também tem Célula à noite.'
+                    : '📍 Hoje tem Célula! Procure a mais próxima de você.';
+                link = 'Ver programação →';
+                href = '#eventos';
             } else if (diaSemana === 4) { // Quinta
                 texto = '🙏 Hoje: Culto da Fé às 19:30 na igreja.';
                 link = 'Ver programação →';
@@ -1675,8 +1706,30 @@
                 href = '#eventos';
             }
 
-            // Eventos agendados futuros podem ser adicionados aqui depois
-            // (lendo de localStorage ou de eventos.html)
+            // Durante os 40 dias: prioriza ou complementa o anúncio da campanha
+            if (emCampanha40) {
+                if (!texto) {
+                    texto = texto40;
+                    link = 'Ver programação →';
+                    href = '#eventos';
+                } else if (diaSemana !== 2) {
+                    // terça já inclui célula + 40 dias
+                    texto = texto40 + ' · ' + texto.replace(/^[^:]+:\s*/, '').replace(/^⚽\s*Hoje:\s*/,'');
+                    // mais simples: campanha + programação do dia
+                    if (diaSemana === 1) texto = texto40 + ' · Também: Futebol dos Homens.';
+                    else if (diaSemana === 4) texto = texto40 + ' · Também: Culto da Fé 19:30.';
+                    else if (diaSemana === 6) texto = texto40 + ' · À noite: células de Adolescentes e Jovens.';
+                    else if (diaSemana === 0) texto = texto40 + ' · À noite: Culto de Celebração 19:00.';
+                    else if (isSextaVigilia) texto = texto40 + ' · Também: Vigília.';
+                    else texto = texto40;
+                    link = 'Ver programação →';
+                    href = '#eventos';
+                }
+            } else if (antes40 && !texto) {
+                texto = texto40;
+                link = 'Ver programação →';
+                href = '#eventos';
+            }
 
             if (texto) {
                 const box = document.getElementById('alertaDoDia');

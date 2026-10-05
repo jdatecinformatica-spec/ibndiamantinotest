@@ -188,18 +188,30 @@
                     msg.classList.remove('hidden');
                     return;
                 }
-                msg.textContent = 'Foto publicada!';
+                // Envia de forma explícita e aguarda a nuvem (antes era só local)
+                var msgExtra = '';
+                try {
+                    if (typeof IBNNuvem !== 'undefined' && IBNNuvem.salvarFotoCelulaNuvem) {
+                        var listaLoc = (typeof lerFotosCelulas === 'function') ? lerFotosCelulas() : [];
+                        var nova = listaLoc[0];
+                        var rn = await IBNNuvem.salvarFotoCelulaNuvem(nova);
+                        msgExtra = (rn && rn.sucesso)
+                            ? ' Na nuvem para todos os aparelhos.'
+                            : ' (Só neste aparelho: ' + ((rn && rn.mensagem) || 'falha nuvem') + ')';
+                    }
+                } catch (errN) {
+                    msgExtra = ' (Só neste aparelho — falha nuvem)';
+                }
+                msg.textContent = 'Foto publicada!' + msgExtra;
                 msg.className = 'text-sm mt-2 text-green-600';
                 msg.classList.remove('hidden');
                 form.reset();
-                (async function() {
-            try {
-                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarFotosCelulasParaLocal) {
-                    await IBNNuvem.puxarFotosCelulasParaLocal();
-                }
-            } catch (e) {}
-            renderGaleria();
-        })();
+                try {
+                    if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarFotosCelulasParaLocal) {
+                        await IBNNuvem.puxarFotosCelulasParaLocal();
+                    }
+                } catch (e) {}
+                renderGaleria();
             });
         }
 

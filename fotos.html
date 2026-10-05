@@ -532,7 +532,7 @@
 
             try {
                 // Comprime automaticamente — sobe na nuvem grátis (Firestore), todos veem
-                const imagemCompacta = await comprimirImagem(arquivo, 900, 0.55);
+                const imagemCompacta = await comprimirImagem(arquivo, 800, 0.5);
 
                 const dataObj = ano && mes && dia ? new Date(ano + '-' + mes + '-' + dia) : new Date();
                 const dataFormatada = dataObj.toLocaleDateString('pt-BR');
