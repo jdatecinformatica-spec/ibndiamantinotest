@@ -9,6 +9,7 @@ const CHAVE_SESSAO = 'ibn_sessao_atual';
 const CHAVE_FOTOS = 'ibn_fotos';
 const CHAVE_FOTOS_CELULAS = 'ibn_fotos_celulas';
 const CHAVE_ORACOES = 'ibn_pedidos_oracao';
+const CHAVE_BLOQUEIOS = 'ibn_bloqueios';
 
 /** Converte dd/mm/aaaa ou ISO para aaaa-mm-dd (input type=date e exibição) */
 function normalizarDataParaISO(str) {
@@ -185,6 +186,98 @@ function salvarMembros(lista) {
     } catch (e) { /* silencioso */ }
 }
 
+
+function lerBloqueios() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_BLOQUEIOS) || '[]'); } catch (e) { return []; }
+}
+function salvarBloqueios(lista) {
+    localStorage.setItem(CHAVE_BLOQUEIOS, JSON.stringify(lista || []));
+}
+
+/** Normaliza e-mail / telefone / nome para bloqueio */
+function chaveBloqueioEmail(email) { return String(email || '').toLowerCase().trim(); }
+function chaveBloqueioTel(tel) { return String(tel || '').replace(/\D/g, ''); }
+function chaveBloqueioNome(nome) { return String(nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(); }
+
+function estaBloqueadoCadastro(dados) {
+    const lista = lerBloqueios();
+    const em = chaveBloqueioEmail(dados.email);
+    const tel = chaveBloqueioTel(dados.telefone);
+    const nome = chaveBloqueioNome(dados.nome);
+    for (let i = 0; i < lista.length; i++) {
+        const b = lista[i];
+        if (em && b.email && b.email === em) return { bloqueado: true, motivo: 'Este e-mail está bloqueado para novos cadastros.' };
+        if (tel && b.telefone && b.telefone === tel) return { bloqueado: true, motivo: 'Este telefone está bloqueado para novos cadastros.' };
+        if (nome && b.nome && b.nome === nome) return { bloqueado: true, motivo: 'Este nome está bloqueado para novos cadastros.' };
+    }
+    return { bloqueado: false };
+}
+
+/** Bloqueia nome e/ou e-mail e/ou telefone (gestor/admin) */
+function bloquearCadastro(dados) {
+    const u = getUsuarioLogado();
+    if (!u || !(isGestor(u) || isAdmin(u))) {
+        return { sucesso: false, mensagem: 'Somente gestor ou admin podem bloquear.' };
+    }
+    const item = {
+        id: 'bloq-' + Date.now(),
+        nome: chaveBloqueioNome(dados.nome),
+        email: chaveBloqueioEmail(dados.email),
+        telefone: chaveBloqueioTel(dados.telefone),
+        motivo: (dados.motivo || '').trim(),
+        porId: u.id,
+        porNome: u.nome,
+        em: new Date().toISOString()
+    };
+    if (!item.nome && !item.email && !item.telefone) {
+        return { sucesso: false, mensagem: 'Informe ao menos nome, e-mail ou telefone para bloquear.' };
+    }
+    const lista = lerBloqueios();
+    lista.push(item);
+    salvarBloqueios(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('bloquear_cadastro', 'Bloqueou: ' + (item.nome || item.email || item.telefone), u);
+        }
+    } catch (e) {}
+    return { sucesso: true, bloqueio: item };
+}
+
+function desbloquearCadastro(bloqueioId) {
+    const u = getUsuarioLogado();
+    if (!u || !(isGestor(u) || isAdmin(u))) return { sucesso: false, mensagem: 'Sem permissão.' };
+    const lista = lerBloqueios().filter(b => String(b.id) !== String(bloqueioId));
+    salvarBloqueios(lista);
+    return { sucesso: true };
+}
+
+/**
+ * Remove membro sem deixar vestígios locais (e tenta nuvem).
+ * Permite novo cadastro com mesmo nome, e-mail ou telefone.
+ */
+function excluirMembroDefinitivo(membroId) {
+    const u = getUsuarioLogado();
+    if (!u || !(isGestor(u) || isAdmin(u))) {
+        return { sucesso: false, mensagem: 'Somente gestor ou admin podem remover definitivamente.' };
+    }
+    const lista = lerMembros();
+    const m = lista.find(x => String(x.id) === String(membroId));
+    if (!m) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    // não deixar gestor apagar a si mesmo por acidente sem aviso — ainda permite
+    const nova = lista.filter(x => String(x.id) !== String(membroId));
+    salvarMembros(nova);
+    // se estava na sessão, não desloga outro usuário
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.removerMembroNuvem) IBNNuvem.removerMembroNuvem(membroId);
+            if (IBNNuvem.registrarAtividade) {
+                IBNNuvem.registrarAtividade('excluir_membro', 'Removeu definitivamente: ' + (m.nome || membroId), u);
+            }
+        }
+    } catch (e) {}
+    return { sucesso: true, removido: m };
+}
+
 function lerMembros() {
     try {
         const dados = localStorage.getItem(CHAVE_MEMBROS);
@@ -218,6 +311,12 @@ function cadastrarMembro(dados) {
     const lista = lerMembros();
     const emailNorm = (dados.email || '').toLowerCase().trim();
     const telNorm = (dados.telefone || '').replace(/\D/g, '');
+
+    // Bloqueios feitos pelo gestor/admin
+    const bloq = (typeof estaBloqueadoCadastro === 'function') ? estaBloqueadoCadastro(dados) : { bloqueado: false };
+    if (bloq.bloqueado) {
+        return { sucesso: false, mensagem: bloq.motivo || 'Cadastro bloqueado pela igreja.' };
+    }
 
     // Mesma pessoa: 3 primeiros nomes + data de nascimento (e-mail não define identidade)
     const jaPessoa = buscarMesmaPessoa(dados.nome, dados.nascimento, lista);
@@ -515,6 +614,7 @@ function podeRemoverFoto(foto) {
     const u = getUsuarioLogado();
     if (!u || !foto) return false;
     if (isGestor(u) || isAdmin(u)) return true;
+    if (u.nivel === 'gestor' || u.nivel === 'admin') return true;
     const uid = String(u.id || '');
     const aid = String(foto.autorId || '');
     if (uid && aid && uid === aid) return true;

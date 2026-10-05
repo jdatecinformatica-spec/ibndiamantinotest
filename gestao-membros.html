@@ -51,6 +51,14 @@
 
         <div id="lista" class="space-y-4"></div>
         <p id="vazio" class="text-center text-gray-400 py-12 hidden">Nenhum membro encontrado.</p>
+
+        <!-- Bloqueios (reversíveis) -->
+        <section class="mt-10 border-t pt-8">
+            <h2 class="text-lg font-bold text-primary mb-1"><i class="fa fa-ban"></i> Cadastros bloqueados</h2>
+            <p class="text-sm text-gray-500 mb-4">O bloqueio é <strong>reversível</strong>. Use <strong>Desbloquear</strong> para liberar nome, e-mail ou telefone novamente.</p>
+            <div id="listaBloqueios" class="space-y-2"></div>
+            <p id="vazioBloqueios" class="text-center text-gray-400 py-6 text-sm">Nenhum bloqueio ativo.</p>
+        </section>
     </main>
 
     <!-- Modal aprovar -->
@@ -167,6 +175,53 @@
             return `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${map[s] || 'bg-gray-100'}">${s || '—'}</span>`;
         }
 
+
+        async function removerMembroDef(id) {
+            const m = lerMembros().find(x => String(x.id) === String(id));
+            if (!m) return;
+            if (!confirm('REMOVER DEFINITIVAMENTE\\n\\n' + m.nome + '\\n' + (m.email || '') + '\\n\\nApaga sem deixar vestígios.\\nA pessoa poderá se cadastrar de novo com o mesmo nome, e-mail ou telefone.\\n\\nConfirma?')) return;
+            const r = excluirMembroDefinitivo(id);
+            if (r.sucesso) {
+                try {
+                    if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerMembroNuvem) {
+                        await IBNNuvem.removerMembroNuvem(id);
+                    }
+                } catch (e) {}
+                alert('Membro removido. Pode cadastrar de novo com os mesmos dados.');
+                renderizar();
+                renderBloqueios();
+            } else {
+                alert(r.mensagem || 'Não foi possível remover.');
+            }
+        }
+
+        function bloquearMembro(id) {
+            const m = lerMembros().find(x => String(x.id) === String(id));
+            if (!m) return;
+            const motivo = prompt('Bloquear cadastro de:\\n' + m.nome + '\\n' + (m.email || '') + '\\n' + (m.telefone || '') + '\\n\\nMotivo (opcional):', '');
+            if (motivo === null) return;
+            const r = bloquearCadastro({
+                nome: m.nome,
+                email: m.email,
+                telefone: m.telefone,
+                motivo: motivo
+            });
+            if (!r.sucesso) {
+                alert(r.mensagem || 'Falha ao bloquear.');
+                return;
+            }
+            const tb = confirm('Bloqueio criado.\\n\\nDeseja TAMBÉM remover o cadastro atual desta pessoa?\\n(OK = remove + bloqueia | Cancelar = só bloqueia)');
+            if (tb) {
+                excluirMembroDefinitivo(id);
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerMembroNuvem) {
+                    IBNNuvem.removerMembroNuvem(id);
+                }
+            }
+            alert('Pronto. Nome, e-mail e telefone bloqueados para novo cadastro.');
+            renderizar();
+            renderBloqueios();
+        }
+
         function renderizar() {
             const status = document.getElementById('filtroStatus').value;
             const busca = document.getElementById('filtroBusca').value.toLowerCase().trim();
@@ -225,6 +280,12 @@
                         `}
                         <button onclick="resetSenha(${m.id})" class="border px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
                             <i class="fa fa-key"></i> Resetar senha
+                        </button>
+                        <button onclick="bloquearMembro(${m.id})" class="border border-amber-500 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-amber-50">
+                            <i class="fa fa-ban"></i> Bloquear
+                        </button>
+                        <button onclick="removerMembroDef(${m.id})" class="border border-red-500 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50">
+                            <i class="fa fa-trash"></i> Remover
                         </button>
                     </div>
                 </div>`;
@@ -304,6 +365,45 @@
             } else {
                 alert(r.mensagem);
             }
+        }
+
+        function renderBloqueios() {
+            var box = document.getElementById('listaBloqueios');
+            var vazio = document.getElementById('vazioBloqueios');
+            if (!box) return;
+            var lista = (typeof lerBloqueios === 'function') ? lerBloqueios() : [];
+            if (!lista.length) {
+                box.innerHTML = '';
+                if (vazio) vazio.classList.remove('hidden');
+                return;
+            }
+            if (vazio) vazio.classList.add('hidden');
+            box.innerHTML = lista.map(function(b) {
+                var partes = [];
+                if (b.nome) partes.push('Nome: ' + b.nome);
+                if (b.email) partes.push('E-mail: ' + b.email);
+                if (b.telefone) partes.push('Tel: ' + b.telefone);
+                var quando = b.em ? new Date(b.em).toLocaleString('pt-BR') : '';
+                return '<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex flex-wrap justify-between gap-2 items-center">' +
+                    '<div class="text-sm">' +
+                    '<p class="font-semibold text-amber-900">' + partes.join(' · ') + '</p>' +
+                    '<p class="text-xs text-gray-500">Por ' + (b.porNome || '—') + (quando ? ' · ' + quando : '') +
+                    (b.motivo ? ' · Motivo: ' + b.motivo : '') + '</p></div>' +
+                    '<button type="button" class="btn-desbloq border border-green-600 text-green-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-50" data-id="' + b.id + '">' +
+                    '<i class="fa fa-unlock"></i> Desbloquear</button></div>';
+            }).join('');
+            box.querySelectorAll('.btn-desbloq').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    if (!confirm('Desbloquear este cadastro?\n\nA pessoa poderá se inscrever de novo com esses dados.')) return;
+                    var r = desbloquearCadastro(btn.getAttribute('data-id'));
+                    if (r.sucesso) {
+                        alert('Desbloqueado.');
+                        renderBloqueios();
+                    } else {
+                        alert(r.mensagem || 'Não foi possível desbloquear.');
+                    }
+                });
+            });
         }
 
         document.getElementById('btnFiltrar').addEventListener('click', renderizar);

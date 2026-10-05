@@ -456,24 +456,83 @@
             }
 
             container.innerHTML = filtrada.map((foto) => {
-                const idxOriginal = lista.indexOf(foto);
                 const nomeMin = NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral';
-                return `
-                <div class="photo-card card-glass rounded-lg overflow-hidden cursor-pointer transition" data-id="${idxOriginal}">
-                    <img src="${foto.imagem || foto.imagemUrl || ''}" alt="${foto.titulo}" class="w-full h-40 object-cover">
-                    <div class="p-3">
-                        <h3 class="font-bold text-sm truncate">${foto.titulo}</h3>
-                        <p class="text-xs text-secondary mt-1">${nomeMin}</p>
-                        <p class="text-xs text-gray-400">${foto.dataFormatada}</p>
-                        <p class="text-xs text-gray-500 mt-1">por ${foto.autor}</p>
-                    </div>
-                </div>
-            `}).join('');
+                const fid = String(foto.id != null ? foto.id : '');
+                var uFoto = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+                const pode = (uFoto && (uFoto.nivel === 'admin' || uFoto.nivel === 'gestor')) ||
+                    ((typeof podeRemoverFoto === 'function') && podeRemoverFoto(foto));
+                const acoes = pode
+                    ? '<button type="button" class="btn-apagar-min text-xs text-red-300 font-bold mt-2 px-2 py-1 border border-red-400 rounded" data-fid="' + fid + '">Apagar foto</button>'
+                    : '<button type="button" class="btn-solicitar-min text-xs text-amber-300 font-semibold mt-2 underline" data-fid="' + fid + '" data-titulo="' + String(foto.titulo || '').replace(/"/g, '') + '">Solicitar remoção</button>';
+                return (
+                '<div class="photo-card card-glass rounded-lg overflow-hidden transition" data-fid="' + fid + '">' +
+                    '<img src="' + (foto.imagem || foto.imagemUrl || '') + '" alt="" class="w-full h-40 object-cover cursor-pointer img-abrir-foto">' +
+                    '<div class="p-3">' +
+                        '<h3 class="font-bold text-sm truncate cursor-pointer titulo-abrir-foto">' + (foto.titulo || '') + '</h3>' +
+                        '<p class="text-xs text-secondary mt-1">' + nomeMin + '</p>' +
+                        '<p class="text-xs text-gray-400">' + (foto.dataFormatada || '') + '</p>' +
+                        '<p class="text-xs text-gray-500 mt-1">por ' + (foto.autor || '') + '</p>' +
+                        acoes +
+                    '</div>' +
+                '</div>'
+                );
+            }).join('');
 
-            container.querySelectorAll('.photo-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const id = parseInt(card.dataset.id);
-                    abrirVisualizacao(lista[id]);
+            function acharFotoPorId(fid) {
+                var all = carregarFotos();
+                return all.find(function(f) { return String(f.id) === String(fid); }) || null;
+            }
+
+            container.querySelectorAll('.img-abrir-foto, .titulo-abrir-foto').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    var card = el.closest('.photo-card');
+                    var f = acharFotoPorId(card && card.getAttribute('data-fid'));
+                    if (f) abrirVisualizacao(f);
+                });
+            });
+
+            container.querySelectorAll('.btn-apagar-min').forEach(function(btn) {
+                btn.addEventListener('click', async function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    var fid = btn.getAttribute('data-fid');
+                    var f = acharFotoPorId(fid);
+                    if (!f) { alert('Foto não encontrada.'); return; }
+                    if (typeof podeRemoverFoto === 'function' && !podeRemoverFoto(f)) {
+                        alert('Você não tem permissão para apagar esta foto.');
+                        return;
+                    }
+                    if (!confirm('Apagar esta foto definitivamente?\n\nEla será removida deste aparelho e da nuvem.')) return;
+                    try {
+                        if (typeof removerFotoMinisterioLocal === 'function') removerFotoMinisterioLocal(fid);
+                        else {
+                            var lista2 = carregarFotos().filter(function(x) { return String(x.id) !== String(fid); });
+                            salvarFotos(lista2);
+                        }
+                        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerFotoNuvem) {
+                            await IBNNuvem.removerFotoNuvem(fid);
+                        }
+                        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+                            IBNNuvem.registrarAtividade('apagar_foto', 'Removeu foto: ' + (f.titulo || fid), typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+                        }
+                        renderizarGaleria();
+                        alert('Foto apagada.');
+                    } catch (err) {
+                        alert('Erro ao apagar: ' + ((err && err.message) || err));
+                    }
+                });
+            });
+
+            container.querySelectorAll('.btn-solicitar-min').forEach(function(btn) {
+                btn.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    alert('Solicitação registrada. A liderança / admin poderá remover em até 48h.');
+                    try {
+                        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+                            IBNNuvem.registrarAtividade('solicitar_remocao_foto', 'Solicitou remoção: ' + (btn.getAttribute('data-titulo') || ''), typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+                        }
+                    } catch (e) {}
                 });
             });
 
@@ -505,7 +564,9 @@
             document.getElementById('ministerioFoto').textContent = 'Ministério: ' + (NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral');
             document.getElementById('autorFoto').textContent = `Enviada por: ${foto.autor}`;
             fotoAtualAberta = foto;
-            var podeApagar = (typeof podeRemoverFoto === 'function') && podeRemoverFoto(foto);
+            var uFoto2 = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+            var podeApagar = (uFoto2 && (uFoto2.nivel === 'admin' || uFoto2.nivel === 'gestor')) ||
+                ((typeof podeRemoverFoto === 'function') && podeRemoverFoto(foto));
             var btnAp = document.getElementById('btnApagarFoto');
             var btnSol = document.getElementById('btnRemover');
             if (btnAp) btnAp.classList.toggle('hidden', !podeApagar);
@@ -624,7 +685,8 @@
             } catch (e) {}
         });
 
-        document.getElementById('btnApagarFoto').addEventListener('click', async function() {
+        document.getElementById('btnApagarFoto').addEventListener('click', async function(ev) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
             if (!fotoAtualAberta) return;
             if (typeof podeRemoverFoto === 'function' && !podeRemoverFoto(fotoAtualAberta)) {
                 alert('Você não tem permissão para apagar esta foto.');

@@ -504,6 +504,17 @@ const IBNNuvem = (function () {
     }
 
 
+    async function removerMembroNuvem(id) {
+        if (!iniciar() || !db || !id) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
+        try {
+            await db.collection('membros').doc(String(id)).delete();
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
     async function removerFotoNuvem(id) {
         if (!iniciar() || !db || !id) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
@@ -625,6 +636,7 @@ const IBNNuvem = (function () {
         csvMembros: csvMembros,
         csvRelatorios: csvRelatorios,
         baixarArquivo: baixarArquivo,
+        removerMembroNuvem: removerMembroNuvem,
         salvarFotoNuvem: salvarFotoNuvem,
         buscarFotos: buscarFotos,
         removerFotoNuvem: removerFotoNuvem,
