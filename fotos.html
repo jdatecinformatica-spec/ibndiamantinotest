@@ -209,10 +209,15 @@
                 <p id="ministerioFoto" class="text-secondary text-sm mb-2"></p>
                 <p id="autorFoto" class="text-gray-400 text-sm mb-4"></p>
                 
-                <button id="btnRemover" class="text-red-400 hover:text-red-300 text-sm">
-                    <i class="fa fa-flag"></i> Solicitar Remoção desta Imagem
-                </button>
-                <p id="msgRemover" class="text-green-400 text-sm mt-2 hidden">✅ Solicitação enviada. Será analisada e removida em até 48h.</p>
+                <div class="flex flex-wrap gap-3 items-center">
+                    <button type="button" id="btnApagarFoto" class="hidden text-red-400 hover:text-red-300 text-sm font-bold border border-red-400/50 px-3 py-1.5 rounded-lg">
+                        <i class="fa fa-trash"></i> Apagar foto
+                    </button>
+                    <button type="button" id="btnRemover" class="text-amber-400 hover:text-amber-300 text-sm">
+                        <i class="fa fa-flag"></i> Solicitar Remoção
+                    </button>
+                </div>
+                <p id="msgRemover" class="text-sm mt-2 hidden"></p>
             </div>
         </div>
     </div>
@@ -390,6 +395,8 @@
         }
 
         // ========== BANCO DE FOTOS ==========
+        var fotoAtualAberta = null;
+
         function carregarFotos() {
             const salvas = localStorage.getItem('ibn_fotos');
             return salvas ? JSON.parse(salvas) : [];
@@ -492,13 +499,20 @@
 
         // ========== ABRIR FOTO GRANDE ==========
         function abrirVisualizacao(foto) {
-            document.getElementById('imagemGrande').src = foto.imagem;
+            document.getElementById('imagemGrande').src = foto.imagem || foto.imagemUrl || foto.url || '';
             document.getElementById('tituloFoto').textContent = foto.titulo;
             document.getElementById('dataFoto').textContent = foto.dataFormatada;
             document.getElementById('ministerioFoto').textContent = 'Ministério: ' + (NOMES_MINISTERIO[foto.ministerio] || foto.ministerio || 'Geral');
             document.getElementById('autorFoto').textContent = `Enviada por: ${foto.autor}`;
+            fotoAtualAberta = foto;
+            var podeApagar = (typeof podeRemoverFoto === 'function') && podeRemoverFoto(foto);
+            var btnAp = document.getElementById('btnApagarFoto');
+            var btnSol = document.getElementById('btnRemover');
+            if (btnAp) btnAp.classList.toggle('hidden', !podeApagar);
+            if (btnSol) btnSol.classList.toggle('hidden', !!podeApagar); // quem pode apagar não precisa solicitar
             document.getElementById('modalVer').classList.add('aberto');
             document.getElementById('msgRemover').classList.add('hidden');
+            document.getElementById('msgRemover').textContent = '';
         }
 
         // ========== ENVIAR FOTO ==========
@@ -599,7 +613,49 @@
 
         // ========== SOLICITAR REMOÇÃO ==========
         document.getElementById('btnRemover').addEventListener('click', () => {
-            document.getElementById('msgRemover').classList.remove('hidden');
+            var msg = document.getElementById('msgRemover');
+            msg.className = 'text-green-400 text-sm mt-2';
+            msg.textContent = '✅ Solicitação enviada. A liderança / admin analisará e poderá remover em até 48h.';
+            msg.classList.remove('hidden');
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade && fotoAtualAberta) {
+                    IBNNuvem.registrarAtividade('solicitar_remocao_foto', 'Solicitou remoção: ' + (fotoAtualAberta.titulo || fotoAtualAberta.id), typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+                }
+            } catch (e) {}
+        });
+
+        document.getElementById('btnApagarFoto').addEventListener('click', async function() {
+            if (!fotoAtualAberta) return;
+            if (typeof podeRemoverFoto === 'function' && !podeRemoverFoto(fotoAtualAberta)) {
+                alert('Você não tem permissão para apagar esta foto.');
+                return;
+            }
+            if (!confirm('Apagar esta foto definitivamente?\n\nEla será removida deste aparelho e da nuvem.')) return;
+            var id = fotoAtualAberta.id;
+            var msg = document.getElementById('msgRemover');
+            try {
+                if (typeof removerFotoMinisterioLocal === 'function') removerFotoMinisterioLocal(id);
+                else {
+                    var lista = carregarFotos().filter(function(f) { return String(f.id) !== String(id); });
+                    salvarFotos(lista);
+                }
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerFotoNuvem) {
+                    await IBNNuvem.removerFotoNuvem(id);
+                }
+                try {
+                    if (IBNNuvem.registrarAtividade) {
+                        IBNNuvem.registrarAtividade('apagar_foto', 'Removeu foto: ' + (fotoAtualAberta.titulo || id), typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+                    }
+                } catch (e2) {}
+                document.getElementById('modalVer').classList.remove('aberto');
+                fotoAtualAberta = null;
+                renderizarGaleria();
+                alert('Foto apagada.');
+            } catch (err) {
+                msg.className = 'text-red-400 text-sm mt-2';
+                msg.textContent = 'Erro ao apagar: ' + ((err && err.message) || err);
+                msg.classList.remove('hidden');
+            }
         });
 
         // ========== CONTROLE DOS MODAIS ==========

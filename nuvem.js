@@ -503,6 +503,29 @@ const IBNNuvem = (function () {
         }
     }
 
+
+    async function removerFotoNuvem(id) {
+        if (!iniciar() || !db || !id) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
+        try {
+            await db.collection('fotos').doc(String(id)).delete();
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
+    async function removerFotoCelulaNuvem(id) {
+        if (!iniciar() || !db || !id) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
+        try {
+            await db.collection('fotos_celulas').doc(String(id)).delete();
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+
     /** Envia para a nuvem tudo que está no localStorage deste aparelho (uma vez) */
     async function enviarTudoDoAparelho() {
         if (!iniciar()) return { sucesso: false, mensagem: ultimoErro };
@@ -604,8 +627,10 @@ const IBNNuvem = (function () {
         baixarArquivo: baixarArquivo,
         salvarFotoNuvem: salvarFotoNuvem,
         buscarFotos: buscarFotos,
+        removerFotoNuvem: removerFotoNuvem,
         salvarFotoCelulaNuvem: salvarFotoCelulaNuvem,
         buscarFotosCelulas: buscarFotosCelulas,
+        removerFotoCelulaNuvem: removerFotoCelulaNuvem,
         registrarAtividade: registrarAtividade,
         buscarAtividades: buscarAtividades,
         puxarFotosParaLocal: puxarFotosParaLocal,

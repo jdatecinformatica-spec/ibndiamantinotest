@@ -509,6 +509,43 @@ function ministeriosQuePodePostar() {
     return mins.length ? mins : ['Geral / Outros'];
 }
 
+
+/** Pode remover esta foto? autor da foto, admin ou gestor */
+function podeRemoverFoto(foto) {
+    const u = getUsuarioLogado();
+    if (!u || !foto) return false;
+    if (isGestor(u) || isAdmin(u)) return true;
+    const uid = String(u.id || '');
+    const aid = String(foto.autorId || '');
+    if (uid && aid && uid === aid) return true;
+    // fallback: mesmo nome do autor (cadastros antigos sem autorId)
+    if (u.nome && foto.autor && String(u.nome).toLowerCase().trim() === String(foto.autor).toLowerCase().trim()) return true;
+    if (u.nome && foto.autorNome && String(u.nome).toLowerCase().trim() === String(foto.autorNome).toLowerCase().trim()) return true;
+    return false;
+}
+
+function removerFotoMinisterioLocal(id) {
+    try {
+        const lista = JSON.parse(localStorage.getItem(CHAVE_FOTOS) || '[]');
+        const nova = lista.filter(function (f) { return String(f.id) !== String(id); });
+        localStorage.setItem(CHAVE_FOTOS, JSON.stringify(nova));
+        return { sucesso: true };
+    } catch (e) {
+        return { sucesso: false, mensagem: String(e) };
+    }
+}
+
+function removerFotoCelulaLocal(id) {
+    try {
+        const lista = lerFotosCelulas();
+        const nova = lista.filter(function (f) { return String(f.id) !== String(id); });
+        salvarFotosCelulas(nova);
+        return { sucesso: true };
+    } catch (e) {
+        return { sucesso: false, mensagem: String(e) };
+    }
+}
+
 function podeGerenciarFotosMinisterio(nomeMinisterio) {
     return isLiderMinisterio(null, nomeMinisterio);
 }
