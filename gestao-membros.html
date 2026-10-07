@@ -62,73 +62,61 @@
     </main>
 
     <!-- Modal aprovar -->
-        <div id="modalAprovar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div id="modalAprovar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold text-primary mb-1">Aprovar e alocar</h2>
-            <p id="modalNome" class="text-gray-600 mb-2"></p>
-            <p class="text-xs text-gray-500 mb-4">A mesma pessoa pode ter <strong>várias funções</strong> ao mesmo tempo (ex.: líder de célula + líder de 2 ministérios + anfitrião).</p>
+            <p id="modalNome" class="text-gray-600 mb-4"></p>
 
-            <div class="space-y-4">
+            <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-bold mb-1">Funções na igreja (pode marcar várias)</label>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnMembro" checked> Membro</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnAnfitriao"> Anfitrião de célula</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnLiderCel"> Líder de célula</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnLiderTreino"> Líder em treinamento</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnLiderMin"> Líder de ministério</label>
-                        <label class="flex items-center gap-2"><input type="checkbox" id="fnAdmin"> Administrador</label>
-                    </div>
+                    <label class="block text-sm font-bold mb-1">Nível de acesso</label>
+                    <select id="alocNivel" class="w-full border rounded-lg px-3 py-2">
+                        <option value="membro">Membro</option>
+                        <option value="lider_celula">Líder de Célula</option>
+                        <option value="lider_ministerio">Líder de Ministério</option>
+                        <option value="admin">Administrador</option>
+                    </select>
                 </div>
-
                 <div>
-                    <label class="block text-sm font-bold mb-1">Cargo (exibição)</label>
+                    <label class="block text-sm font-bold mb-1">Cargo</label>
                     <select id="alocCargo" class="w-full border rounded-lg px-3 py-2"></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-1">Observação / função extra</label>
-                    <input type="text" id="alocFuncao" class="w-full border rounded-lg px-3 py-2" placeholder="Ex.: discipulador, coordenador...">
+                    <label class="block text-sm font-bold mb-1">Função específica</label>
+                    <input type="text" id="alocFuncao" class="w-full border rounded-lg px-3 py-2" placeholder="Anfitrião, discipulador...">
                 </div>
-
-                <div class="border rounded-lg p-3 bg-gray-50">
-                    <label class="block text-sm font-bold mb-2">Célula de terça — participação e papel</label>
-                    <select id="alocTerca" class="w-full border rounded-lg px-3 py-2 mb-2">
+                <div id="wrapLiderCel">
+                    <label class="block text-sm font-bold mb-1">Lidera qual célula? (se for líder de célula / em treinamento)</label>
+                    <select id="alocLideraCelula" class="w-full border rounded-lg px-3 py-2">
                         <option value="">— Nenhuma —</option>
                     </select>
-                    <select id="papelTerca" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="membro">Papel: Membro</option>
-                        <option value="anfitriao">Papel: Anfitrião</option>
-                        <option value="lider">Papel: Líder de célula</option>
-                        <option value="lider_treino">Papel: Líder em treinamento</option>
+                </div>
+                <div id="wrapLiderMin">
+                    <label class="block text-sm font-bold mb-1">Lidera qual ministério? (se for líder de ministério)</label>
+                    <select id="alocLideraMinisterio" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhum —</option>
                     </select>
                 </div>
-
-                <div class="border rounded-lg p-3 bg-gray-50">
-                    <label class="block text-sm font-bold mb-2">Célula de sábado — participação e papel</label>
-                    <select id="alocSabado" class="w-full border rounded-lg px-3 py-2 mb-2">
+                <div>
+                    <label class="block text-sm font-bold mb-1">Célula Terça (participa)</label>
+                    <select id="alocTerca" class="w-full border rounded-lg px-3 py-2">
                         <option value="">— Nenhuma —</option>
                     </select>
-                    <select id="papelSabado" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="membro">Papel: Membro</option>
-                        <option value="anfitriao">Papel: Anfitrião</option>
-                        <option value="lider">Papel: Líder de célula</option>
-                        <option value="lider_treino">Papel: Líder em treinamento</option>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Célula Sábado</label>
+                    <select id="alocSabado" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">— Nenhuma —</option>
                     </select>
                 </div>
-
                 <div>
-                    <label class="block text-sm font-bold mb-1">Ministérios em que participa (vários)</label>
-                    <div id="boxMinsParticipa" class="grid grid-cols-2 gap-1 text-sm max-h-36 overflow-y-auto border rounded-lg p-2"></div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold mb-1">Ministérios que <span class="text-secondary">lidera</span> (vários)</label>
-                    <div id="boxMinsLidera" class="grid grid-cols-2 gap-1 text-sm max-h-36 overflow-y-auto border rounded-lg p-2 bg-yellow-50"></div>
+                    <label class="block text-sm font-bold mb-1">Ministérios</label>
+                    <div id="alocMins" class="grid grid-cols-2 gap-1 text-sm max-h-32 overflow-y-auto border rounded-lg p-2"></div>
                 </div>
             </div>
 
             <div class="flex gap-3 mt-6">
-                <button id="btnConfirmarAprovar" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold">Salvar alocação</button>
+                <button id="btnConfirmarAprovar" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold">Aprovar</button>
                 <button id="btnFecharModal" class="flex-1 border py-2 rounded-lg font-bold">Cancelar</button>
             </div>
         </div>
@@ -153,9 +141,15 @@
             sair();
         });
 
-        // Preenche selects / checkboxes do modal
+        // Preenche selects do modal
         LISTA_CARGOS.forEach(c => {
             document.getElementById('alocCargo').innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        LISTA_CELULAS.forEach(c => {
+            document.getElementById('alocLideraCelula').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+        LISTA_MINISTERIOS.forEach(m => {
+            document.getElementById('alocLideraMinisterio').innerHTML += `<option value="${m}">${m}</option>`;
         });
         LISTA_CELULAS.filter(c => c.dia === 'terca').forEach(c => {
             document.getElementById('alocTerca').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
@@ -163,11 +157,11 @@
         LISTA_CELULAS.filter(c => c.dia === 'sabado').forEach(c => {
             document.getElementById('alocSabado').innerHTML += `<option value="${c.id}">${c.nome}</option>`;
         });
-        const boxP = document.getElementById('boxMinsParticipa');
-        const boxL = document.getElementById('boxMinsLidera');
         LISTA_MINISTERIOS.forEach(m => {
-            boxP.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" name="alocMin" value="${m}" class="accent-secondary"> ${m}</label>`;
-            boxL.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" name="alocMinLidera" value="${m}" class="accent-secondary"> ${m}</label>`;
+            document.getElementById('alocMins').innerHTML += `
+                <label class="flex items-center gap-1">
+                    <input type="checkbox" name="alocMin" value="${m}" class="accent-secondary"> ${m}
+                </label>`;
         });
 
         let membroAtualId = null;
@@ -303,28 +297,17 @@
             const m = lerMembros().find(x => String(x.id) === String(id));
             if (!m) return;
             document.getElementById('modalNome').textContent = m.nome;
+            document.getElementById('alocNivel').value = m.nivel || 'membro';
             document.getElementById('alocCargo').value = m.cargo || 'Membro';
             document.getElementById('alocFuncao').value = m.funcaoEspecifica || '';
-            const fns = Array.isArray(m.funcoes) ? m.funcoes : [];
-            const fn = String(m.funcaoEspecifica || '').toLowerCase();
-            document.getElementById('fnMembro').checked = true;
-            document.getElementById('fnAnfitriao').checked = fns.indexOf('anfitriao') !== -1 || fn.indexOf('anfitri') !== -1;
-            document.getElementById('fnLiderCel').checked = fns.indexOf('lider_celula') !== -1 || m.nivel === 'lider_celula' || !!m.lideraCelulaId;
-            document.getElementById('fnLiderTreino').checked = fns.indexOf('lider_treino') !== -1 || fn.indexOf('treinament') !== -1;
-            document.getElementById('fnLiderMin').checked = fns.indexOf('lider_ministerio') !== -1 || m.nivel === 'lider_ministerio' || !!(m.lideraMinisterios && m.lideraMinisterios.length) || !!m.lideraMinisterio;
-            document.getElementById('fnAdmin').checked = fns.indexOf('admin') !== -1 || m.nivel === 'admin';
+            document.getElementById('alocLideraCelula').value = m.lideraCelulaId || '';
+            document.getElementById('alocLideraMinisterio').value = m.lideraMinisterio || '';
             const terca = (m.celulas || []).find(c => c.dia === 'terca');
             const sabado = (m.celulas || []).find(c => c.dia === 'sabado');
             document.getElementById('alocTerca').value = terca ? terca.id : '';
             document.getElementById('alocSabado').value = sabado ? sabado.id : '';
-            document.getElementById('papelTerca').value = (terca && terca.papel) ? terca.papel : 'membro';
-            document.getElementById('papelSabado').value = (sabado && sabado.papel) ? sabado.papel : 'membro';
             document.querySelectorAll('input[name="alocMin"]').forEach(el => {
                 el.checked = (m.ministerios || []).includes(el.value);
-            });
-            const lidera = Array.isArray(m.lideraMinisterios) ? m.lideraMinisterios : (m.lideraMinisterio ? [m.lideraMinisterio] : []);
-            document.querySelectorAll('input[name="alocMinLidera"]').forEach(el => {
-                el.checked = lidera.indexOf(el.value) !== -1;
             });
             const modal = document.getElementById('modalAprovar');
             modal.classList.remove('hidden');
@@ -341,74 +324,28 @@
             const celulas = [];
             const idT = document.getElementById('alocTerca').value;
             const idS = document.getElementById('alocSabado').value;
-            const papelT = document.getElementById('papelTerca').value;
-            const papelS = document.getElementById('papelSabado').value;
             if (idT) {
                 const c = LISTA_CELULAS.find(x => x.id === idT);
-                if (c) celulas.push(Object.assign({}, c, { papel: papelT }));
+                if (c) celulas.push(c);
             }
             if (idS) {
                 const c = LISTA_CELULAS.find(x => x.id === idS);
-                if (c) celulas.push(Object.assign({}, c, { papel: papelS }));
+                if (c) celulas.push(c);
             }
             const ministerios = [];
             document.querySelectorAll('input[name="alocMin"]:checked').forEach(el => ministerios.push(el.value));
-            const lideraMinisterios = [];
-            document.querySelectorAll('input[name="alocMinLidera"]:checked').forEach(el => lideraMinisterios.push(el.value));
-            // lidera também participa
-            lideraMinisterios.forEach(function(n) {
-                if (ministerios.indexOf(n) === -1) ministerios.push(n);
-            });
-
-            const funcoes = [];
-            if (document.getElementById('fnMembro').checked) funcoes.push('membro');
-            if (document.getElementById('fnAnfitriao').checked) funcoes.push('anfitriao');
-            if (document.getElementById('fnLiderCel').checked) funcoes.push('lider_celula');
-            if (document.getElementById('fnLiderTreino').checked) funcoes.push('lider_treino');
-            if (document.getElementById('fnLiderMin').checked || lideraMinisterios.length) funcoes.push('lider_ministerio');
-            if (document.getElementById('fnAdmin').checked) funcoes.push('admin');
-
-            // nível principal (prioridade)
-            let nivel = 'membro';
-            if (funcoes.indexOf('admin') !== -1) nivel = 'admin';
-            else if (funcoes.indexOf('lider_celula') !== -1) nivel = 'lider_celula';
-            else if (funcoes.indexOf('lider_ministerio') !== -1) nivel = 'lider_ministerio';
-
-            // lideraCelulaId: célula com papel lider
-            let lideraCelulaId = '';
-            celulas.forEach(function(c) {
-                if (c.papel === 'lider' || c.papel === 'lider_treino') lideraCelulaId = c.id;
-            });
-            if (funcoes.indexOf('lider_celula') !== -1 && !lideraCelulaId && celulas[0]) lideraCelulaId = celulas[0].id;
-
-            let funcaoEspecifica = document.getElementById('alocFuncao').value.trim();
-            if (funcoes.indexOf('anfitriao') !== -1 && funcaoEspecifica.toLowerCase().indexOf('anfitri') === -1) {
-                funcaoEspecifica = (funcaoEspecifica ? funcaoEspecifica + ' / ' : '') + 'Anfitrião';
-            }
-            if (funcoes.indexOf('lider_treino') !== -1 && funcaoEspecifica.toLowerCase().indexOf('treinament') === -1) {
-                funcaoEspecifica = (funcaoEspecifica ? funcaoEspecifica + ' / ' : '') + 'Líder em treinamento';
-            }
 
             const r = aprovarMembro(membroAtualId, {
-                nivel: nivel,
+                nivel: document.getElementById('alocNivel').value,
                 cargo: document.getElementById('alocCargo').value,
-                funcaoEspecifica: funcaoEspecifica,
-                celulas: celulas,
-                ministerios: ministerios,
-                lideraCelulaId: lideraCelulaId,
-                lideraMinisterio: lideraMinisterios[0] || '',
-                lideraMinisterios: lideraMinisterios,
-                funcoes: funcoes
+                funcaoEspecifica: document.getElementById('alocFuncao').value.trim(),
+                celulas,
+                ministerios
             });
             if (!r.sucesso) {
                 alert(r.mensagem);
                 return;
             }
-            try {
-                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarUmMembro && r.membro) {
-                    IBNNuvem.sincronizarUmMembro(r.membro);
-                }
-            } catch (e) {}
             document.getElementById('modalAprovar').classList.add('hidden');
             document.getElementById('modalAprovar').classList.remove('flex');
             renderizar();
