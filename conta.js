@@ -10,6 +10,7 @@ const CHAVE_FOTOS = 'ibn_fotos';
 const CHAVE_FOTOS_CELULAS = 'ibn_fotos_celulas';
 const CHAVE_ORACOES = 'ibn_pedidos_oracao';
 const CHAVE_BLOQUEIOS = 'ibn_bloqueios';
+const CHAVE_VISITANTES = 'ibn_visitantes';
 
 /** Converte dd/mm/aaaa ou ISO para aaaa-mm-dd (input type=date e exibição) */
 function normalizarDataParaISO(str) {
@@ -111,8 +112,6 @@ const LISTA_CARGOS = [
     'Líder de Ministério',
     'Líder em treinamento',
     'Discipulador',
-    'Diácono / Diaconisa',
-    'Presbítero',
     'Pastor',
     'Missionário(a)',
     'Voluntário',
@@ -278,6 +277,116 @@ function excluirMembroDefinitivo(membroId) {
     return { sucesso: true, removido: m };
 }
 
+
+/** Cadastro de visitantes (acolhimento) — separado de membros */
+const ETAPAS_VISITANTE = [
+    { id: 'aceitou_reconciliou', label: 'Aceitou ou reconciliou' },
+    { id: 'cafe_acolhimento', label: 'Passou pelo café de acolhimento' },
+    { id: 'passou_impacto', label: 'Passou pelo Impacto' },
+    { id: 'batizado', label: 'Foi batizado' },
+    { id: 'virou_membro', label: 'Virou membro da igreja' }
+];
+
+function lerVisitantes() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_VISITANTES) || '[]'); } catch (e) { return []; }
+}
+function salvarVisitantes(lista) {
+    localStorage.setItem(CHAVE_VISITANTES, JSON.stringify(lista || []));
+}
+
+function podeGerenciarVisitantes(u) {
+    u = u || getUsuarioLogado();
+    if (!u) return false;
+    if (isAdmin(u) || isGestor(u)) return true;
+    // líder / participante do ministério Acolhimento
+    const mins = Array.isArray(u.ministerios) ? u.ministerios : [];
+    const lidera = Array.isArray(u.lideraMinisterios) ? u.lideraMinisterios : [];
+    const all = mins.concat(lidera).concat([u.lideraMinisterio || '']);
+    return all.some(function (m) {
+        return String(m || '').toLowerCase().indexOf('acolh') !== -1;
+    });
+}
+
+function salvarVisitante(dados) {
+    if (!podeGerenciarVisitantes()) {
+        return { sucesso: false, mensagem: 'Sem permissão. Apenas gestão ou ministério de Acolhimento.' };
+    }
+    const nome = String(dados.nome || '').trim();
+    if (nome.length < 2) return { sucesso: false, mensagem: 'Informe o nome do visitante.' };
+    const lista = lerVisitantes();
+    let v;
+    if (dados.id) {
+        const idx = lista.findIndex(x => String(x.id) === String(dados.id));
+        if (idx < 0) return { sucesso: false, mensagem: 'Visitante não encontrado.' };
+        v = Object.assign({}, lista[idx], {
+            nome: nome,
+            telefone: String(dados.telefone || '').trim(),
+            email: String(dados.email || '').trim().toLowerCase(),
+            dataVisita: dados.dataVisita || lista[idx].dataVisita,
+            eventos: Array.isArray(dados.eventos) ? dados.eventos : (lista[idx].eventos || []),
+            etapas: dados.etapas && typeof dados.etapas === 'object' ? dados.etapas : (lista[idx].etapas || {}),
+            observacoes: String(dados.observacoes || lista[idx].observacoes || '').trim(),
+            atualizadoEm: new Date().toISOString()
+        });
+        lista[idx] = v;
+    } else {
+        v = {
+            id: 'vis-' + Date.now(),
+            nome: nome,
+            telefone: String(dados.telefone || '').trim(),
+            email: String(dados.email || '').trim().toLowerCase(),
+            dataVisita: dados.dataVisita || new Date().toISOString().slice(0, 10),
+            eventos: Array.isArray(dados.eventos) ? dados.eventos : [],
+            etapas: dados.etapas && typeof dados.etapas === 'object' ? dados.etapas : {},
+            observacoes: String(dados.observacoes || '').trim(),
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            criadoPor: (getUsuarioLogado() || {}).nome || ''
+        };
+        lista.unshift(v);
+    }
+    salvarVisitantes(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined') {
+            if (IBNNuvem.sincronizarVisitante) IBNNuvem.sincronizarVisitante(v);
+            if (IBNNuvem.registrarAtividade) IBNNuvem.registrarAtividade('visitante', (dados.id ? 'Atualizou' : 'Cadastrou') + ' visitante ' + nome, getUsuarioLogado());
+        }
+    } catch (e) {}
+    return { sucesso: true, visitante: v };
+}
+
+function alternarEtapaVisitante(id, etapaId) {
+    if (!podeGerenciarVisitantes()) return { sucesso: false, mensagem: 'Sem permissão.' };
+    const lista = lerVisitantes();
+    const idx = lista.findIndex(x => String(x.id) === String(id));
+    if (idx < 0) return { sucesso: false, mensagem: 'Não encontrado.' };
+    if (!lista[idx].etapas) lista[idx].etapas = {};
+    lista[idx].etapas[etapaId] = !lista[idx].etapas[etapaId];
+    lista[idx].atualizadoEm = new Date().toISOString();
+    salvarVisitantes(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarVisitante) IBNNuvem.sincronizarVisitante(lista[idx]);
+    } catch (e) {}
+    return { sucesso: true, visitante: lista[idx] };
+}
+
+function removerVisitante(id) {
+    if (!podeGerenciarVisitantes()) return { sucesso: false, mensagem: 'Sem permissão.' };
+    const lista = lerVisitantes().filter(x => String(x.id) !== String(id));
+    salvarVisitantes(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerVisitanteNuvem) IBNNuvem.removerVisitanteNuvem(id);
+    } catch (e) {}
+    return { sucesso: true };
+}
+
+function progressoVisitante(v) {
+    const etapas = (v && v.etapas) || {};
+    let ok = 0;
+    ETAPAS_VISITANTE.forEach(function (e) { if (etapas[e.id]) ok++; });
+    return { feitos: ok, total: ETAPAS_VISITANTE.length };
+}
+
 function lerMembros() {
     try {
         const dados = localStorage.getItem(CHAVE_MEMBROS);
@@ -418,6 +527,33 @@ function getUsuarioLogado() {
     }
 }
 
+function normalizarTelefoneBR(tel) {
+    let d = String(tel || '').replace(/\D/g, '');
+    if (d.indexOf('55') === 0 && d.length >= 12) d = d.slice(2);
+    // remove zero inicial de operadora antiga
+    if (d.charAt(0) === '0') d = d.slice(1);
+    return d;
+}
+
+/** Compara telefones com tolerância (DDI, 9º dígito, formatação) */
+function telefonesIguais(a, b) {
+    const x = normalizarTelefoneBR(a);
+    const y = normalizarTelefoneBR(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    // últimos 8 dígitos (fix sem DDD) ou 10/11
+    const x8 = x.slice(-8);
+    const y8 = y.slice(-8);
+    if (x8.length === 8 && x8 === y8) return true;
+    // um tem 9º dígito a mais no meio (celular BR)
+    if (x.length >= 10 && y.length >= 10) {
+        const xd = x.slice(0, 2) + x.slice(-8);
+        const yd = y.slice(0, 2) + y.slice(-8);
+        if (xd === yd) return true;
+    }
+    return false;
+}
+
 function fazerLogin(identificador, senha) {
     const id = (identificador || '').trim().toLowerCase();
     const tel = id.replace(/\D/g, '');
@@ -432,11 +568,28 @@ function fazerLogin(identificador, senha) {
     }
 
     const lista = lerMembros();
-    const membro = lista.find(m => {
+    const senhaTrim = String(senha || '').trim();
+    // 1) tenta match completo (identificador + senha)
+    let membro = lista.find(m => {
         const emailOk = (m.email || '').toLowerCase() === id;
-        const telOk = tel && (m.telefone || '').replace(/\D/g, '') === tel;
-        return (emailOk || telOk) && m.senha === senha;
+        const telOk = tel && telefonesIguais(m.telefone, tel);
+        return (emailOk || telOk) && String(m.senha || '').trim() === senhaTrim;
     });
+
+    // 2) se senha confere mas telefone digitado diferente, avisa
+    if (!membro && senhaTrim) {
+        const porSenha = lista.filter(m => String(m.senha || '').trim() === senhaTrim);
+        if (porSenha.length === 1 && tel) {
+            // senha existe em um único cadastro — telefone que o usuário digitou não bate
+            const m = porSenha[0];
+            const telCad = normalizarTelefoneBR(m.telefone);
+            return {
+                sucesso: false,
+                mensagem: 'Senha confere, mas o telefone não é o do cadastro. Use o telefone ' +
+                    (telCad || 'cadastrado') + ' ou o e-mail: ' + (m.email || '—')
+            };
+        }
+    }
 
     if (!membro) {
         return { sucesso: false, mensagem: 'E-mail/telefone ou senha incorretos.' };
@@ -571,7 +724,9 @@ function isLiderCelula(u, celulaId) {
         const temPapelLider = u.celulas.some(function (c) {
             const id = typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id);
             const papel = String(c.papel || c.funcao || '').toLowerCase();
-            const ehLider = papel === 'lider' || papel === 'líder' || papel.indexOf('lider') !== -1;
+            const papeisArr = Array.isArray(c.papeis) ? c.papeis.map(function(x){ return String(x).toLowerCase(); }) : [];
+            const ehLider = papel === 'lider' || papel === 'líder' || papel.indexOf('lider') !== -1 ||
+                papeisArr.indexOf('lider') !== -1 || papeisArr.indexOf('lider_treino') !== -1;
             if (!ehLider && u.nivel !== 'lider_celula' && !(Array.isArray(u.funcoes) && u.funcoes.indexOf('lider_celula') !== -1)) {
                 return false;
             }
@@ -820,14 +975,26 @@ function resetarSenhaPorSeguranca(identificador, resposta) {
 function resetarSenhaPorGestor(membroId) {
     if (!isAdmin()) return { sucesso: false, mensagem: 'Sem permissão.' };
     const lista = lerMembros();
-    const idx = lista.findIndex(m => m.id === membroId);
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
 
     const temp = gerarSenhaTemporaria();
     lista[idx].senha = temp;
     lista[idx].deveTrocarSenha = true;
     salvarMembros(lista);
-    return { sucesso: true, senhaTemporaria: temp };
+    // Sobe senha nova para a nuvem (outros aparelhos)
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarUmMembro) {
+            IBNNuvem.sincronizarUmMembro(lista[idx]);
+        }
+    } catch (e) {}
+    return {
+        sucesso: true,
+        senhaTemporaria: temp,
+        membro: lista[idx],
+        telefoneCadastro: lista[idx].telefone || '',
+        emailCadastro: lista[idx].email || ''
+    };
 }
 
 function trocarSenha(senhaAtual, senhaNova) {
@@ -1158,7 +1325,8 @@ function isAnfitriaoCelula(u, celulaId) {
         const porPapel = u.celulas.some(function (c) {
             const id = typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id);
             const papel = String(c.papel || '').toLowerCase();
-            return String(id) === String(celulaId) && papel.indexOf('anfitri') !== -1;
+            const papeis = Array.isArray(c.papeis) ? c.papeis.join(' ') : '';
+            return String(id) === String(celulaId) && (papel.indexOf('anfitri') !== -1 || String(papeis).toLowerCase().indexOf('anfitri') !== -1);
         });
         if (porPapel) return true;
     }

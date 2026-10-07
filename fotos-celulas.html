@@ -131,7 +131,7 @@
             document.querySelectorAll('.btn-apagar-fc').forEach(function(btn) {
                 btn.addEventListener('click', async function() {
                     var id = btn.getAttribute('data-id');
-                    if (!confirm('Apagar esta foto definitivamente da célula e da nuvem?')) return;
+                    if (!confirm('Apagar esta foto definitivamente?\n\nSai da nuvem e deste aparelho. No aparelho de quem postou some na próxima sincronização.')) return;
                     if (typeof removerFotoCelulaLocal === 'function') removerFotoCelulaLocal(id);
                     try {
                         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.removerFotoCelulaNuvem) {

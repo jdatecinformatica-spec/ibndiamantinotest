@@ -461,20 +461,21 @@ const IBNNuvem = (function () {
         const r = await buscarFotos();
         if (!r.sucesso) return r;
         try {
+            // Nuvem é a fonte da verdade: o que foi apagado na nuvem some do aparelho
+            // (inclusive no aparelho de quem postou, na próxima sincronização).
             const local = JSON.parse(localStorage.getItem('ibn_fotos') || '[]');
-            const porId = {};
-            local.forEach(function (f) { if (f && f.id) porId[String(f.id)] = f; });
-            r.lista.forEach(function (f) {
+            const porIdLocal = {};
+            local.forEach(function (f) { if (f && f.id) porIdLocal[String(f.id)] = f; });
+            const listaNuvem = Array.isArray(r.lista) ? r.lista : [];
+            const mesclada = listaNuvem.map(function (f) {
                 const id = String(f.id);
-                if (!porId[id]) {
-                    porId[id] = f;
-                } else {
-                    porId[id] = Object.assign({}, porId[id], f);
-                    if (f.imagem) porId[id].imagem = f.imagem;
-                    if (f.imagemUrl) porId[id].imagemUrl = f.imagemUrl;
-                }
+                const ant = porIdLocal[id];
+                if (!ant) return f;
+                const j = Object.assign({}, ant, f);
+                if (f.imagem) j.imagem = f.imagem;
+                if (f.imagemUrl) j.imagemUrl = f.imagemUrl;
+                return j;
             });
-            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
             mesclada.sort(function (a, b) {
                 return String(b.criadoEm || b.id || '').localeCompare(String(a.criadoEm || a.id || ''));
             });
@@ -489,13 +490,15 @@ const IBNNuvem = (function () {
         const r = await buscarFotosCelulas();
         if (!r.sucesso) return r;
         try {
+            // Nuvem manda: fotos apagadas na nuvem saem do aparelho ao sincronizar
             const local = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]');
-            const porId = {};
-            local.forEach(function (f) { if (f && f.id) porId[String(f.id)] = f; });
-            r.lista.forEach(function (f) {
-                porId[String(f.id)] = Object.assign({}, porId[String(f.id)] || {}, f);
+            const porIdLocal = {};
+            local.forEach(function (f) { if (f && f.id) porIdLocal[String(f.id)] = f; });
+            const listaNuvem = Array.isArray(r.lista) ? r.lista : [];
+            const mesclada = listaNuvem.map(function (f) {
+                const id = String(f.id);
+                return Object.assign({}, porIdLocal[id] || {}, f);
             });
-            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
             localStorage.setItem('ibn_fotos_celulas', JSON.stringify(mesclada));
             return { sucesso: true, lista: mesclada };
         } catch (e) {
@@ -503,6 +506,38 @@ const IBNNuvem = (function () {
         }
     }
 
+
+    async function sincronizarVisitante(v) {
+        if (!iniciar() || !db || !v || !v.id) return { sucesso: false };
+        try {
+            await db.collection('visitantes').doc(String(v.id)).set(v, { merge: true });
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+    async function removerVisitanteNuvem(id) {
+        if (!iniciar() || !db || !id) return { sucesso: false };
+        try {
+            await db.collection('visitantes').doc(String(id)).delete();
+            return { sucesso: true };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
+    async function puxarVisitantesParaLocal() {
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro };
+        try {
+            const snap = await db.collection('visitantes').get();
+            const lista = [];
+            snap.forEach(function (doc) { lista.push(Object.assign({ id: doc.id }, doc.data())); });
+            localStorage.setItem('ibn_visitantes', JSON.stringify(lista));
+            return { sucesso: true, lista: lista };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
 
     async function removerMembroNuvem(id) {
         if (!iniciar() || !db || !id) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
@@ -636,6 +671,9 @@ const IBNNuvem = (function () {
         csvMembros: csvMembros,
         csvRelatorios: csvRelatorios,
         baixarArquivo: baixarArquivo,
+        sincronizarVisitante: sincronizarVisitante,
+        removerVisitanteNuvem: removerVisitanteNuvem,
+        puxarVisitantesParaLocal: puxarVisitantesParaLocal,
         removerMembroNuvem: removerMembroNuvem,
         salvarFotoNuvem: salvarFotoNuvem,
         buscarFotos: buscarFotos,

@@ -77,6 +77,9 @@
                     <a href="configurar-nuvem.html" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-accent">
                         <i class="fa fa-cloud"></i> Abrir nuvem / baixar CSV
                     </a>
+                    <a href="visitantes.html" class="bg-secondary text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-yellow-400">
+                        <i class="fa fa-user-plus"></i> Visitantes / Acolhimento
+                    </a>
                 </div>
             </section>
 
@@ -277,59 +280,85 @@
             renderizarMembros();
         }
         function renderizarMembros() {
-            const lista = getMembros();
-            document.getElementById('qtdMembros').textContent = `${lista.length} membro${lista.length!==1?'s':''}`;
+            let lista = getMembros().slice();
+            const buscaEl = document.getElementById('buscaMembroPainel');
+            const filtroEl = document.getElementById('filtroPendPainel');
+            const q = ((buscaEl && buscaEl.value) || '').toLowerCase().trim();
+            const filtro = (filtroEl && filtroEl.value) || '';
+
+            function contarPendencias(m) {
+                const st = (m.status || '').toLowerCase();
+                if (st === 'rejeitado' || st === 'excluido' || st === 'excluído') {
+                    return { n: -1, excluido: true };
+                }
+                let n = 0;
+                if (st === 'pendente') n++;
+                if (!(m.nascimento || m.dataNascimento)) n++;
+                const tel = String(m.telefone || '').replace(/\D/g, '');
+                if (!tel) n++;
+                if (!String(m.email || '').trim()) n++;
+                if (!Array.isArray(m.celulas) || !m.celulas.length) n++;
+                return { n: n, excluido: false };
+            }
+
+            function bolinha(info) {
+                if (info.excluido) return { cor: 'bg-black', title: 'Membro excluído / rejeitado' };
+                if (info.n <= 0) return { cor: 'bg-white border border-gray-300', title: 'Sem pendência' };
+                if (info.n === 1) return { cor: 'bg-yellow-400', title: '1 pendência' };
+                if (info.n === 2) return { cor: 'bg-orange-500', title: '2 pendências' };
+                return { cor: 'bg-red-600', title: info.n + ' pendências' };
+            }
+
+            if (q) {
+                const qTel = q.replace(/\D/g, '');
+                lista = lista.filter(function(m) {
+                    const nome = (m.nome || '').toLowerCase();
+                    const email = (m.email || '').toLowerCase();
+                    const tel = String(m.telefone || '').replace(/\D/g, '');
+                    return nome.indexOf(q) !== -1 || email.indexOf(q) !== -1 || (qTel && tel.indexOf(qTel) !== -1);
+                });
+            }
+            if (filtro === 'pendente') {
+                lista = lista.filter(function(m) { var i = contarPendencias(m); return !i.excluido && i.n > 0; });
+            } else if (filtro === 'ok') {
+                lista = lista.filter(function(m) { var i = contarPendencias(m); return !i.excluido && i.n === 0; });
+            } else if (filtro === 'excluido') {
+                lista = lista.filter(function(m) { return contarPendencias(m).excluido; });
+            }
+
+            lista.sort(function(a, b) {
+                return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', { sensitivity: 'base' });
+            });
+
+            document.getElementById('qtdMembros').textContent = lista.length + ' membro' + (lista.length !== 1 ? 's' : '') + (q || filtro ? ' (filtrado)' : '');
             const container = document.getElementById('listaMembros');
             if (lista.length === 0) {
-                container.innerHTML = '<p class="text-gray-400">Nenhum membro cadastrado.</p>';
+                container.innerHTML = '<p class="text-gray-400 p-4">Nenhum membro encontrado.</p>';
                 return;
             }
-            container.innerHTML = lista.map((m, idx) => {
-                const ehAdminMembro = getAdminsNomeados().some(a => a.email === m.email);
-                return `
-                <div class="p-4 bg-gray-50 rounded border">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="font-bold text-lg">${m.nome}</p>
-                            <p class="text-xs text-gray-500">${m.email || ''} · ${m.telefone || ''}</p>
-                            <p class="text-xs mt-1">
-                                <span class="font-semibold">${m.cargo || 'Membro'}</span>
-                                · status: <span class="${(m.status||'aprovado')==='pendente'?'text-amber-600':'text-green-600'}">${m.status || 'aprovado'}</span>
-                                · nível: ${m.nivel || 'membro'}
-                            </p>
-                        </div>
-                        <div class="flex flex-wrap gap-2 text-xs justify-end">
-                            <a href="gestao-membros.html#membro-${m.id}" class="bg-primary text-white px-2 py-1 rounded hover:bg-accent" title="Aprovar e definir cargo/célula/ministério">
-                                <i class="fa fa-check"></i> Aprovar / Alocar
-                            </a>
-                            ${!ehAdminMembro && ehGestor ? `
-                            <button onclick="promoverAdmin(${idx})" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" title="Promover a Administrador">
-                                <i class="fa fa-star"></i> Promover admin
-                            </button>
-                            ` : ''}
-                            ${ehGestor ? `
-                            <button onclick="removerMembro(${idx})" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" title="Remover definitivamente">
-                                <i class="fa fa-trash"></i> Excluir
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                    ${ehAdminMembro ? '<span class="inline-block bg-secondary/20 text-secondary px-2 py-1 rounded text-xs font-bold mb-2">🛡️ Administrador</span>' : ''}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-                        <div><strong>Telefone:</strong> ${m.telefone || '-'}</div>
-                        <div><strong>E-mail:</strong> ${m.email || '-'}</div>
-                        <div><strong>Sexo:</strong> ${m.sexo || '-'}</div>
-                        <div><strong>Nascimento:</strong> ${m.nascimento || '-'}</div>
-                        <div><strong>Estado Civil:</strong> ${m.estadoCivil || '-'}</div>
-                        <div><strong>Endereço:</strong> ${m.endereco || '-'}</div>
-                        <div><strong>Origem:</strong> ${m.origem || '-'}</div>
-                        <div><strong>Batizado:</strong> ${m.batizado || '-'}</div>
-                        <div><strong>Data Batismo:</strong> ${m.dataBatismo || '-'}</div>
-                        <div><strong>Observações:</strong> ${m.observacoes || '-'}</div>
-                    </div>
-                </div>
-                `;
+
+            container.innerHTML = lista.map(function(m) {
+                const info = contarPendencias(m);
+                const bol = bolinha(info);
+                const nasc = m.nascimento || m.dataNascimento || '—';
+                const tel = m.telefone || '—';
+                return (
+                    '<div class="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer linha-membro" data-id="' + m.id + '">' +
+                    '<div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-x-3 items-center">' +
+                    '<span class="font-semibold text-primary truncate">' + (m.nome || '—') + '</span>' +
+                    '<span class="text-gray-500 text-xs sm:text-sm">' + nasc + '</span>' +
+                    '<span class="text-gray-600 text-xs sm:text-sm truncate">' + tel + '</span>' +
+                    '</div>' +
+                    '<span class="w-3 h-3 rounded-full flex-shrink-0 ' + bol.cor + '" title="' + bol.title + '"></span>' +
+                    '</div>'
+                );
             }).join('');
+
+            container.querySelectorAll('.linha-membro').forEach(function(row) {
+                row.addEventListener('click', function() {
+                    window.location.href = 'gestao-membros.html#membro-' + row.getAttribute('data-id');
+                });
+            });
         }
 
         // ✅ PROMOVER MEMBRO A ADMIN (Gestor apenas)

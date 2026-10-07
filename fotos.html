@@ -502,7 +502,7 @@
                         alert('Você não tem permissão para apagar esta foto.');
                         return;
                     }
-                    if (!confirm('Apagar esta foto definitivamente?\n\nEla será removida deste aparelho e da nuvem.')) return;
+                    if (!confirm('Apagar esta foto definitivamente?\n\n• Sai da nuvem (todos os aparelhos, inclusive de quem postou, na próxima sincronização)\n• Sai também deste aparelho agora.')) return;
                     try {
                         if (typeof removerFotoMinisterioLocal === 'function') removerFotoMinisterioLocal(fid);
                         else {
@@ -692,7 +692,7 @@
                 alert('Você não tem permissão para apagar esta foto.');
                 return;
             }
-            if (!confirm('Apagar esta foto definitivamente?\n\nEla será removida deste aparelho e da nuvem.')) return;
+            if (!confirm('Apagar esta foto definitivamente?\n\n• Sai da nuvem (todos os aparelhos, inclusive de quem postou, na próxima sincronização)\n• Sai também deste aparelho agora.')) return;
             var id = fotoAtualAberta.id;
             var msg = document.getElementById('msgRemover');
             try {

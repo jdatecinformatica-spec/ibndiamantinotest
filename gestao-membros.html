@@ -49,6 +49,10 @@
             <button id="btnFiltrar" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold">Filtrar</button>
         </div>
 
+        <div id="avisoMembroUnico" class="hidden mb-4 bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap justify-between gap-2 items-center">
+            <p class="text-sm text-primary"><strong>Ficha individual</strong> — só este membro e as pendências da gestão.</p>
+            <a href="gestao-membros.html" class="text-sm font-bold text-secondary underline">Ver todos os membros</a>
+        </div>
         <div id="lista" class="space-y-4"></div>
         <p id="vazio" class="text-center text-gray-400 py-12 hidden">Nenhum membro encontrado.</p>
 
@@ -91,29 +95,31 @@
                 </div>
 
                 <div class="border rounded-lg p-3 bg-gray-50">
-                    <label class="block text-sm font-bold mb-2">Célula de terça — participação e papel</label>
+                    <label class="block text-sm font-bold mb-2">Célula de terça — participação e papéis</label>
                     <select id="alocTerca" class="w-full border rounded-lg px-3 py-2 mb-2">
                         <option value="">— Nenhuma —</option>
                     </select>
-                    <select id="papelTerca" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="membro">Papel: Membro</option>
-                        <option value="anfitriao">Papel: Anfitrião</option>
-                        <option value="lider">Papel: Líder de célula</option>
-                        <option value="lider_treino">Papel: Líder em treinamento</option>
-                    </select>
+                    <p class="text-xs text-gray-500 mb-1">Pode marcar vários papéis na mesma célula:</p>
+                    <div class="grid grid-cols-2 gap-1 text-sm" id="boxPapelTerca">
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelTerca" value="membro" class="accent-secondary"> Membro</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelTerca" value="anfitriao" class="accent-secondary"> Anfitrião</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelTerca" value="lider" class="accent-secondary"> Líder de célula</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelTerca" value="lider_treino" class="accent-secondary"> Líder em treinamento</label>
+                    </div>
                 </div>
 
                 <div class="border rounded-lg p-3 bg-gray-50">
-                    <label class="block text-sm font-bold mb-2">Célula de sábado — participação e papel</label>
+                    <label class="block text-sm font-bold mb-2">Célula de sábado — participação e papéis</label>
                     <select id="alocSabado" class="w-full border rounded-lg px-3 py-2 mb-2">
                         <option value="">— Nenhuma —</option>
                     </select>
-                    <select id="papelSabado" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="membro">Papel: Membro</option>
-                        <option value="anfitriao">Papel: Anfitrião</option>
-                        <option value="lider">Papel: Líder de célula</option>
-                        <option value="lider_treino">Papel: Líder em treinamento</option>
-                    </select>
+                    <p class="text-xs text-gray-500 mb-1">Pode marcar vários papéis na mesma célula:</p>
+                    <div class="grid grid-cols-2 gap-1 text-sm" id="boxPapelSabado">
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelSabado" value="membro" class="accent-secondary"> Membro</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelSabado" value="anfitriao" class="accent-secondary"> Anfitrião</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelSabado" value="lider" class="accent-secondary"> Líder de célula</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="papelSabado" value="lider_treino" class="accent-secondary"> Líder em treinamento</label>
+                    </div>
                 </div>
 
                 <div>
@@ -145,14 +151,20 @@
                 class="w-full text-center text-xl font-mono font-bold tracking-wide border-2 border-secondary rounded-xl px-3 py-3 bg-yellow-50 text-primary select-all"
                 onclick="this.select()">
             <p class="text-xs text-gray-500 mt-2 mb-4">Peça ao membro para entrar e trocar a senha depois do login.</p>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <button type="button" id="btnCopiarSenha" class="flex-1 bg-secondary text-primary py-2.5 rounded-lg font-bold hover:bg-yellow-400">
-                    <i class="fa fa-copy"></i> Copiar senha
+            <div class="flex flex-col gap-2">
+                <button type="button" id="btnCopiarSenha" class="w-full bg-secondary text-primary py-2.5 rounded-lg font-bold hover:bg-yellow-400">
+                    <i class="fa fa-copy"></i> Copiar só a senha
                 </button>
-                <button type="button" id="btnWhatsSenha" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700">
-                    <i class="fa fa-whatsapp"></i> Enviar WhatsApp
-                </button>
-                <button type="button" id="btnFecharSenhaTemp" class="flex-1 border py-2.5 rounded-lg font-bold">Fechar</button>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" id="btnWhatsTexto" class="bg-green-700 text-white py-2.5 rounded-lg font-bold hover:bg-green-800 text-sm">
+                        <i class="fa fa-whatsapp"></i> 1º WhatsApp — texto
+                    </button>
+                    <button type="button" id="btnWhatsSenha" class="bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700 text-sm">
+                        <i class="fa fa-whatsapp"></i> 2º WhatsApp — só senha
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 text-center">Envie em <strong>duas mensagens</strong>: primeiro o texto, depois só a senha (assim o membro copia só a senha).</p>
+                <button type="button" id="btnFecharSenhaTemp" class="w-full border py-2.5 rounded-lg font-bold">Fechar</button>
             </div>
             <p id="msgCopiouSenha" class="text-center text-green-600 text-sm font-bold mt-3 hidden">Copiado!</p>
         </div>
@@ -252,7 +264,35 @@
             renderBloqueios();
         }
 
+        function listarPendenciasMembro(m) {
+            var itens = [];
+            var st = (m.status || '').toLowerCase();
+            if (st === 'pendente') itens.push('Cadastro aguardando aprovação / alocação');
+            if (st === 'rejeitado') itens.push('Cadastro rejeitado');
+            if (!(m.nascimento || m.dataNascimento)) itens.push('Falta data de nascimento');
+            if (!String(m.telefone || '').replace(/\D/g, '')) itens.push('Falta telefone');
+            if (!String(m.email || '').trim()) itens.push('Falta e-mail');
+            if (!Array.isArray(m.celulas) || !m.celulas.length) itens.push('Sem célula vinculada');
+            if (!Array.isArray(m.ministerios) || !m.ministerios.length) itens.push('Sem ministério (opcional)');
+            if (!m.endereco && !m.municipio) itens.push('Falta endereço / município');
+            if (m.deveTrocarSenha) itens.push('Precisa trocar senha temporária no próximo login');
+            if ((m.cargo === 'Líder de Célula' || m.nivel === 'lider_celula') && !m.lideraCelulaId && !(m.celulas || []).some(function(c){ return c.papel === 'lider'; })) {
+                itens.push('Marcado como líder de célula, mas célula de liderança não definida');
+            }
+            if ((m.cargo === 'Líder de Ministério' || m.nivel === 'lider_ministerio') && !(m.lideraMinisterios && m.lideraMinisterios.length) && !m.lideraMinisterio) {
+                itens.push('Marcado como líder de ministério, mas ministério de liderança não definido');
+            }
+            return itens;
+        }
+
+        function idMembroDoHash() {
+            var h = (location.hash || '').replace(/^#/, '');
+            if (h.indexOf('membro-') === 0) return h.slice(7);
+            return '';
+        }
+
         function renderizar() {
+
             const status = document.getElementById('filtroStatus').value;
             const busca = document.getElementById('filtroBusca').value.toLowerCase().trim();
             let lista = lerMembros();
@@ -264,6 +304,15 @@
                     (m.email || '').toLowerCase().includes(busca) ||
                     (m.telefone || '').includes(busca)
                 );
+            }
+
+            var soUmId = idMembroDoHash();
+            var aviso = document.getElementById('avisoMembroUnico');
+            if (soUmId) {
+                lista = lista.filter(function(m) { return String(m.id) === String(soUmId); });
+                if (aviso) aviso.classList.remove('hidden');
+            } else if (aviso) {
+                aviso.classList.add('hidden');
             }
 
             // Pendentes primeiro
@@ -291,10 +340,24 @@
                     <div class="text-sm text-gray-600 grid sm:grid-cols-2 gap-1 mb-3">
                         <p><strong>Cargo:</strong> ${m.cargo || 'Membro'}</p>
                         <p><strong>Nível:</strong> ${m.nivel || 'membro'}</p>
+                        <p><strong>Nascimento:</strong> ${m.nascimento || m.dataNascimento || '—'}</p>
+                        <p><strong>Telefone:</strong> ${m.telefone || '—'}</p>
                         <p><strong>Células:</strong> ${celulasTxt}</p>
                         <p><strong>Ministérios:</strong> ${minsTxt}</p>
                         ${m.funcaoEspecifica ? `<p class="sm:col-span-2"><strong>Função:</strong> ${m.funcaoEspecifica}</p>` : ''}
+                        <p class="sm:col-span-2"><strong>Endereço:</strong> ${m.endereco || '—'} ${m.municipio ? ' · ' + m.municipio : ''}</p>
                     </div>
+                    ${(() => {
+                        const pends = listarPendenciasMembro(m);
+                        if (!pends.length) {
+                            return '<div class="mb-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800"><strong>✓ Sem pendências</strong> — cadastro em ordem para a gestão.</div>';
+                        }
+                        return '<div class="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm">' +
+                            '<p class="font-bold text-amber-900 mb-1">Pendências da gestão (' + pends.length + ')</p>' +
+                            '<ul class="list-disc pl-5 text-amber-900 space-y-0.5">' +
+                            pends.map(function(x) { return '<li>' + x + '</li>'; }).join('') +
+                            '</ul></div>';
+                    })()}
                     <div class="flex flex-wrap gap-2">
                         ${m.status === 'pendente' ? `
                             <button onclick="abrirAprovar(${m.id})" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold">
@@ -341,8 +404,22 @@
             const sabado = (m.celulas || []).find(c => c.dia === 'sabado');
             document.getElementById('alocTerca').value = terca ? terca.id : '';
             document.getElementById('alocSabado').value = sabado ? sabado.id : '';
-            document.getElementById('papelTerca').value = (terca && terca.papel) ? terca.papel : 'membro';
-            document.getElementById('papelSabado').value = (sabado && sabado.papel) ? sabado.papel : 'membro';
+            function papeisDaCelula(c) {
+                if (!c) return ['membro'];
+                if (Array.isArray(c.papeis) && c.papeis.length) return c.papeis;
+                if (c.papel) return String(c.papel).split(/[,;|]/).map(function(x){ return x.trim(); }).filter(Boolean);
+                return ['membro'];
+            }
+            var pt = papeisDaCelula(terca);
+            var ps = papeisDaCelula(sabado);
+            document.querySelectorAll('input[name="papelTerca"]').forEach(function(el) {
+                el.checked = pt.indexOf(el.value) !== -1;
+            });
+            document.querySelectorAll('input[name="papelSabado"]').forEach(function(el) {
+                el.checked = ps.indexOf(el.value) !== -1;
+            });
+            if (!pt.length) document.querySelector('input[name="papelTerca"][value="membro"]').checked = true;
+            if (!ps.length) document.querySelector('input[name="papelSabado"][value="membro"]').checked = true;
             document.querySelectorAll('input[name="alocMin"]').forEach(el => {
                 el.checked = (m.ministerios || []).includes(el.value);
             });
@@ -365,15 +442,27 @@
             const celulas = [];
             const idT = document.getElementById('alocTerca').value;
             const idS = document.getElementById('alocSabado').value;
-            const papelT = document.getElementById('papelTerca').value;
-            const papelS = document.getElementById('papelSabado').value;
+            function coletarPapeis(name) {
+                var arr = [];
+                document.querySelectorAll('input[name="' + name + '"]:checked').forEach(function(el) { arr.push(el.value); });
+                if (!arr.length) arr = ['membro'];
+                return arr;
+            }
+            const papelT = coletarPapeis('papelTerca');
+            const papelS = coletarPapeis('papelSabado');
             if (idT) {
                 const c = LISTA_CELULAS.find(x => x.id === idT);
-                if (c) celulas.push(Object.assign({}, c, { papel: papelT }));
+                if (c) celulas.push(Object.assign({}, c, {
+                    papel: papelT.join(','),
+                    papeis: papelT
+                }));
             }
             if (idS) {
                 const c = LISTA_CELULAS.find(x => x.id === idS);
-                if (c) celulas.push(Object.assign({}, c, { papel: papelS }));
+                if (c) celulas.push(Object.assign({}, c, {
+                    papel: papelS.join(','),
+                    papeis: papelS
+                }));
             }
             const ministerios = [];
             document.querySelectorAll('input[name="alocMin"]:checked').forEach(el => ministerios.push(el.value));
@@ -391,6 +480,12 @@
             if (document.getElementById('fnLiderTreino').checked) funcoes.push('lider_treino');
             if (document.getElementById('fnLiderMin').checked || lideraMinisterios.length) funcoes.push('lider_ministerio');
             if (document.getElementById('fnAdmin').checked) funcoes.push('admin');
+            // papéis marcados na célula também entram em funcoes
+            papelT.concat(papelS).forEach(function(p) {
+                if (p === 'anfitriao' && funcoes.indexOf('anfitriao') === -1) funcoes.push('anfitriao');
+                if (p === 'lider' && funcoes.indexOf('lider_celula') === -1) funcoes.push('lider_celula');
+                if (p === 'lider_treino' && funcoes.indexOf('lider_treino') === -1) funcoes.push('lider_treino');
+            });
 
             // nível principal (prioridade)
             let nivel = 'membro';
@@ -401,7 +496,8 @@
             // lideraCelulaId: célula com papel lider
             let lideraCelulaId = '';
             celulas.forEach(function(c) {
-                if (c.papel === 'lider' || c.papel === 'lider_treino') lideraCelulaId = c.id;
+                var pp = Array.isArray(c.papeis) ? c.papeis : String(c.papel || '').split(',');
+                if (pp.indexOf('lider') !== -1 || pp.indexOf('lider_treino') !== -1) lideraCelulaId = c.id;
             });
             if (funcoes.indexOf('lider_celula') !== -1 && !lideraCelulaId && celulas[0]) lideraCelulaId = celulas[0].id;
 
@@ -453,7 +549,13 @@
                 return;
             }
             const senha = r.senhaTemporaria || '';
-            document.getElementById('senhaTempNome').textContent = (m && m.nome ? m.nome + ' · ' : '') + (m && m.email ? m.email : '');
+            var telCad = (r.telefoneCadastro || (m && m.telefone) || '').toString();
+            var emailCad = (r.emailCadastro || (m && m.email) || '').toString();
+            document.getElementById('senhaTempNome').innerHTML =
+                (m && m.nome ? '<strong>' + m.nome + '</strong><br>' : '') +
+                (emailCad ? 'E-mail para login: <strong>' + emailCad + '</strong><br>' : '') +
+                (telCad ? 'Telefone para login: <strong>' + telCad + '</strong>' : '') +
+                '<br><span class="text-xs text-red-600">Use exatamente este e-mail ou telefone no login.</span>';
             document.getElementById('senhaTempValor').value = senha;
             document.getElementById('msgCopiouSenha').classList.add('hidden');
             const modal = document.getElementById('modalSenhaTemp');
@@ -464,16 +566,25 @@
                 inp.focus();
                 inp.select();
             }, 100);
-            // WhatsApp pré-preenchido
+            // WhatsApp em 2 partes: (1) texto sem senha  (2) só a senha
             const tel = m && m.telefone ? String(m.telefone).replace(/\D/g, '') : '';
-            const texto = encodeURIComponent('Olá' + (m && m.nome ? ' ' + m.nome.split(' ')[0] : '') + '! Sua senha temporária do site IBN Diamantino é:\n\n' + senha + '\n\nEntre e altere a senha depois do login.');
-            const btnW = document.getElementById('btnWhatsSenha');
-            if (tel && tel.length >= 10) {
-                const num = tel.startsWith('55') ? tel : ('55' + tel);
-                btnW.onclick = function() { window.open('https://wa.me/' + num + '?text=' + texto, '_blank'); };
-            } else {
-                btnW.onclick = function() { window.open('https://wa.me/?text=' + texto, '_blank'); };
+            const num = (tel && tel.length >= 10) ? (tel.startsWith('55') ? tel : ('55' + tel)) : '';
+            const nomeCurto = m && m.nome ? m.nome.split(' ')[0] : '';
+            const loginHint = emailCad || telCad || '';
+            const msgTexto = 'Olá' + (nomeCurto ? ' ' + nomeCurto : '') +
+                '! Acesso ao site da IBN Diamantino.\n\n' +
+                (loginHint ? '*Login (e-mail ou telefone):* ' + loginHint + '\n\n' : '') +
+                'A *senha temporária* vai na *próxima mensagem* (copie só ela).\n' +
+                'Depois do login, altere a senha.';
+            const msgSenha = senha; // somente a senha, nada mais
+
+            function abrirWa(texto) {
+                const q = encodeURIComponent(texto);
+                if (num) window.open('https://wa.me/' + num + '?text=' + q, '_blank');
+                else window.open('https://wa.me/?text=' + q, '_blank');
             }
+            document.getElementById('btnWhatsTexto').onclick = function() { abrirWa(msgTexto); };
+            document.getElementById('btnWhatsSenha').onclick = function() { abrirWa(msgSenha); };
         }
 
         document.getElementById('btnCopiarSenha').addEventListener('click', async function() {
