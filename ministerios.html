@@ -563,22 +563,9 @@
         function podeEditarSlug(slug) {
             var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
             if (!u) return false;
+            // Somente admin e gestor — líderes de ministério não editam textos públicos
             if (typeof isAdmin === 'function' && isAdmin(u)) return true;
             if (typeof isGestor === 'function' && isGestor(u)) return true;
-            var nome = nomePorSlug[slug] || slug;
-            if (typeof isLiderMinisterio === 'function' && isLiderMinisterio(u, nome)) return true;
-            // tenta pelo nome da lista LISTA_MINISTERIOS
-            if (typeof LISTA_MINISTERIOS !== 'undefined') {
-                for (var i = 0; i < LISTA_MINISTERIOS.length; i++) {
-                    var n = LISTA_MINISTERIOS[i];
-                    if (typeof normalizarNomeMinisterio === 'function') {
-                        if (normalizarNomeMinisterio(n) === normalizarNomeMinisterio(nome) ||
-                            normalizarNomeMinisterio(n) === normalizarNomeMinisterio(slug)) {
-                            if (isLiderMinisterio(u, n)) return true;
-                        }
-                    }
-                }
-            }
             return false;
         }
         function aplicarTextos() {
