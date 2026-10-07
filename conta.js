@@ -538,10 +538,26 @@ function removerNivelAdmin(membroId) {
 function isLiderMinisterio(u, nomeMinisterio) {
     u = u || getUsuarioLogado();
     if (!u) return false;
-    if (isAdmin(u)) return true;
-    if (u.nivel === 'lider_ministerio' && Array.isArray(u.ministerios)) {
-        if (!nomeMinisterio) return true;
-        return u.ministerios.includes(nomeMinisterio);
+    if (isAdmin(u) || isGestor(u)) return true;
+    const alvo = nomeMinisterio ? normalizarNomeMinisterio(nomeMinisterio) : '';
+    // Lista explícita de ministérios que lidera
+    const lidera = Array.isArray(u.lideraMinisterios) ? u.lideraMinisterios : [];
+    if (lidera.length) {
+        if (!alvo) return true;
+        if (lidera.some(function (m) { return normalizarNomeMinisterio(m) === alvo; })) return true;
+    }
+    if (u.lideraMinisterio && (!alvo || normalizarNomeMinisterio(u.lideraMinisterio) === alvo)) return true;
+    if (u.nivel === 'lider_ministerio') {
+        if (!alvo) return true;
+        const mins = Array.isArray(u.ministerios) ? u.ministerios : [];
+        return mins.some(function (m) { return normalizarNomeMinisterio(m) === alvo; });
+    }
+    // funcoes[] pode conter lider_ministerio
+    if (Array.isArray(u.funcoes) && u.funcoes.indexOf('lider_ministerio') !== -1) {
+        if (!alvo) return true;
+        const mins2 = Array.isArray(u.ministerios) ? u.ministerios : [];
+        return mins2.some(function (m) { return normalizarNomeMinisterio(m) === alvo; }) ||
+            lidera.some(function (m) { return normalizarNomeMinisterio(m) === alvo; });
     }
     return false;
 }
@@ -549,10 +565,26 @@ function isLiderMinisterio(u, nomeMinisterio) {
 function isLiderCelula(u, celulaId) {
     u = u || getUsuarioLogado();
     if (!u) return false;
-    if (isAdmin(u)) return true;
-    if (u.nivel === 'lider_celula' && Array.isArray(u.celulas)) {
+    if (isAdmin(u) || isGestor(u)) return true;
+    if (u.lideraCelulaId && (!celulaId || String(u.lideraCelulaId) === String(celulaId))) return true;
+    if (Array.isArray(u.celulas)) {
+        const temPapelLider = u.celulas.some(function (c) {
+            const id = typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id);
+            const papel = String(c.papel || c.funcao || '').toLowerCase();
+            const ehLider = papel === 'lider' || papel === 'líder' || papel.indexOf('lider') !== -1;
+            if (!ehLider && u.nivel !== 'lider_celula' && !(Array.isArray(u.funcoes) && u.funcoes.indexOf('lider_celula') !== -1)) {
+                return false;
+            }
+            if (!celulaId) return ehLider || u.nivel === 'lider_celula' || (Array.isArray(u.funcoes) && u.funcoes.indexOf('lider_celula') !== -1);
+            return String(id) === String(celulaId) && (ehLider || u.nivel === 'lider_celula' || (Array.isArray(u.funcoes) && u.funcoes.indexOf('lider_celula') !== -1) || String(u.lideraCelulaId) === String(celulaId));
+        });
+        if (temPapelLider) return true;
+    }
+    if (u.nivel === 'lider_celula') {
         if (!celulaId) return true;
-        return u.celulas.some(c => c.id === celulaId);
+        return Array.isArray(u.celulas) && u.celulas.some(function (c) {
+            return (typeof idCelulaDe === 'function' ? idCelulaDe(c) : c.id) === celulaId;
+        });
     }
     return false;
 }
@@ -698,9 +730,17 @@ function aprovarMembro(membroId, alocacao) {
         if (alocacao.funcaoEspecifica !== undefined) m.funcaoEspecifica = alocacao.funcaoEspecifica;
         if (alocacao.lideraCelulaId !== undefined) m.lideraCelulaId = alocacao.lideraCelulaId;
         if (alocacao.lideraMinisterio !== undefined) m.lideraMinisterio = alocacao.lideraMinisterio;
+        if (alocacao.lideraMinisterios !== undefined) m.lideraMinisterios = alocacao.lideraMinisterios;
         if (alocacao.funcaoEspecifica !== undefined) m.funcaoEspecifica = alocacao.funcaoEspecifica;
         if (alocacao.nivel) m.nivel = alocacao.nivel;
         if (alocacao.funcoes) m.funcoes = alocacao.funcoes;
+        // nível efetivo: gestor > admin > lider_* combinados
+        if (Array.isArray(m.funcoes) && m.funcoes.indexOf('gestor') !== -1) m.nivel = 'gestor';
+        else if (Array.isArray(m.funcoes) && m.funcoes.indexOf('admin') !== -1) m.nivel = 'admin';
+        else if (Array.isArray(m.funcoes) && m.funcoes.indexOf('lider_celula') !== -1 && m.funcoes.indexOf('lider_ministerio') !== -1) {
+            m.nivel = m.nivel === 'admin' || m.nivel === 'gestor' ? m.nivel : 'lider_celula';
+        } else if (Array.isArray(m.funcoes) && m.funcoes.indexOf('lider_celula') !== -1) m.nivel = (m.nivel === 'admin' || m.nivel === 'gestor') ? m.nivel : 'lider_celula';
+        else if (Array.isArray(m.funcoes) && m.funcoes.indexOf('lider_ministerio') !== -1) m.nivel = (m.nivel === 'admin' || m.nivel === 'gestor') ? m.nivel : 'lider_ministerio';
     }
 
     if (!alocacao || !alocacao.nivel) {
@@ -1114,9 +1154,22 @@ function buscarMembrosParaCelula(termo, celulaId) {
 function isAnfitriaoCelula(u, celulaId) {
     u = u || getUsuarioLogado();
     if (!u || !celulaId) return false;
+    if (Array.isArray(u.celulas)) {
+        const porPapel = u.celulas.some(function (c) {
+            const id = typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id);
+            const papel = String(c.papel || '').toLowerCase();
+            return String(id) === String(celulaId) && papel.indexOf('anfitri') !== -1;
+        });
+        if (porPapel) return true;
+    }
+    if (Array.isArray(u.funcoes) && u.funcoes.indexOf('anfitriao') !== -1) {
+        if (!Array.isArray(u.celulas)) return false;
+        return u.celulas.some(function (c) {
+            return (typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id)) === celulaId;
+        });
+    }
     const eq = (typeof equipeDaCelula === 'function') ? equipeDaCelula(celulaId) : null;
     if (eq && eq.anfitriao && String(eq.anfitriao.id) === String(u.id)) return true;
-    // cargo / função no próprio cadastro
     const fn = String(u.funcaoEspecifica || u.cargo || '').toLowerCase();
     if (fn.indexOf('anfitri') === -1) return false;
     if (!Array.isArray(u.celulas)) return false;
