@@ -134,6 +134,30 @@
         </div>
     </div>
 
+
+    <!-- Modal senha temporária (copiar fácil) -->
+    <div id="modalSenhaTemp" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-primary mb-1">Senha temporária</h2>
+            <p id="senhaTempNome" class="text-sm text-gray-500 mb-4"></p>
+            <label class="block text-xs font-bold text-gray-500 mb-1">Senha (selecione ou use Copiar)</label>
+            <input type="text" id="senhaTempValor" readonly
+                class="w-full text-center text-xl font-mono font-bold tracking-wide border-2 border-secondary rounded-xl px-3 py-3 bg-yellow-50 text-primary select-all"
+                onclick="this.select()">
+            <p class="text-xs text-gray-500 mt-2 mb-4">Peça ao membro para entrar e trocar a senha depois do login.</p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" id="btnCopiarSenha" class="flex-1 bg-secondary text-primary py-2.5 rounded-lg font-bold hover:bg-yellow-400">
+                    <i class="fa fa-copy"></i> Copiar senha
+                </button>
+                <button type="button" id="btnWhatsSenha" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700">
+                    <i class="fa fa-whatsapp"></i> Enviar WhatsApp
+                </button>
+                <button type="button" id="btnFecharSenhaTemp" class="flex-1 border py-2.5 rounded-lg font-bold">Fechar</button>
+            </div>
+            <p id="msgCopiouSenha" class="text-center text-green-600 text-sm font-bold mt-3 hidden">Copiado!</p>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
@@ -422,13 +446,61 @@
 
         function resetSenha(id) {
             if (!confirm('Gerar senha temporária para este membro?')) return;
+            const m = lerMembros().find(x => String(x.id) === String(id));
             const r = resetarSenhaPorGestor(id);
-            if (r.sucesso) {
-                alert('Senha temporária:\n\n' + r.senhaTemporaria + '\n\nAnote e informe ao membro.');
+            if (!r.sucesso) {
+                alert(r.mensagem || 'Não foi possível gerar a senha.');
+                return;
+            }
+            const senha = r.senhaTemporaria || '';
+            document.getElementById('senhaTempNome').textContent = (m && m.nome ? m.nome + ' · ' : '') + (m && m.email ? m.email : '');
+            document.getElementById('senhaTempValor').value = senha;
+            document.getElementById('msgCopiouSenha').classList.add('hidden');
+            const modal = document.getElementById('modalSenhaTemp');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(function() {
+                const inp = document.getElementById('senhaTempValor');
+                inp.focus();
+                inp.select();
+            }, 100);
+            // WhatsApp pré-preenchido
+            const tel = m && m.telefone ? String(m.telefone).replace(/\D/g, '') : '';
+            const texto = encodeURIComponent('Olá' + (m && m.nome ? ' ' + m.nome.split(' ')[0] : '') + '! Sua senha temporária do site IBN Diamantino é:\n\n' + senha + '\n\nEntre e altere a senha depois do login.');
+            const btnW = document.getElementById('btnWhatsSenha');
+            if (tel && tel.length >= 10) {
+                const num = tel.startsWith('55') ? tel : ('55' + tel);
+                btnW.onclick = function() { window.open('https://wa.me/' + num + '?text=' + texto, '_blank'); };
             } else {
-                alert(r.mensagem);
+                btnW.onclick = function() { window.open('https://wa.me/?text=' + texto, '_blank'); };
             }
         }
+
+        document.getElementById('btnCopiarSenha').addEventListener('click', async function() {
+            const senha = document.getElementById('senhaTempValor').value;
+            const msg = document.getElementById('msgCopiouSenha');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(senha);
+                } else {
+                    const inp = document.getElementById('senhaTempValor');
+                    inp.select();
+                    document.execCommand('copy');
+                }
+                msg.textContent = 'Copiado! Cole no WhatsApp, SMS ou e-mail.';
+                msg.classList.remove('hidden');
+            } catch (e) {
+                const inp = document.getElementById('senhaTempValor');
+                inp.select();
+                msg.textContent = 'Selecione a senha acima e use Ctrl+C (ou toque longo → Copiar).';
+                msg.classList.remove('hidden');
+            }
+        });
+        document.getElementById('btnFecharSenhaTemp').addEventListener('click', function() {
+            const modal = document.getElementById('modalSenhaTemp');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
 
         function renderBloqueios() {
             var box = document.getElementById('listaBloqueios');
