@@ -93,6 +93,12 @@
             </div>
 
             <p id="mensagem" class="text-sm text-center mt-4 hidden"></p>
+            <div id="boxSecretaria" class="hidden mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-center">
+                <p class="text-amber-900 mb-2">A secretaria pode gerar uma <strong>senha temporária</strong> no painel de membros. Essa senha vale até você entrar e trocar.</p>
+                <a id="linkWhatsSecretaria" href="https://wa.me/5565996292021?text=Ol%C3%A1%2C%20preciso%20de%20senha%20tempor%C3%A1ria%20do%20site%20IBN%20Diamantino." target="_blank" class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">
+                    <i class="fa fa-whatsapp"></i> Falar com a secretaria no WhatsApp
+                </a>
+            </div>
 
             <div class="mt-6 text-center">
                 <a href="login.html" class="text-primary text-sm hover:underline">← Voltar ao login</a>
@@ -194,17 +200,41 @@
         });
 
         // C → nome + telefone + nascimento → ibn + 5 últimos dígitos
-        document.getElementById('btnConfirmarDados').addEventListener('click', function() {
-            var r = recuperarSenhaPorDados(
-                document.getElementById('recNome').value,
-                document.getElementById('recTelefone').value,
-                document.getElementById('recNascimento').value
-            );
-            if (!r.sucesso) {
-                msg(r.mensagem);
-                return;
+        document.getElementById('btnConfirmarDados').addEventListener('click', async function () {
+            const msg = document.getElementById('mensagem');
+            const boxSec = document.getElementById('boxSecretaria');
+            if (boxSec) boxSec.classList.add('hidden');
+            msg.classList.add('hidden');
+            // Sincroniza membros da nuvem (importante se limpou dados locais)
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarMembrosParaLocal) {
+                    await IBNNuvem.puxarMembrosParaLocal();
+                }
+            } catch (e) {}
+            const nome = document.getElementById('recNome').value;
+            const tel = document.getElementById('recTelefone').value;
+            const nasc = document.getElementById('recNascimento').value;
+            const r = recuperarSenhaPorDados(nome, tel, nasc);
+            if (r.sucesso) {
+                document.getElementById('senhaTemp').textContent = r.senhaTemporaria;
+                var dica = document.querySelector('#passoD .text-xs');
+                if (dica) {
+                    dica.innerHTML = 'Anote agora. No login use <strong>' +
+                        (r.emailCadastro || r.telefoneCadastro || 'seu e-mail/telefone') +
+                        '</strong> e esta senha. Depois troque a senha.';
+                }
+                mostrar('passoD');
+            } else {
+                msg.textContent = r.mensagem || 'Não foi possível recuperar.';
+                msg.className = 'text-sm text-center mt-4 text-red-500';
+                msg.classList.remove('hidden');
+                if (boxSec) {
+                    var txt = encodeURIComponent('Olá, preciso de senha temporária do site IBN Diamantino.\nNome: ' + (nome||'') + '\nTelefone: ' + (tel||'') + '\nNascimento: ' + (nasc||''));
+                    var a = document.getElementById('linkWhatsSecretaria');
+                    if (a) a.href = 'https://wa.me/5565996292021?text=' + txt;
+                    boxSec.classList.remove('hidden');
+                }
             }
-            mostrarSenha(r.senhaTemporaria);
         });
     </script>
 </body>

@@ -53,11 +53,11 @@ const IBNNuvem = (function () {
         };
     }
 
-    // Remove senha e resposta de segurança antes de subir
+    // Envia dados do membro para a nuvem (inclui senha para login em vários aparelhos).
+    // Resposta de segurança continua só no aparelho por privacidade extra.
     function membroPublico(m) {
         if (!m) return null;
         const copia = Object.assign({}, m);
-        delete copia.senha;
         delete copia.respostaSeguranca;
         return copia;
     }
@@ -102,8 +102,16 @@ const IBNNuvem = (function () {
             local.forEach(function (m) { if (m && m.id !== undefined) porId[String(m.id)] = m; });
             (r.lista || []).forEach(function (m) {
                 const id = String(m.id);
-                if (!porId[id]) porId[id] = m;
-                else porId[id] = Object.assign({}, porId[id], m);
+                if (!porId[id]) {
+                    porId[id] = m;
+                } else {
+                    const senhaLocal = porId[id].senha;
+                    const respLocal = porId[id].respostaSeguranca;
+                    porId[id] = Object.assign({}, porId[id], m);
+                    // Nuvem sem senha não apaga a senha que já está neste aparelho
+                    if (!m.senha && senhaLocal) porId[id].senha = senhaLocal;
+                    if (!m.respostaSeguranca && respLocal) porId[id].respostaSeguranca = respLocal;
+                }
             });
             let mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
             // Grava e deduplica por nome+nascimento

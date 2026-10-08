@@ -58,6 +58,9 @@
                     <a href="cadastro.html" class="text-secondary font-bold hover:underline">Cadastre-se</a>
                 </p>
                 <a href="index.html" class="inline-block text-primary font-medium hover:underline text-sm">← Voltar ao site</a>
+                <button type="button" id="btnLimparAparelho" class="block w-full mt-4 text-xs text-gray-400 hover:text-red-500 underline">
+                    Problemas neste aparelho? Limpar dados locais de login
+                </button>
             </div>
         </div>
     </div>
@@ -117,5 +120,25 @@
             }
         });
     </script>
+
+    <script>
+    (function () {
+        var b = document.getElementById('btnLimparAparelho');
+        if (!b) return;
+        b.addEventListener('click', function () {
+            if (!confirm('Apaga só neste aparelho a sessão e a cópia local dos membros/senhas.\n\nO cadastro na nuvem continua.\n\nDepois peça senha temporária ao gestor ou use Esqueci minha senha.')) return;
+            try {
+                localStorage.removeItem('ibn_sessao_atual');
+                localStorage.removeItem('ibn_membros');
+                localStorage.removeItem('membrosCadastro');
+                localStorage.removeItem('ibn_ultimos_logins');
+                sessionStorage.clear();
+            } catch (e) {}
+            alert('Dados locais limpos. A página vai recarregar.');
+            location.reload();
+        });
+    })();
+    </script>
+
 </body>
 </html>

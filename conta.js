@@ -1063,44 +1063,72 @@ function adicionarFotoCelula(foto) {
 }
 
 
-/** Recuperação por nome + telefone + data de nascimento → senha ibn + 5 últimos dígitos */
+/** Recuperação por nome + telefone + data de nascimento */
 function recuperarSenhaPorDados(nome, telefone, nascimento) {
-    const nomeNorm = (nome || '').trim().toLowerCase();
-    const telNorm = (telefone || '').replace(/\D/g, '');
-    const nascNorm = (nascimento || '').trim();
+    const telNorm = String(telefone || '').replace(/\D/g, '');
+    const nascIso = normalizarDataParaISO(nascimento || '');
 
-    if (!nomeNorm || telNorm.length < 8 || !nascNorm) {
-        return { sucesso: false, mensagem: 'Preencha nome, telefone e data de nascimento.' };
+    if (!(nome || '').trim() || telNorm.length < 8 || !nascIso) {
+        return { sucesso: false, mensagem: 'Preencha nome, telefone e data de nascimento (dd/mm/aaaa).' };
     }
 
     const lista = lerMembros();
-    const membro = lista.find(m => {
-        const nomeOk = (m.nome || '').trim().toLowerCase() === nomeNorm;
-        const telOk = (m.telefone || '').replace(/\D/g, '') === telNorm
-            || (m.telefone || '').replace(/\D/g, '').endsWith(telNorm.slice(-8));
-        const nascOk = (m.nascimento || '').trim() === nascNorm;
-        return nomeOk && telOk && nascOk;
-    });
+    // 1) Mesma pessoa (3 nomes + nascimento) + telefone flexível
+    let membro = null;
+    const mesma = buscarMesmaPessoa(nome, nascimento, lista);
+    if (mesma) {
+        const telCad = String(mesma.telefone || '').replace(/\D/g, '');
+        const telOk = !telCad || telCad === telNorm || telCad.endsWith(telNorm.slice(-8)) || telNorm.endsWith(telCad.slice(-8))
+            || (typeof telefonesIguais === 'function' && telefonesIguais(mesma.telefone, telNorm));
+        if (telOk) membro = mesma;
+    }
+    // 2) Fallback: telefone + nascimento (nome pode ter variado)
+    if (!membro) {
+        membro = lista.find(function (m) {
+            const nascM = normalizarDataParaISO(m.nascimento || m.dataNascimento || '');
+            if (nascM !== nascIso) return false;
+            const telCad = String(m.telefone || '').replace(/\D/g, '');
+            return telCad && (telCad === telNorm || telCad.endsWith(telNorm.slice(-8)) || telNorm.endsWith(telCad.slice(-8))
+                || (typeof telefonesIguais === 'function' && telefonesIguais(m.telefone, telNorm)));
+        }) || null;
+    }
+    // 3) Só telefone se for único na lista
+    if (!membro) {
+        const porTel = lista.filter(function (m) {
+            const telCad = String(m.telefone || '').replace(/\D/g, '');
+            return telCad && (telCad === telNorm || telCad.endsWith(telNorm.slice(-8)) || telNorm.endsWith(telCad.slice(-8)));
+        });
+        if (porTel.length === 1) membro = porTel[0];
+    }
 
     if (!membro) {
-        return { sucesso: false, mensagem: 'Dados não conferem com nenhum cadastro. Verifique ou fale com a secretaria.' };
+        return {
+            sucesso: false,
+            mensagem: 'Não encontramos seu cadastro neste aparelho. Tente de novo após sincronizar, ou peça senha temporária à secretaria (WhatsApp).',
+            precisaSecretaria: true
+        };
     }
 
-    const digitos = (membro.telefone || '').replace(/\D/g, '');
-    if (digitos.length < 5) {
-        return { sucesso: false, mensagem: 'Telefone do cadastro inválido. Fale com a secretaria.' };
-    }
-
-    const temp = 'ibn' + digitos.slice(-5);
-    const idx = lista.findIndex(m => m.id === membro.id);
+    const temp = gerarSenhaTemporaria();
+    const idx = lista.findIndex(function (m) { return String(m.id) === String(membro.id); });
+    if (idx < 0) return { sucesso: false, mensagem: 'Erro interno ao atualizar senha.' };
     lista[idx].senha = temp;
     lista[idx].deveTrocarSenha = true;
+    // grava telefone digitado se o cadastrado estava vazio/diferente só de formatação
+    if (telNorm && !lista[idx].telefone) lista[idx].telefone = telNorm;
     salvarMembros(lista);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarUmMembro) {
+            IBNNuvem.sincronizarUmMembro(lista[idx]);
+        }
+    } catch (e) {}
 
     return {
         sucesso: true,
         senhaTemporaria: temp,
-        mensagem: 'Senha temporária gerada. Use no login e troque depois.'
+        emailCadastro: lista[idx].email || '',
+        telefoneCadastro: lista[idx].telefone || '',
+        mensagem: 'Senha temporária gerada. Vale até você entrar e trocar a senha.'
     };
 }
 
