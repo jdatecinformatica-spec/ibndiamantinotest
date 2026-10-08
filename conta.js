@@ -997,7 +997,7 @@ function resetarSenhaPorGestor(membroId) {
     };
 }
 
-function trocarSenha(senhaAtual, senhaNova) {
+function trocarSenha(senhaAtual, senhaNova, senhaNova2) {
     const usuario = getUsuarioLogado();
     if (!usuario) return { sucesso: false, mensagem: 'Não logado.' };
 
@@ -1006,21 +1006,43 @@ function trocarSenha(senhaAtual, senhaNova) {
     }
 
     const lista = lerMembros();
-    const idx = lista.findIndex(m => m.id === usuario.id);
+    const idx = lista.findIndex(m => String(m.id) === String(usuario.id));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
 
-    if (lista[idx].senha !== senhaAtual && !lista[idx].deveTrocarSenha) {
-        return { sucesso: false, mensagem: 'Senha atual incorreta.' };
-    }
-    if (!senhaNova || senhaNova.length < 4) {
-        return { sucesso: false, mensagem: 'Nova senha precisa ter pelo menos 4 caracteres.' };
+    const obrigatorio = !!lista[idx].deveTrocarSenha;
+    const atual = String(senhaAtual || '').trim();
+    const nova = String(senhaNova || '').trim();
+    const nova2 = senhaNova2 !== undefined && senhaNova2 !== null ? String(senhaNova2).trim() : nova;
+
+    if (!obrigatorio) {
+        if (!atual || atual !== String(lista[idx].senha || '')) {
+            return { sucesso: false, mensagem: 'Senha atual incorreta.' };
+        }
+    } else if (atual && atual !== String(lista[idx].senha || '')) {
+        // se informou senha atual na troca obrigatória, precisa bater
+        return { sucesso: false, mensagem: 'Senha temporária incorreta.' };
     }
 
-    lista[idx].senha = senhaNova;
+    if (!nova || nova.length < 4) {
+        return { sucesso: false, mensagem: 'Nova senha precisa ter pelo menos 4 caracteres.' };
+    }
+    if (nova !== nova2) {
+        return { sucesso: false, mensagem: 'A confirmação da nova senha não confere.' };
+    }
+    if (nova === String(lista[idx].senha || '')) {
+        return { sucesso: false, mensagem: 'A nova senha deve ser diferente da temporária.' };
+    }
+
+    lista[idx].senha = nova;
     lista[idx].deveTrocarSenha = false;
     salvarMembros(lista);
     iniciarSessao(lista[idx]);
-    return { sucesso: true };
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarUmMembro) {
+            IBNNuvem.sincronizarUmMembro(lista[idx]);
+        }
+    } catch (e) {}
+    return { sucesso: true, mensagem: 'Senha alterada com sucesso.' };
 }
 
 function lerFotosCelulas() {

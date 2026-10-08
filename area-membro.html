@@ -157,5 +157,98 @@
             window.location.href = 'ajustar-dados.html';
         });
     </script>
+
+    <!-- Troca de senha (obrigatória se provisória) -->
+    <div id="modalTrocarSenha" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-primary mb-1">Defina sua senha definitiva</h2>
+            <p class="text-sm text-gray-500 mb-4">Você entrou com senha temporária. Crie uma senha nova para os próximos acessos.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Senha temporária (a que usou agora)</label>
+                    <div class="relative"><input type="password" id="tsAtual" autocomplete="current-password" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="tsAtual" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Nova senha *</label>
+                    <div class="relative"><input type="password" id="tsNova" autocomplete="new-password" minlength="4" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="tsNova" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Confirmar nova senha *</label>
+                    <div class="relative"><input type="password" id="tsNova2" autocomplete="new-password" minlength="4" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="tsNova2" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
+                </div>
+            </div>
+            <p id="tsMsg" class="text-sm text-center mt-3 hidden"></p>
+            <button type="button" id="btnSalvarSenhaNova" class="w-full mt-4 bg-primary text-white py-2.5 rounded-lg font-bold">Salvar nova senha</button>
+        </div>
+    </div>
+
+
+    <script>
+    (function () {
+        function abrirTrocaSenha() {
+            var m = document.getElementById('modalTrocarSenha');
+            if (!m) return;
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+        function precisaTrocar() {
+            var u = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null;
+            if (!u) return false;
+            if (u.deveTrocarSenha) return true;
+            if (location.search.indexOf('trocarSenha=1') !== -1) return true;
+            return false;
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            if (precisaTrocar()) abrirTrocaSenha();
+            var btn = document.getElementById('btnSalvarSenhaNova');
+            if (btn) btn.addEventListener('click', function () {
+                var r = trocarSenha(
+                    document.getElementById('tsAtual').value,
+                    document.getElementById('tsNova').value,
+                    document.getElementById('tsNova2').value
+                );
+                var msg = document.getElementById('tsMsg');
+                msg.classList.remove('hidden');
+                if (r.sucesso) {
+                    msg.className = 'text-sm text-center mt-3 text-green-600 font-bold';
+                    msg.textContent = 'Senha salva! Use esta nos próximos logins.';
+                    setTimeout(function () {
+                        var m = document.getElementById('modalTrocarSenha');
+                        m.classList.add('hidden');
+                        m.classList.remove('flex');
+                        if (location.search.indexOf('trocarSenha') !== -1) {
+                            history.replaceState(null, '', 'area-membro.html');
+                        }
+                    }, 800);
+                } else {
+                    msg.className = 'text-sm text-center mt-3 text-red-500 font-bold';
+                    msg.textContent = r.mensagem || 'Não foi possível alterar.';
+                }
+            });
+        });
+    })();
+    </script>
+
+
+<script>
+(function(){
+    document.querySelectorAll('.toggle-pass').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var id = btn.getAttribute('data-target');
+            var inp = document.getElementById(id);
+            if (!inp) return;
+            var icon = btn.querySelector('i');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            } else {
+                inp.type = 'password';
+                if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            }
+        });
+    });
+})();
+</script>
+
 </body>
 </html>
