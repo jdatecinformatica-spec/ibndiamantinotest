@@ -10,6 +10,7 @@ const CHAVE_FOTOS = 'ibn_fotos';
 const CHAVE_FOTOS_CELULAS = 'ibn_fotos_celulas';
 const CHAVE_ORACOES = 'ibn_pedidos_oracao';
 const CHAVE_BLOQUEIOS = 'ibn_bloqueios';
+const CHAVE_EXCLUIDOS = 'ibn_membros_excluidos';
 const CHAVE_VISITANTES = 'ibn_visitantes';
 
 /** Converte dd/mm/aaaa ou ISO para aaaa-mm-dd (input type=date e exibição) */
@@ -254,18 +255,68 @@ function desbloquearCadastro(bloqueioId) {
  * Remove membro sem deixar vestígios locais (e tenta nuvem).
  * Permite novo cadastro com mesmo nome, e-mail ou telefone.
  */
+
+/** Membros removidos de vez — não voltam da nuvem nem de outro aparelho */
+function lerExcluidos() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_EXCLUIDOS) || '[]'); } catch (e) { return []; }
+}
+function salvarExcluidos(lista) {
+    localStorage.setItem(CHAVE_EXCLUIDOS, JSON.stringify(lista || []));
+}
+function registrarExclusaoMembro(m) {
+    if (!m) return;
+    const lista = lerExcluidos();
+    const item = {
+        id: String(m.id),
+        chave: chaveIdentidadePessoa(m.nome, m.nascimento || m.dataNascimento) || '',
+        email: String(m.email || '').toLowerCase().trim(),
+        telefone: String(m.telefone || '').replace(/\D/g, ''),
+        nome: m.nome || '',
+        em: new Date().toISOString()
+    };
+    // evita duplicar
+    const nova = lista.filter(function (x) {
+        return String(x.id) !== item.id &&
+            !(item.chave && x.chave === item.chave) &&
+            !(item.email && x.email === item.email);
+    });
+    nova.push(item);
+    salvarExcluidos(nova);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarExcluidos) {
+            IBNNuvem.sincronizarExcluidos(nova);
+        }
+    } catch (e) {}
+}
+function membroFoiExcluido(m) {
+    if (!m) return false;
+    const lista = lerExcluidos();
+    if (!lista.length) return false;
+    const id = String(m.id);
+    const email = String(m.email || '').toLowerCase().trim();
+    const tel = String(m.telefone || '').replace(/\D/g, '');
+    const chave = chaveIdentidadePessoa(m.nome, m.nascimento || m.dataNascimento) || '';
+    return lista.some(function (x) {
+        if (x.id && String(x.id) === id) return true;
+        if (chave && x.chave && x.chave === chave) return true;
+        if (email && x.email && x.email === email) return true;
+        if (tel && x.telefone && (x.telefone === tel || x.telefone.endsWith(tel.slice(-8)) || tel.endsWith(String(x.telefone).slice(-8)))) return true;
+        return false;
+    });
+}
+
 function excluirMembroDefinitivo(membroId) {
     const u = getUsuarioLogado();
-    if (!u || !(isGestor(u) || isAdmin(u))) {
-        return { sucesso: false, mensagem: 'Somente gestor ou admin podem remover definitivamente.' };
+    // Somente gestor — admin (secretaria) não remove cadastro definitivo
+    if (!u || !isGestor(u)) {
+        return { sucesso: false, mensagem: 'Somente o gestor pode remover um membro definitivamente.' };
     }
     const lista = lerMembros();
     const m = lista.find(x => String(x.id) === String(membroId));
     if (!m) return { sucesso: false, mensagem: 'Membro não encontrado.' };
-    // não deixar gestor apagar a si mesmo por acidente sem aviso — ainda permite
+    registrarExclusaoMembro(m);
     const nova = lista.filter(x => String(x.id) !== String(membroId));
     salvarMembros(nova);
-    // se estava na sessão, não desloga outro usuário
     try {
         if (typeof IBNNuvem !== 'undefined') {
             if (IBNNuvem.removerMembroNuvem) IBNNuvem.removerMembroNuvem(membroId);
@@ -428,6 +479,15 @@ function cadastrarMembro(dados) {
     }
 
     // Mesma pessoa: 3 primeiros nomes + data de nascimento (e-mail não define identidade)
+    // Bloqueia se foi removido definitivamente pela gestão
+    const fantasma = { nome: dados.nome, nascimento: dados.nascimento, email: dados.email, telefone: dados.telefone, id: '' };
+    if (membroFoiExcluido(fantasma)) {
+        return {
+            sucesso: false,
+            mensagem: 'Este cadastro foi removido pela gestão. Fale com a secretaria para liberar de novo.'
+        };
+    }
+
     const jaPessoa = buscarMesmaPessoa(dados.nome, dados.nascimento, lista);
     if (jaPessoa) {
         const emailMasc = (jaPessoa.email || '').replace(/(.{2}).+(@.+)/, '$1***$2');

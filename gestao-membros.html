@@ -377,9 +377,9 @@
                         <button onclick="bloquearMembro(${m.id})" class="border border-amber-500 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-amber-50">
                             <i class="fa fa-ban"></i> Bloquear
                         </button>
-                        <button onclick="removerMembroDef(${m.id})" class="border border-red-500 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50">
+                        ${typeof isGestor === 'function' && isGestor() ? `<button onclick="removerMembroDef(${m.id})" class="border border-red-500 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50">
                             <i class="fa fa-trash"></i> Remover
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>`;
             }).join('');
