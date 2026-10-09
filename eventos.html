@@ -118,21 +118,49 @@
                     <p class="text-sm text-gray-500">Valor:</p>
                     <p id="valorEventoFat" class="text-2xl font-bold text-secondary"></p>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg mb-4">
-                    <p class="text-sm font-semibold mb-2">Forma de pagamento:</p>
-                    <p id="formaPagamento" class="text-sm mb-2"></p>
-                    <p class="text-sm font-semibold mb-2">Chave PIX:</p>
-                    <p id="pixCode" class="font-mono bg-white p-3 rounded border text-center text-sm break-all"></p>
-                    <button onclick="copiarPixPag()" class="mt-3 w-full bg-secondary text-primary p-2 rounded font-bold hover:bg-yellow-400">
-                        <i class="fa fa-copy mr-2"></i> Copiar Chave PIX
-                    </button>
+                <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
+                    <p class="text-sm font-semibold">Escolha a forma de pagamento:</p>
+                    <div class="flex flex-col gap-2 text-sm" id="opcoesPagamento">
+                        <label class="flex items-center gap-2"><input type="radio" name="meioPag" value="PIX" checked class="accent-secondary"> PIX (chave da igreja)</label>
+                        <label class="flex items-center gap-2"><input type="radio" name="meioPag" value="PagBank / Cartão" class="accent-secondary"> Cartão ou PagBank (link de pagamento no site)</label>
+                        <label class="flex items-center gap-2"><input type="radio" name="meioPag" value="Dinheiro" class="accent-secondary"> Dinheiro (na secretaria)</label>
+                    </div>
+                    <p id="formaPagamento" class="text-xs text-gray-500 hidden"></p>
+                    <div id="boxPixPag">
+                        <p class="text-sm font-semibold mb-2">Chave PIX:</p>
+                        <p id="pixCode" class="font-mono bg-white p-3 rounded border text-center text-sm break-all"></p>
+                        <button type="button" onclick="copiarPixPag()" class="mt-3 w-full bg-secondary text-primary p-2 rounded font-bold hover:bg-yellow-400">
+                            <i class="fa fa-copy mr-2"></i> Copiar Chave PIX
+                        </button>
+                    </div>
+                    <div id="boxCartaoPag" class="hidden text-sm text-gray-700 bg-white border rounded-lg p-3">
+                        Pague com <strong>cartão</strong> pelo botão do <strong>PagBank</strong> abaixo.
+                        Se preferir, pode pagar na maquininha da igreja e a secretaria confirma depois.
+                    </div>
+                    <div id="boxLinkOnline" class="hidden space-y-2">
+                        <a id="btnPagarOnline" href="#" target="_blank" rel="noopener"
+                           class="block w-full text-center bg-primary text-white p-3 rounded-lg font-bold hover:opacity-90">
+                            <i class="fa fa-credit-card mr-2"></i> Pagar com PagBank (PIX ou cartão)
+                        </a>
+                        <p class="text-xs text-gray-500 text-center">1) Pague na página do PagBank · 2) Volte aqui · 3) Envie o comprovante</p>
+                    </div>
+                    <p id="avisoSemLinkPag" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                        Este evento ainda não tem link PagBank. Use a chave PIX ou pague na secretaria.
+                    </p>
                 </div>
-                <div class="mt-6 pt-4 border-t">
-                    <p class="font-semibold mb-2">Já pagou? Confirme abaixo:</p>
+                <div class="mt-6 pt-4 border-t space-y-3">
+                    <p class="font-semibold">Comprovante (PIX) ou foto do recibo do cartão:</p>
+                    <input type="file" id="comprovantePag" accept="image/*,application/pdf" class="w-full text-sm border rounded-lg p-2">
+                    <p class="text-xs text-gray-500">A secretaria confere. Enquanto isso a inscrição fica <strong>pendente</strong>.</p>
                     <button id="btnConfirmar" class="w-full bg-green-600 text-white p-3 rounded-md font-bold hover:bg-green-700">
-                        <i class="fa fa-check mr-2"></i> Confirmar Pagamento
+                        <i class="fa fa-check mr-2"></i> Enviar comprovante e finalizar
                     </button>
-                    <p id="msgConfirmacao" class="mt-3 hidden text-center font-bold text-green-600">✅ Pagamento confirmado! Obrigado!</p>
+                    <p id="msgConfirmacao" class="mt-3 hidden text-center font-bold text-green-600">✅ Comprovante enviado! Aguarde confirmação da secretaria.</p>
+                    <div id="boxComprovanteInsc" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-sm">
+                        <p class="font-bold text-green-800 mb-1">Comprovante de inscrição</p>
+                        <p id="txtComprovanteInsc"></p>
+                        <button type="button" id="btnPrintInsc" class="mt-2 text-sm font-bold text-primary underline">Imprimir / salvar PDF</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -148,12 +176,13 @@
         <section id="areaAdmin" class="hidden mb-12 border-2 border-dashed border-secondary/40 rounded-xl p-6 bg-white">
             <h2 class="text-xl font-bold text-primary mb-2"><i class="fa fa-cog mr-2"></i> Gestão de Eventos (Admin)</h2>
             <p class="text-sm text-gray-500 mb-4">Adicione eventos, valores e formas de pagamento. Os dados ficam salvos neste navegador (depois pode migrar para servidor).</p>
-            <form id="formAdminEvento" class="space-y-3 max-w-lg">
+            <form id="formAdminEvento" class="space-y-3 max-w-xl">
                 <input type="text" id="admNome" placeholder="Nome do evento" required class="w-full p-2 border rounded">
-                <input type="text" id="admData" placeholder="Data (ex: 15/11/2026)" required class="w-full p-2 border rounded">
-                <input type="number" id="admValor" placeholder="Valor (R$)" step="0.01" min="0" required class="w-full p-2 border rounded">
-                <input type="text" id="admPix" placeholder="Chave PIX" value="36.158.983/0001-36" class="w-full p-2 border rounded">
-                <input type="text" id="admForma" placeholder="Formas de pagamento (ex: PIX, Dinheiro)" value="PIX" class="w-full p-2 border rounded">
+                <input type="date" id="admData" required class="w-full p-2 border rounded">
+                <input type="number" id="admValor" placeholder="Valor (R$) — 0 = gratuito" step="0.01" min="0" required class="w-full p-2 border rounded">
+                <input type="text" id="admPix" placeholder="Chave PIX da igreja" value="36.158.983/0001-36" class="w-full p-2 border rounded">
+                <input type="text" id="admForma" placeholder="Formas aceitas" value="PIX, Cartão (PagBank), Dinheiro" class="w-full p-2 border rounded">
+                <input type="url" id="admLinkPag" placeholder="Link PagBank de pagamento (opcional)" class="w-full p-2 border rounded">
                 <button type="submit" class="bg-secondary text-primary px-4 py-2 rounded font-bold">+ Adicionar Evento</button>
             </form>
             <div id="listaAdminEventos" class="mt-4 text-sm space-y-2"></div>
@@ -165,20 +194,58 @@
         <p>© 2026 — Igreja Batista Nacional Diamantino</p>
     </footer>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="nuvem.js"></script>
+    <script src="conta.js"></script>
     <script>
         // Eventos padrão + os salvos pelo admin
         // Agenda começa vazia — o admin adiciona os eventos
         const EVENTOS_PADRAO = [];
 
-        function carregarEventos() {
-            const salvos = localStorage.getItem('ibn_eventos');
-            if (salvos) {
-                try {
-                    const arr = JSON.parse(salvos);
-                    if (Array.isArray(arr) && arr.length) return arr;
-                } catch (e) {}
+        function formatarDataEvento(d) {
+            if (!d) return '';
+            d = String(d).trim();
+            // já está DD/MM/AAAA
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) return d;
+            // ISO YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+                var p = d.slice(0,10).split('-');
+                return p[2] + '/' + p[1] + '/' + p[0];
             }
-            return [...EVENTOS_PADRAO];
+            // só números 11102026 ou 15112026
+            var n = d.replace(/\D/g, '');
+            if (n.length === 8) {
+                // tenta DDMMAAAA
+                return n.slice(0,2) + '/' + n.slice(2,4) + '/' + n.slice(4);
+            }
+            return d;
+        }
+        function carregarEventos() {
+            try {
+                var a = JSON.parse(localStorage.getItem('ibn_eventos') || 'null');
+                var b = JSON.parse(localStorage.getItem('eventos') || 'null');
+                var lista = Array.isArray(a) && a.length ? a : (Array.isArray(b) ? b : []);
+                return lista.map(function(e, i) {
+                    return {
+                        id: e.id || ('ev-' + i),
+                        nome: e.nome || e.titulo || 'Evento',
+                        data: formatarDataEvento(e.data || ''),
+                        dataIso: e.dataIso || e.data || '',
+                        local: e.local || '',
+                        valor: e.valor != null ? Number(e.valor) : 0,
+                        pix: e.pix || e.chavePix || '36.158.983/0001-36',
+                        forma: e.forma || e.formas || 'PIX',
+                        foto: e.foto || e.imagem || '',
+                        video: e.video || e.videoUrl || '',
+                        visitantes: e.visitantes !== false,
+                        linkPagamento: e.linkPagamento || e.link_pagamento || e.linkPago || ''
+                    };
+                });
+            } catch (err) {
+                return EVENTOS_PADRAO.slice();
+            }
         }
 
         function salvarEventos(lista) {
@@ -191,32 +258,97 @@
         let membro = null;
 
         function verificarMembro() {
+            membro = null;
             try {
-                const s = localStorage.getItem('usuarioLogado');
-                if (s) membro = JSON.parse(s);
+                if (typeof getUsuarioLogado === 'function') {
+                    membro = getUsuarioLogado();
+                }
+                if (!membro) {
+                    var s = localStorage.getItem('ibn_sessao_atual') || localStorage.getItem('usuarioLogado');
+                    if (s) membro = JSON.parse(s);
+                }
             } catch (e) {}
-            return !!membro;
+            return !!(membro && (membro.nome || membro.email || membro.id));
+        }
+
+        function quemEhParticipante() {
+            var r = document.querySelector('input[name="quemInscricao"]:checked');
+            return r ? r.value : 'outro';
+        }
+
+        function aplicarCamposInscricao() {
+            var logado = verificarMembro();
+            var boxV = document.getElementById('camposVisitante');
+            var btn = document.getElementById('btnEnviarInsc');
+            var boxQuem = document.getElementById('boxQuemInsc');
+            var quemEu = document.getElementById('quemEu');
+            var quemOutro = document.getElementById('quemOutro');
+
+            if (logado) {
+                document.getElementById('avisoLogado') && document.getElementById('avisoLogado').classList.remove('hidden');
+                document.getElementById('avisoNaoLogado') && document.getElementById('avisoNaoLogado').classList.add('hidden');
+                var nm = document.getElementById('nomeMembro');
+                if (nm) nm.textContent = membro.nome || 'Membro';
+                if (boxQuem) boxQuem.classList.remove('hidden');
+                if (membro.nivel === 'admin' || membro.nivel === 'gestor' ||
+                    (typeof isAdmin === 'function' && isAdmin(membro)) ||
+                    (typeof isGestor === 'function' && isGestor(membro))) {
+                    var area = document.getElementById('areaAdmin');
+                    if (area) { area.classList.remove('hidden'); if (typeof renderAdminEventos === 'function') renderAdminEventos(); }
+                }
+            } else {
+                document.getElementById('avisoNaoLogado') && document.getElementById('avisoNaoLogado').classList.remove('hidden');
+                document.getElementById('avisoLogado') && document.getElementById('avisoLogado').classList.add('hidden');
+                // sem login: sempre ficha de participante (visitante)
+                if (boxQuem) boxQuem.classList.add('hidden');
+                if (quemOutro) quemOutro.checked = true;
+            }
+
+            var paraMim = logado && quemEhParticipante() === 'eu';
+            if (paraMim) {
+                document.getElementById('nome').value = membro.nome || '';
+                document.getElementById('email').value = membro.email || '';
+                document.getElementById('telefone').value = membro.telefone || '';
+                if (boxV) boxV.classList.add('hidden');
+            } else {
+                // outra pessoa ou visitante: campos em branco para preencher o participante
+                if (!paraMim) {
+                    // não apaga se usuário já digitou — só limpa na primeira carga
+                    if (document.getElementById('nome').dataset.autofill === '1') {
+                        document.getElementById('nome').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('telefone').value = '';
+                    }
+                }
+                if (boxV) boxV.classList.remove('hidden');
+            }
+            if (logado && quemEhParticipante() === 'eu') {
+                document.getElementById('nome').dataset.autofill = '1';
+            } else {
+                document.getElementById('nome').dataset.autofill = '0';
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = '<i class="fa fa-check-circle mr-2"></i> Gerar Inscrição';
+            }
         }
 
         function init() {
-            const logado = verificarMembro();
-
-            if (logado) {
-                document.getElementById('avisoLogado').classList.remove('hidden');
-                document.getElementById('nomeMembro').textContent = membro.nome || 'Membro';
-                document.getElementById('nome').value = membro.nome || '';
-                document.getElementById('email').value = membro.email || '';
-                if (membro.nivel === 'admin' || membro.nivel === 'gestor') {
-                    document.getElementById('areaAdmin').classList.remove('hidden');
-                    renderAdminEventos();
-                }
-            } else {
-                document.getElementById('avisoNaoLogado').classList.remove('hidden');
-                document.getElementById('btnEnviarInsc').disabled = true;
-                document.getElementById('btnEnviarInsc').classList.add('opacity-50', 'cursor-not-allowed');
-                document.getElementById('btnEnviarInsc').innerHTML = '<i class="fa fa-lock mr-2"></i> Faça login para se inscrever';
-            }
-
+            aplicarCamposInscricao();
+            document.querySelectorAll('input[name="quemInscricao"]').forEach(function(r){
+                r.addEventListener('change', function(){
+                    // ao trocar para "outra pessoa", limpa campos
+                    if (quemEhParticipante() === 'outro') {
+                        document.getElementById('nome').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('telefone').value = '';
+                        document.getElementById('nome').dataset.autofill = '0';
+                    }
+                    aplicarCamposInscricao();
+                });
+            });
             carregarCardsEventos();
             carregarSelectEventos();
             atualizarUISemEvento();
@@ -271,9 +403,9 @@
                         <div>
                             ${i === 0 ? '<p class="text-sm text-secondary font-bold">PRÓXIMO</p>' : ''}
                             <h3 class="text-xl font-bold text-primary mt-1">${e.nome}</h3>
-                            <p class="mt-2"><i class="fa fa-calendar"></i> ${e.data}</p>
-                            <p class="text-lg font-bold text-secondary mt-2">R$ ${Number(e.valor).toFixed(2)}</p>
-                            <p class="text-xs text-gray-500 mt-1">${e.formaPagamento || 'PIX'}</p>
+                            <p class="mt-2"><i class="fa fa-calendar"></i> ${formatarDataEvento(e.data)}</p>
+                            <p class="text-lg font-bold text-secondary mt-2">${Number(e.valor) > 0 ? 'R$ ' + Number(e.valor).toFixed(2) : 'Gratuito'}</p>
+                            <p class="text-xs text-gray-500 mt-1">${e.forma || e.formaPagamento || 'PIX, Cartão (PagBank), Dinheiro'}</p>
                         </div>
                         <a href="#inscricao" class="bg-secondary text-primary p-3 rounded-lg font-bold text-center hover:bg-yellow-400">
                             <i class="fa fa-pencil-square-o mr-2"></i> Inscrever-se
@@ -299,7 +431,8 @@
             e.preventDefault();
             if (!verificarMembro()) {
                 alert('Você precisa estar cadastrado e logado como membro para se inscrever.');
-                window.location.href = 'login.html?destino=eventos.html';
+                // visitante pode preencher dados no formulário; login é opcional
+                // window.location.href = 'login.html?destino=eventos.html';
                 return;
             }
 
@@ -307,6 +440,15 @@
             const nome = document.getElementById('nome').value.trim();
             const telefone = document.getElementById('telefone').value.trim();
             const email = document.getElementById('email').value.trim();
+            const nascV = (document.getElementById('nascimentoInsc') || {}).value || '';
+            const endV = (document.getElementById('enderecoInsc') || {}).value || '';
+            const munV = (document.getElementById('municipioInsc') || {}).value || '';
+            const paraOutro = !verificarMembro() || quemEhParticipante() === 'outro';
+            const ehVisitante = paraOutro; // ficha completa do participante
+            if (paraOutro) {
+                if (!nascV) return alert('Informe a data de nascimento do participante.');
+                if (!endV && !munV) return alert('Informe endereço ou município do participante.');
+            }
 
             const evento = eventos.find(ev => ev.id === eventoId);
             if (!evento) return alert('Selecione um evento válido');
@@ -323,6 +465,10 @@
             const novaInsc = {
                 codigo, eventoId, eventoNome: evento.nome, nome, telefone, email,
                 valor: evento.valor, dataInsc: new Date().toLocaleString('pt-BR'), pago: false,
+                tipo: (verificarMembro() && quemEhParticipante() === 'eu') ? 'membro' : 'outra_pessoa',
+                nascimento: nascV || (membro && membro.nascimento) || '',
+                endereco: endV || (membro && membro.endereco) || '',
+                municipio: munV || (membro && membro.municipio) || '',
                 membroId: membro.email || membro.nome
             };
             inscritos.push(novaInsc);
@@ -330,16 +476,53 @@
 
             inscricaoAtual = novaInsc;
             document.getElementById('fatura').classList.remove('hidden');
+            (function(){
+                var linkPag = (evento && (evento.linkPagamento || '')) || '';
+                var boxLink = document.getElementById('boxLinkOnline');
+                var btnOn = document.getElementById('btnPagarOnline');
+                if (boxLink && btnOn) {
+                    if (linkPag) { btnOn.href = linkPag; btnOn.setAttribute('href', linkPag); boxLink.classList.remove('hidden'); }
+                    else { btnOn.removeAttribute('href'); btnOn.href = '#'; boxLink.classList.add('hidden'); }
+                }
+                if (typeof atualizarMeioPagUI === 'function') atualizarMeioPagUI();
+            })();
             document.getElementById('codigoInsc').textContent = codigo;
             document.getElementById('nomeEventoFat').textContent = evento.nome;
             document.getElementById('valorEventoFat').textContent = `R$ ${Number(evento.valor).toFixed(2)}`;
-            document.getElementById('formaPagamento').textContent = evento.formaPagamento || 'PIX';
-            document.getElementById('pixCode').textContent = evento.pixDestino || '36.158.983/0001-36';
+            document.getElementById('formaPagamento').textContent = evento.forma || evento.formaPagamento || 'PIX, Cartão, Dinheiro';
+            document.getElementById('pixCode').textContent = evento.pix || evento.pixDestino || '36.158.983/0001-36';
 
             document.getElementById('fatura').scrollIntoView({ behavior: 'smooth' });
+            // reset meio pagamento UI
+            var pixRadio = document.querySelector('input[name="meioPag"][value="PIX"]');
+            if (pixRadio) pixRadio.checked = true;
+            if (typeof atualizarMeioPagUI === 'function') atualizarMeioPagUI();
             carregarListaPublica();
         });
 
+        function atualizarMeioPagUI() {
+            var meio = (document.querySelector('input[name="meioPag"]:checked') || {}).value || 'PIX';
+            var boxPix = document.getElementById('boxPixPag');
+            var boxCard = document.getElementById('boxCartaoPag');
+            var boxLink = document.getElementById('boxLinkOnline');
+            var btnOn = document.getElementById('btnPagarOnline');
+            var aviso = document.getElementById('avisoSemLinkPag');
+            var temLink = !!(btnOn && btnOn.getAttribute('href') && btnOn.getAttribute('href') !== '#' && btnOn.getAttribute('href').length > 8);
+            if (boxPix) boxPix.classList.toggle('hidden', meio !== 'PIX');
+            if (boxCard) boxCard.classList.toggle('hidden', meio.indexOf('PagBank') === -1 && meio.indexOf('Cartão') === -1);
+            if (boxLink) {
+                // mostra link PagBank em PIX ou cartão, se existir
+                if (temLink && meio !== 'Dinheiro') boxLink.classList.remove('hidden');
+                else boxLink.classList.add('hidden');
+            }
+            if (aviso) {
+                if (!temLink && meio !== 'Dinheiro' && meio !== 'PIX') aviso.classList.remove('hidden');
+                else aviso.classList.add('hidden');
+            }
+        }
+        document.addEventListener('change', function(ev) {
+            if (ev.target && ev.target.name === 'meioPag') atualizarMeioPagUI();
+        });
         function copiarPixPag() {
             const pix = (inscricaoAtual && eventos.find(e => e.id === inscricaoAtual.eventoId))
                 ? (eventos.find(e => e.id === inscricaoAtual.eventoId).pixDestino || '36158983000136')
@@ -351,15 +534,42 @@
         document.getElementById('btnConfirmar').addEventListener('click', function() {
             if (!inscricaoAtual) return;
             const idx = inscritos.findIndex(i => i.codigo === inscricaoAtual.codigo);
-            if (idx !== -1) {
-                inscritos[idx].pago = true;
+            if (idx === -1) return;
+            const fileInput = document.getElementById('comprovantePag');
+            const valor = Number(inscritos[idx].valor || 0);
+            function finalizar(comprovanteData) {
+                inscritos[idx].pago = valor <= 0; // gratuito já pago
+                inscritos[idx].comprovanteEnviado = !!comprovanteData || valor <= 0;
+                inscritos[idx].comprovante = comprovanteData || '';
                 inscritos[idx].dataPagamento = new Date().toLocaleString('pt-BR');
+                inscritos[idx].meioPagamento = (document.querySelector('input[name="meioPag"]:checked') || {}).value || 'PIX';
+                inscritos[idx].statusPagamento = valor <= 0 ? 'confirmado' : 'aguardando_conferencia';
                 salvarInscritos();
+                document.getElementById('msgConfirmacao').classList.remove('hidden');
+                document.getElementById('btnConfirmar').disabled = true;
+                document.getElementById('btnConfirmar').textContent = valor <= 0 ? '✅ Inscrito' : '✅ Comprovante enviado';
+                var box = document.getElementById('boxComprovanteInsc');
+                var txt = document.getElementById('txtComprovanteInsc');
+                if (box && txt) {
+                    txt.innerHTML = '<strong>Código:</strong> ' + inscritos[idx].codigo +
+                        '<br><strong>Evento:</strong> ' + (inscritos[idx].eventoNome || '') +
+                        '<br><strong>Nome:</strong> ' + (inscritos[idx].nome || '') +
+                        '<br><strong>Valor:</strong> R$ ' + Number(inscritos[idx].valor||0).toFixed(2) +
+                        '<br><strong>Status:</strong> ' + (inscritos[idx].statusPagamento === 'confirmado' ? 'Confirmado' : 'Aguardando secretaria');
+                    box.classList.remove('hidden');
+                }
+                carregarListaPublica();
             }
-            document.getElementById('msgConfirmacao').classList.remove('hidden');
-            this.disabled = true;
-            this.textContent = '✅ Confirmado';
-            carregarListaPublica();
+            if (valor > 0 && fileInput && fileInput.files && fileInput.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function() { finalizar(reader.result); };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else if (valor > 0) {
+                if (!confirm('Não anexou comprovante. Deseja enviar mesmo assim? A secretaria precisará confirmar o pagamento.')) return;
+                finalizar('');
+            } else {
+                finalizar('');
+            }
         });
 
         function salvarInscritos() {
@@ -395,22 +605,32 @@
         document.getElementById('formAdminEvento').addEventListener('submit', function(e) {
             e.preventDefault();
             const nome = document.getElementById('admNome').value.trim();
-            const data = document.getElementById('admData').value.trim();
+            const dataRaw = document.getElementById('admData').value.trim();
+            const data = formatarDataEvento(dataRaw);
             const valor = parseFloat(document.getElementById('admValor').value) || 0;
             const pix = document.getElementById('admPix').value.trim() || '36.158.983/0001-36';
-            const forma = document.getElementById('admForma').value.trim() || 'PIX';
-            const id = 'evt-' + Date.now().toString(36);
-
-            eventos.push({ id, nome, data, valor, pixDestino: pix, formaPagamento: forma });
+            const forma = document.getElementById('admForma').value.trim() || 'PIX, Cartão (PagBank), Dinheiro';
+            const linkPag = (document.getElementById('admLinkPag') && document.getElementById('admLinkPag').value || '').trim();
+            const id = 'ev-' + Date.now();
+            eventos.push({
+                id: id,
+                nome: nome,
+                data: data,
+                dataIso: dataRaw,
+                valor: valor,
+                pix: pix,
+                pixDestino: pix,
+                forma: forma,
+                formaPagamento: forma,
+                linkPagamento: linkPag
+            });
             salvarEventos(eventos);
-            this.reset();
+            e.target.reset();
             document.getElementById('admPix').value = '36.158.983/0001-36';
-            document.getElementById('admForma').value = 'PIX';
+            document.getElementById('admForma').value = 'PIX, Cartão (PagBank), Dinheiro';
             carregarCardsEventos();
             carregarSelectEventos();
-            atualizarUISemEvento();
             renderAdminEventos();
-            alert('Evento adicionado!');
         });
 
         function renderAdminEventos() {
@@ -435,5 +655,17 @@
 
         init();
     </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var b = document.getElementById('btnPrintInsc');
+    if (b) b.addEventListener('click', function(){ window.print(); });
+});
+</script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="nuvem.js"></script>
+    
 </body>
 </html>

@@ -95,15 +95,64 @@
                 <div id="listaMembros" class="space-y-3 text-sm"></div>
             </section>
 
+
+            <!-- Quadro de avisos do dia (cabeçalho do site) -->
+            <section id="secQuadroAvisos" class="bg-white p-6 rounded-xl shadow border border-amber-200">
+                <h2 class="text-xl font-bold text-primary mb-1">📢 Quadro de avisos</h2>
+                <p class="text-sm text-gray-500 mb-4">
+                    Escolha a data, veja ou edite o aviso daquele dia e salve.
+                    Aparece no cabeçalho amarelo do site. <strong>Datas passadas não podem ser alteradas.</strong>
+                    Só admin e gestor.
+                </p>
+                <div class="grid md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Data</label>
+                        <input type="date" id="avisoData" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <p id="avisoDataInfo" class="text-xs mt-1 text-gray-500"></p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Texto do aviso neste dia</label>
+                        <textarea id="avisoTexto" rows="3" maxlength="220" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Ao escolher a data, o texto do dia aparece aqui para você editar"></textarea>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button type="button" id="btnSalvarAviso" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-400">
+                        <i class="fa fa-save"></i> Salvar aviso deste dia
+                    </button>
+                    <button type="button" id="btnLimparAvisoDia" class="border border-red-400 text-red-600 px-3 py-2 rounded-lg text-sm font-bold hover:bg-red-50">
+                        Apagar aviso deste dia
+                    </button>
+                </div>
+                <p id="msgAviso" class="text-sm mt-2 hidden"></p>
+                <h3 class="font-bold text-primary text-sm mt-5 mb-2">Próximos avisos</h3>
+                <div id="listaAvisos" class="space-y-2 text-sm"></div>
+            </section>
+
             <!-- Gestão de Eventos -->
             <section class="bg-white p-6 rounded-xl shadow">
                 <h2 class="text-xl font-bold text-primary mb-4">📅 Gestão de Eventos</h2>
-                <form id="formEvento" class="grid md:grid-cols-4 gap-3 mb-6">
+                <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-gray-800 space-y-2">
+                    <p class="font-bold text-primary">Pagamento no site (PagBank)</p>
+                    <ol class="list-decimal ml-5 space-y-1 text-xs">
+                        <li>No app ou site <strong>PagBank</strong>, crie um <strong>Link de pagamento</strong> com o valor do evento.</li>
+                        <li>Copie o link e cole abaixo em <strong>Link PagBank</strong>.</li>
+                        <li>Preencha também a <strong>chave PIX</strong> da igreja (quem preferir PIX).</li>
+                        <li>Publique o evento. O inscrito paga pelo site e envia o comprovante; você confirma na lista.</li>
+                    </ol>
+                </div>
+                <form id="formEvento" class="grid md:grid-cols-3 gap-3 mb-6">
                     <input type="text" id="nomeEvento" placeholder="Nome do evento" required class="p-3 border rounded-lg">
                     <input type="date" id="dataEvento" required class="p-3 border rounded-lg">
                     <input type="text" id="localEvento" placeholder="Local" class="p-3 border rounded-lg">
+                    <input type="number" id="valorEvento" placeholder="Valor R$ (0 = gratuito)" min="0" step="0.01" value="0" class="p-3 border rounded-lg">
+                    <input type="text" id="pixEvento" placeholder="Chave PIX da igreja" class="p-3 border rounded-lg">
+                    <input type="text" id="formaEvento" placeholder="Formas aceitas" value="PIX, Cartão (PagBank), Dinheiro" class="p-3 border rounded-lg">
+                    <input type="url" id="linkPagEvento" placeholder="Link PagBank / PagSeguro de pagamento" class="p-3 border rounded-lg md:col-span-2">
+                    <input type="url" id="fotoEvento" placeholder="Link da foto de divulgação" class="p-3 border rounded-lg">
+                    <input type="url" id="videoEvento" placeholder="Link do vídeo (YouTube)" class="p-3 border rounded-lg md:col-span-2">
+                    <label class="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" id="visitaEvento" checked class="accent-secondary"> Visitantes podem se inscrever</label>
                     <button type="submit" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold">
-                        <i class="fa fa-plus"></i> Cadastrar
+                        <i class="fa fa-plus"></i> Publicar evento
                     </button>
                 </form>
                 <div class="flex justify-between items-center mb-3">
@@ -113,6 +162,9 @@
                     </button>
                 </div>
                 <div id="listaEventos" class="space-y-2 text-sm"></div>
+                <h3 class="font-bold text-primary text-sm mt-6 mb-2">Inscrições recebidas</h3>
+                <div id="listaInscritosEventos" class="space-y-2 text-sm"></div>
+                <button type="button" id="btnBaixarInscritos" class="mt-2 text-sm font-bold text-primary underline">Baixar CSV de inscritos</button>
             </section>
         </div>
     </main>
@@ -383,19 +435,26 @@
 
         // ✅ REMOVER MEMBRO DEFINITIVAMENTE
         window.removerMembro = function(idx) {
-            if (!confirm('⚠️ Tem certeza? Este membro será REMOVIDO DEFINITIVAMENTE e não poderá mais acessar.')) return;
+            if (!confirm('⚠️ Tem certeza? Este membro será REMOVIDO DEFINITIVAMENTE da nuvem e de todos os aparelhos (não volta na sincronização).')) return;
             const lista = getMembros();
             const membro = lista[idx];
-            
+            if (!membro) return;
             // Se for admin nomeado, remove também da lista de admins
             let admins = getAdminsNomeados();
             admins = admins.filter(a => a.email !== membro.email);
             localStorage.setItem('adminsNomeados', JSON.stringify(admins));
-            
-            // Remove da lista de membros
-            lista.splice(idx, 1);
-            salvarMembrosPainel(lista);
-            alert('✅ Membro removido definitivamente.');
+            if (typeof excluirMembroDefinitivo === 'function') {
+                const r = excluirMembroDefinitivo(membro.id);
+                if (!r.sucesso) {
+                    alert(r.mensagem || 'Não foi possível remover.');
+                    return;
+                }
+            } else {
+                lista.splice(idx, 1);
+                salvarMembrosPainel(lista);
+            }
+            alert('✅ Membro removido. Não deve voltar após sincronizar.');
+            if (typeof renderizarMembros === 'function') renderizarMembros();
         };
 
         // Download CSV
@@ -421,11 +480,16 @@
 
         // === EVENTOS ===
         function getEventos() {
-            try { return JSON.parse(localStorage.getItem('eventos') || '[]'); }
-            catch { return []; }
+            try {
+                var a = JSON.parse(localStorage.getItem('ibn_eventos') || 'null');
+                if (Array.isArray(a)) return a;
+                var b = JSON.parse(localStorage.getItem('eventos') || '[]');
+                return Array.isArray(b) ? b : [];
+            } catch(e) { return []; }
         }
         function salvarEventos(lista) {
-            localStorage.setItem('eventos', JSON.stringify(lista));
+            localStorage.setItem('ibn_eventos', JSON.stringify(lista));
+            try { localStorage.setItem('eventos', JSON.stringify(lista)); } catch(e) {}
             renderizarEventos();
         }
         function renderizarEventos() {
@@ -440,11 +504,12 @@
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
                     <div>
                         <p class="font-bold">${ev.nome}</p>
-                        <p class="text-xs text-gray-500">📅 ${ev.data} · 📍 ${ev.local||'Não informado'}</p>
+                        <p class="text-xs text-gray-500">📅 ${ev.data} · 📍 ${ev.local||'Não informado'} · ${Number(ev.valor)>0 ? 'R$ '+Number(ev.valor).toFixed(2) : 'Gratuito'}</p>
                     </div>
                     <button onclick="removerEvento(${idx})" class="text-red-500"><i class="fa fa-trash"></i></button>
                 </div>
             `).join('');
+            if (typeof renderInscritosEventos === 'function') renderInscritosEventos();
         }
         function removerEvento(idx) {
             if (!confirm('Remover evento?')) return;
@@ -454,9 +519,17 @@
             e.preventDefault();
             const l = getEventos();
             l.push({
+                id: 'ev-' + Date.now(),
                 nome: document.getElementById('nomeEvento').value.trim(),
                 data: document.getElementById('dataEvento').value,
-                local: document.getElementById('localEvento').value.trim()
+                local: document.getElementById('localEvento').value.trim(),
+                valor: parseFloat(document.getElementById('valorEvento').value) || 0,
+                pix: (document.getElementById('pixEvento').value || '').trim() || '36.158.983/0001-36',
+                forma: (document.getElementById('formaEvento').value || 'PIX').trim(),
+                foto: (document.getElementById('fotoEvento').value || '').trim(),
+                video: (document.getElementById('videoEvento').value || '').trim(),
+                linkPagamento: (document.getElementById('linkPagEvento').value || '').trim(),
+                visitantes: document.getElementById('visitaEvento').checked
             });
             salvarEventos(l);
             e.target.reset();
@@ -466,6 +539,66 @@
             if (!lista.length) { alert('Sem dados.'); return; }
             const csv = 'Nome,Data,Local\n' + lista.map(ev => `"${ev.nome}","${ev.data}","${ev.local}"`).join('\n');
             baixar(csv, 'eventos.csv');
+        });
+
+        
+        function getInscritosEventos() {
+            try { return JSON.parse(localStorage.getItem('inscritosIBN') || '[]'); } catch(e) { return []; }
+        }
+        function salvarInscritosEventos(lista) {
+            localStorage.setItem('inscritosIBN', JSON.stringify(lista || []));
+            renderInscritosEventos();
+        }
+        function renderInscritosEventos() {
+            var box = document.getElementById('listaInscritosEventos');
+            if (!box) return;
+            var lista = getInscritosEventos().slice().reverse();
+            if (!lista.length) {
+                box.innerHTML = '<p class="text-gray-400">Nenhuma inscrição ainda.</p>';
+                return;
+            }
+            box.innerHTML = lista.map(function(i, idx){
+                var st = i.statusPagamento || (i.pago ? 'confirmado' : 'pendente');
+                var badge = st === 'confirmado' ? 'bg-green-100 text-green-800' :
+                    (st === 'aguardando_conferencia' || i.comprovanteEnviado ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600');
+                var label = st === 'confirmado' ? 'Confirmado' :
+                    (i.comprovanteEnviado ? 'Aguardando conferência' : 'Pendente');
+                return '<div class="border rounded-lg p-3 bg-gray-50 flex flex-wrap justify-between gap-2">' +
+                    '<div><p class="font-bold">' + (i.nome||'') + '</p>' +
+                    '<p class="text-xs text-gray-500">' + (i.eventoNome||'') + ' · ' + (i.codigo||'') +
+                    ' · R$ ' + Number(i.valor||0).toFixed(2) +
+                    (i.telefone ? ' · ' + i.telefone : '') + '</p></div>' +
+                    '<div class="flex items-center gap-2">' +
+                    '<span class="text-xs px-2 py-1 rounded-full ' + badge + '">' + label + '</span>' +
+                    (st !== 'confirmado' ? '<button type="button" data-cod="' + i.codigo + '" class="btnConfPag text-xs font-bold bg-green-600 text-white px-2 py-1 rounded">Confirmar pagamento</button>' : '') +
+                    '</div></div>';
+            }).join('');
+            box.querySelectorAll('.btnConfPag').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var cod = btn.getAttribute('data-cod');
+                    var lista = getInscritosEventos();
+                    var ix = lista.findIndex(function(x){ return String(x.codigo) === String(cod); });
+                    if (ix < 0) return;
+                    lista[ix].pago = true;
+                    lista[ix].statusPagamento = 'confirmado';
+                    lista[ix].dataConfirmacao = new Date().toLocaleString('pt-BR');
+                    salvarInscritosEventos(lista);
+                    alert('Pagamento confirmado para ' + (lista[ix].nome||cod));
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function(){
+            if (typeof renderInscritosEventos === 'function') renderInscritosEventos();
+            var b = document.getElementById('btnBaixarInscritos');
+            if (b) b.addEventListener('click', function(){
+                var lista = getInscritosEventos();
+                if (!lista.length) return alert('Sem inscritos.');
+                var csv = 'Codigo;Nome;Evento;Telefone;Email;Valor;Status;DataInsc;DataPagamento\n' +
+                    lista.map(function(i){
+                        return [i.codigo,i.nome,i.eventoNome,i.telefone,i.email,i.valor,i.statusPagamento|| (i.pago?'confirmado':'pendente'),i.dataInsc,i.dataPagamento].map(function(x){ return '"' + String(x||'').replace(/"/g,'') + '"'; }).join(';');
+                    }).join('\n');
+                baixar(csv, 'inscritos-eventos.csv');
+            });
         });
 
         // === UTILITÁRIO ===
@@ -490,5 +623,227 @@
             renderizarEventos();
         }
     </script>
+
+<script>
+(function(){
+    var CHAVE = 'ibn_avisos_dia';
+
+    function podeEditarAvisos() {
+        if (typeof getUsuarioLogado !== 'function') return false;
+        var u = getUsuarioLogado();
+        if (!u) return false;
+        if (typeof isGestor === 'function' && isGestor(u)) return true;
+        if (typeof isAdmin === 'function' && isAdmin(u)) return true;
+        return false;
+    }
+
+    function ler() {
+        try { return JSON.parse(localStorage.getItem(CHAVE) || '[]'); } catch(e) { return []; }
+    }
+    function salvar(lista) {
+        localStorage.setItem(CHAVE, JSON.stringify(lista || []));
+        try {
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                firebase.firestore().collection('config').doc('avisos_dia').set({
+                    lista: lista || [],
+                    atualizadoEm: new Date().toISOString()
+                }, { merge: true });
+            }
+        } catch(e) {}
+    }
+    async function puxar() {
+        try {
+            if (typeof firebase === 'undefined' || !firebase.firestore) return ler();
+            var snap = await firebase.firestore().collection('config').doc('avisos_dia').get();
+            if (snap.exists) {
+                var data = snap.data() || {};
+                var lista = Array.isArray(data.lista) ? data.lista : [];
+                localStorage.setItem(CHAVE, JSON.stringify(lista));
+                return lista;
+            }
+        } catch(e) {}
+        return ler();
+    }
+    function isoHoje() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function fmtBR(iso) {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+        var p = String(iso).slice(0,10).split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    function dataPassada(iso) {
+        if (!iso) return false;
+        return String(iso).slice(0,10) < isoHoje();
+    }
+    function avisoDaData(data) {
+        var lista = ler();
+        var d = String(data || '').slice(0,10);
+        return lista.find(function(a){ return a && String(a.data).slice(0,10) === d; }) || null;
+    }
+    /** Texto sugerido conforme o dia da semana da data escolhida */
+    function sugestaoProgramacao(dataIso) {
+        if (!dataIso) return '';
+        var p = String(dataIso).slice(0,10).split('-');
+        if (p.length < 3) return '';
+        var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+        var ds = dt.getDay(); // 0 dom … 6 sab
+        // 40 dias: seg–sex igreja, sáb–dom casa (campanha 05/10/2026 + 40)
+        var inicio40 = new Date(2026, 9, 5);
+        inicio40.setHours(0,0,0,0);
+        var diff = Math.floor((dt - inicio40) / 86400000);
+        var dia40 = diff + 1;
+        var em40 = dia40 >= 1 && dia40 <= 40;
+        var partes = [];
+        if (em40) {
+            if (ds >= 1 && ds <= 5) partes.push('40 Dias — ' + dia40 + 'º dia · 05:30 e 18:00 na Igreja');
+            else partes.push('40 Dias — ' + dia40 + 'º dia · jejum em casa');
+        }
+        if (ds === 1) partes.push('Futebol dos homens (se houver)');
+        if (ds === 2) partes.push('Células · 20:00');
+        if (ds === 4) partes.push('Culto da Fé · 19:30');
+        if (ds === 5) {
+            // vigília: sexta antes do 1º domingo
+            var dom = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 2);
+            if (dom.getDay() === 0 && dom.getDate() <= 7) partes.push('Vigília');
+        }
+        if (ds === 6) partes.push('Célula Adolescentes 18:00 · Jovens 20:00');
+        if (ds === 0) partes.push('Culto de Celebração · 19:00');
+        return partes.join(' · ');
+    }
+    function carregarDia() {
+        var data = (document.getElementById('avisoData').value || '').trim();
+        var taEl = document.getElementById('avisoTexto');
+        var info = document.getElementById('avisoDataInfo');
+        var btnSalvar = document.getElementById('btnSalvarAviso');
+        var btnLimpar = document.getElementById('btnLimparAvisoDia');
+        var msg = document.getElementById('msgAviso');
+        if (msg) msg.classList.add('hidden');
+        if (!data) {
+            taEl.value = '';
+            taEl.disabled = true;
+            btnSalvar.disabled = true;
+            btnLimpar.disabled = true;
+            info.textContent = 'Escolha uma data.';
+            return;
+        }
+        var av = avisoDaData(data);
+        var sugerido = sugestaoProgramacao(data);
+        // Se já tem aviso salvo → mostra o salvo; senão preenche com a programação daquele dia
+        if (av && av.texto) {
+            taEl.value = av.texto;
+        } else {
+            taEl.value = sugerido || '';
+        }
+        var passada = dataPassada(data);
+        var pode = podeEditarAvisos() && !passada;
+        taEl.disabled = !pode;
+        btnSalvar.disabled = !pode;
+        btnLimpar.disabled = !pode || !av;
+        if (passada) {
+            info.textContent = 'Data passada — só consulta, não altera.';
+            info.className = 'text-xs mt-1 text-red-500 font-bold';
+        } else if (!podeEditarAvisos()) {
+            info.textContent = 'Somente admin ou gestor podem editar.';
+            info.className = 'text-xs mt-1 text-red-500 font-bold';
+        } else if (av && av.texto) {
+            info.textContent = 'Aviso já salvo neste dia — edite e salve de novo se quiser mudar.';
+            info.className = 'text-xs mt-1 text-green-700 font-bold';
+        } else {
+            info.textContent = 'Programação sugerida deste dia. Edite se precisar e clique em Salvar.';
+            info.className = 'text-xs mt-1 text-gray-600';
+        }
+    }
+    function renderLista() {
+        var box = document.getElementById('listaAvisos');
+        if (!box) return;
+        var hoje = isoHoje();
+        var lista = ler().slice().filter(function(a){
+            return a && String(a.data).slice(0,10) >= hoje;
+        }).sort(function(a,b){ return String(a.data).localeCompare(String(b.data)); });
+        if (!lista.length) {
+            box.innerHTML = '<p class="text-gray-400 text-sm">Nenhum aviso futuro cadastrado.</p>';
+            return;
+        }
+        box.innerHTML = lista.map(function(a){
+            return '<button type="button" data-data="' + String(a.data).slice(0,10) + '" class="btnIrData w-full text-left flex flex-wrap items-start justify-between gap-2 border rounded-lg px-3 py-2 bg-amber-50/50 hover:bg-amber-100">' +
+                '<div><span class="font-bold text-primary">' + fmtBR(a.data) + '</span> — ' +
+                '<span>' + (a.texto || '').replace(/</g,'&lt;') + '</span></div>' +
+                '<span class="text-xs text-secondary font-bold">Editar</span></button>';
+        }).join('');
+        box.querySelectorAll('.btnIrData').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                document.getElementById('avisoData').value = btn.getAttribute('data-data');
+                carregarDia();
+                document.getElementById('avisoTexto').focus();
+            });
+        });
+    }
+    function msgOk(t) {
+        var msg = document.getElementById('msgAviso');
+        msg.textContent = t;
+        msg.className = 'text-sm mt-2 text-green-600 font-bold';
+        msg.classList.remove('hidden');
+    }
+    function msgErro(t) {
+        var msg = document.getElementById('msgAviso');
+        msg.textContent = t;
+        msg.className = 'text-sm mt-2 text-red-500 font-bold';
+        msg.classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async function(){
+        var sec = document.getElementById('secQuadroAvisos');
+        if (!sec) return;
+        if (!podeEditarAvisos()) {
+            sec.querySelectorAll('input, textarea, button').forEach(function(el){ el.disabled = true; });
+            var info = document.getElementById('avisoDataInfo');
+            if (info) {
+                info.textContent = 'Faça login como admin ou gestor para editar.';
+                info.className = 'text-xs mt-1 text-red-500 font-bold';
+            }
+        }
+        var inpData = document.getElementById('avisoData');
+        if (inpData && !inpData.value) inpData.value = isoHoje();
+        await puxar();
+        carregarDia();
+        renderLista();
+
+        inpData.addEventListener('change', carregarDia);
+        inpData.addEventListener('input', carregarDia);
+
+        document.getElementById('btnSalvarAviso').addEventListener('click', function(){
+            if (!podeEditarAvisos()) return msgErro('Sem permissão.');
+            var data = (document.getElementById('avisoData').value || '').trim();
+            var texto = (document.getElementById('avisoTexto').value || '').trim();
+            if (!data) return msgErro('Escolha a data.');
+            if (dataPassada(data)) return msgErro('Não é possível alterar data passada.');
+            if (!texto) return msgErro('Digite o texto do aviso.');
+            var lista = ler().filter(function(a){ return String(a.data).slice(0,10) !== data; });
+            lista.push({ id: 'av-' + data, data: data, texto: texto, atualizadoEm: new Date().toISOString() });
+            salvar(lista);
+            msgOk('Aviso de ' + fmtBR(data) + ' salvo. Aparece no site nesse dia.');
+            carregarDia();
+            renderLista();
+        });
+
+        document.getElementById('btnLimparAvisoDia').addEventListener('click', function(){
+            if (!podeEditarAvisos()) return msgErro('Sem permissão.');
+            var data = (document.getElementById('avisoData').value || '').trim();
+            if (!data) return;
+            if (dataPassada(data)) return msgErro('Não é possível alterar data passada.');
+            if (!confirm('Apagar o aviso de ' + fmtBR(data) + '?')) return;
+            var lista = ler().filter(function(a){ return String(a.data).slice(0,10) !== data; });
+            salvar(lista);
+            document.getElementById('avisoTexto').value = '';
+            msgOk('Aviso removido.');
+            carregarDia();
+            renderLista();
+        });
+    });
+})();
+</script>
+
 </body>
 </html>

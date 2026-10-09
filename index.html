@@ -372,19 +372,59 @@
                     </div>
                     <div class="border-l-4 border-secondary pl-6 py-4 bg-white rounded-r-lg shadow-sm">
                         <h3 class="font-bold text-xl text-primary">40 Dias de Jejum e Oração</h3>
-                        <p class="font-semibold mt-1">Todos os dias · 05:30 e 18:00 · na Igreja</p>
-                        <p class="text-sm text-gray-500 mt-1">Início: segunda 05/10/2026 (1º dia) · até completar 40 dias</p>
+                        <p class="font-semibold mt-1">Seg a sex · 05:30 e 18:00 · na Igreja</p>
+                        <p class="text-sm text-gray-500 mt-1">Sáb e dom: o jejum continua em casa · Início 05/10/2026 · 40 dias</p>
                         <p id="contador40Dias" class="text-sm font-bold text-secondary mt-2"></p>
                     </div>
 
                 </div>
-                <div class="text-center mt-8">
+                <div class="text-center mt-8 flex flex-wrap gap-3 justify-center">
+                    <button type="button" id="btnVerAgenda" class="inline-block bg-primary text-white px-8 py-3 rounded-md font-bold text-lg hover:opacity-90">
+                        <i class="fa fa-calendar mr-2"></i> Ver agenda
+                    </button>
                     <a href="eventos.html" class="inline-block bg-secondary text-primary px-8 py-3 rounded-md font-bold text-lg hover:bg-yellow-400">
                         <i class="fa fa-calendar-plus-o mr-2"></i> Ver Eventos e Fazer Inscrição
                     </a>
                 </div>
             </div>
         </section>
+
+        <!-- Modal Agenda -->
+        <div id="modalAgenda" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[80] p-4">
+            <div class="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-xl">
+                <div class="sticky top-0 bg-white border-b px-5 py-3 flex justify-between items-center">
+                    <h3 class="font-bold text-primary text-lg">📅 Agenda da igreja</h3>
+                    <button type="button" id="btnFecharAgenda" class="text-gray-500 hover:text-primary text-xl leading-none">&times;</button>
+                </div>
+                <div class="px-5 py-4 space-y-4 text-sm">
+                    <p class="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs">
+                        ⚠️ A programação pode sofrer alteração. Confirme no cabeçalho do site ou com a secretaria.
+                    </p>
+                    <div>
+                        <h4 class="font-bold text-primary mb-2">Programação semanal fixa</h4>
+                        <ul class="space-y-1.5 text-gray-700">
+                            <li><strong>Segunda:</strong> Futebol dos homens (quando houver)</li>
+                            <li><strong>Terça:</strong> Células · 20:00</li>
+                            <li><strong>Quinta:</strong> Culto da Fé · 19:30</li>
+                            <li><strong>Sábado:</strong> Célula Adolescentes 18:00 · Jovens 20:00</li>
+                            <li><strong>Domingo:</strong> Culto de Celebração · 19:00 (ao vivo)</li>
+                            <li><strong>40 dias:</strong> Seg–sex 05:30 e 18:00 na igreja · sáb/dom em casa</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-primary mb-2">Avisos do quadro (próximos dias)</h4>
+                        <div id="agendaAvisosLista" class="space-y-2 text-gray-700"></div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-primary mb-2">Eventos com inscrição</h4>
+                        <div id="agendaEventosLista" class="space-y-2 text-gray-700"></div>
+                    </div>
+                    <a href="eventos.html" class="block text-center bg-secondary text-primary font-bold py-2.5 rounded-lg hover:bg-yellow-400">
+                        Ir para inscrição em eventos →
+                    </a>
+                </div>
+            </div>
+        </div>
 
         <!-- ✅ TRANSMISSÕES — lógica dinâmica restaurada do index 1 -->
         <section id="transmissoes" class="py-16 bg-gray-50">
@@ -1661,10 +1701,15 @@
             const antes40 = diff40 < 0;
             let texto40 = '';
             if (emCampanha40) {
-                texto40 = '🙏 40 Dias de Jejum e Oração — ' + dia40 + 'º dia · hoje às 05:30 e 18:00 na Igreja.';
+                // Seg–sex: encontro na igreja 05:30 e 18:00 | Sáb–dom: jejum em casa
+                if (diaSemana >= 1 && diaSemana <= 5) {
+                    texto40 = '🙏 40 Dias de Jejum e Oração — ' + dia40 + 'º dia · hoje às 05:30 e 18:00 na Igreja.';
+                } else {
+                    texto40 = '🙏 40 Dias de Jejum e Oração — ' + dia40 + 'º dia · o jejum continua em casa.';
+                }
             } else if (antes40) {
                 const faltam = Math.abs(diff40);
-                texto40 = '🙏 Em breve: 40 Dias de Jejum e Oração (início 05/10) · 05:30 e 18:00 na Igreja' +
+                texto40 = '🙏 Em breve: 40 Dias de Jejum e Oração (início 05/10) · seg a sex 05:30 e 18:00 na Igreja · sáb e dom em casa' +
                     (faltam === 1 ? ' · começa amanhã!' : ' · faltam ' + faltam + ' dias.');
             }
             const cont40 = document.getElementById('contador40Dias');
@@ -1730,6 +1775,25 @@
                 link = 'Ver programação →';
                 href = '#eventos';
             }
+
+            // Avisos extras do quadro (admin/gestor) — do dia de hoje
+            (function anexarAvisosCustom() {
+                try {
+                    var lista = JSON.parse(localStorage.getItem('ibn_avisos_dia') || '[]');
+                    var agora = new Date();
+                    var iso = agora.getFullYear() + '-' + String(agora.getMonth()+1).padStart(2,'0') + '-' + String(agora.getDate()).padStart(2,'0');
+                    var doDia = lista.filter(function(a){ return a && String(a.data).slice(0,10) === iso && a.texto; });
+                    if (doDia.length) {
+                        var extra = doDia.map(function(a){ return a.texto; }).join(' · ');
+                        if (texto) texto = texto + ' · ' + extra;
+                        else {
+                            texto = '📢 ' + extra;
+                            link = 'Ver programação →';
+                            href = '#eventos';
+                        }
+                    }
+                } catch (e) {}
+            })();
 
             if (texto) {
                 const box = document.getElementById('alertaDoDia');
@@ -1894,6 +1958,23 @@
             try {
                 verificarSessao();
                 mostrarAlertaDoDia();
+
+        // Puxa quadro de avisos da nuvem (se houver)
+        (async function puxarAvisosDia() {
+            try {
+                if (typeof firebase === 'undefined' || !firebase.firestore) return;
+                var db = firebase.firestore();
+                var snap = await db.collection('config').doc('avisos_dia').get();
+                if (snap.exists) {
+                    var data = snap.data() || {};
+                    if (Array.isArray(data.lista)) {
+                        localStorage.setItem('ibn_avisos_dia', JSON.stringify(data.lista));
+                        if (typeof mostrarAlertaDoDia === 'function') mostrarAlertaDoDia();
+                    }
+                }
+            } catch (e) {}
+        })();
+
                 configurarBotaoLocalizar();
                 // Lista de células sempre aparece (mesmo se o mapa falhar)
                 try { renderizarListaCompacta(); } catch (e) {}
@@ -1952,5 +2033,78 @@
             }
         });
     </script>
+
+<script>
+(function(){
+    function fmtBR(iso) {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(String(iso))) return iso || '';
+        var p = String(iso).slice(0,10).split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    function isoHoje() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function abrirAgenda() {
+        var modal = document.getElementById('modalAgenda');
+        if (!modal) return;
+        // avisos
+        var boxA = document.getElementById('agendaAvisosLista');
+        try {
+            var lista = JSON.parse(localStorage.getItem('ibn_avisos_dia') || '[]');
+            var hoje = isoHoje();
+            var fut = lista.filter(function(a){ return a && String(a.data).slice(0,10) >= hoje; })
+                .sort(function(a,b){ return String(a.data).localeCompare(String(b.data)); });
+            if (!fut.length) boxA.innerHTML = '<p class="text-gray-400">Nenhum aviso extra nos próximos dias.</p>';
+            else boxA.innerHTML = fut.map(function(a){
+                return '<div class="border rounded-lg px-3 py-2 bg-amber-50/60"><strong>' + fmtBR(a.data) + '</strong> — ' +
+                    String(a.texto||'').replace(/</g,'&lt;') + '</div>';
+            }).join('');
+        } catch(e) {
+            boxA.innerHTML = '<p class="text-gray-400">Não foi possível carregar avisos.</p>';
+        }
+        // eventos
+        var boxE = document.getElementById('agendaEventosLista');
+        try {
+            var evs = JSON.parse(localStorage.getItem('eventos') || '[]');
+            if (!evs.length) {
+                boxE.innerHTML = '<p class="text-gray-400">Nenhum evento com inscrição no momento. <a href="eventos.html" class="text-secondary font-bold underline">Ver página de eventos</a></p>';
+            } else {
+                boxE.innerHTML = evs.map(function(e){
+                    var nome = e.nome || e.titulo || 'Evento';
+                    var data = e.data || '';
+                    var local = e.local || '';
+                    return '<a href="eventos.html" class="block border rounded-lg px-3 py-2 hover:bg-gray-50">' +
+                        '<strong>' + String(nome).replace(/</g,'&lt;') + '</strong>' +
+                        (data ? ' · ' + data : '') +
+                        (local ? ' · ' + String(local).replace(/</g,'&lt;') : '') +
+                        ' <span class="text-secondary text-xs font-bold">Inscrever-se →</span></a>';
+                }).join('');
+            }
+        } catch(e) {
+            boxE.innerHTML = '<p class="text-gray-400"><a href="eventos.html" class="text-secondary font-bold underline">Ver eventos</a></p>';
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function fecharAgenda() {
+        var modal = document.getElementById('modalAgenda');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+        var b = document.getElementById('btnVerAgenda');
+        if (b) b.addEventListener('click', abrirAgenda);
+        var f = document.getElementById('btnFecharAgenda');
+        if (f) f.addEventListener('click', fecharAgenda);
+        var modal = document.getElementById('modalAgenda');
+        if (modal) modal.addEventListener('click', function(ev){
+            if (ev.target === modal) fecharAgenda();
+        });
+    });
+})();
+</script>
+
 </body>
 </html>
