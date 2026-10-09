@@ -460,16 +460,64 @@
             if (typeof renderizarMembros === 'function') renderizarMembros();
         };
 
+
+        // Fallback CSV (funciona mesmo se conta.js antigo não tiver as funções)
+        function _csvEsc(v) {
+            var s = (v === null || v === undefined) ? '' : String(v);
+            return '"' + s.replace(/\r?\n/g, ' ').replace(/"/g, '""') + '"';
+        }
+        function _dataArqBR() {
+            if (typeof dataArquivoBR === 'function') return dataArquivoBR();
+            var d = new Date();
+            return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+        }
+        function _fmtDataCSV(d) {
+            if (typeof formatarDataCSV === 'function') return formatarDataCSV(d);
+            if (!d) return '';
+            d = String(d).trim();
+            if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) return d.slice(0,10);
+            if (/^\d{4}-\d{2}-\d{2}/.test(d)) { var p = d.slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+            return d;
+        }
+        function _montarCSV(cols, rows) {
+            if (typeof montarCSV === 'function') return montarCSV(cols, rows);
+            var sep = ';';
+            var head = cols.map(_csvEsc).join(sep);
+            var body = (rows || []).map(function(r){ return r.map(_csvEsc).join(sep); }).join('\n');
+            return '\uFEFF' + head + '\n' + body;
+        }
+        function _exportMembrosCSV(lista) {
+            if (typeof exportarMembrosCSVDefinido === 'function') return exportarMembrosCSVDefinido(lista);
+            var cols = ['Nome','Email','Telefone','Batizado','Funções','Data de Cadastro','Nascimento','Sexo','Estado Civil','Endereço','Município','UF','Células','Ministérios','Status','Nível'];
+            var linhas = (lista || []).map(function(m) {
+                var funcoes = [];
+                if (m.cargo) funcoes.push(m.cargo);
+                if (Array.isArray(m.funcoesAprovadas)) m.funcoesAprovadas.forEach(function(f){ if (funcoes.indexOf(f)<0) funcoes.push(f); });
+                if (!funcoes.length) funcoes.push('Membro');
+                var bat = (m.batizado === true || m.batizado === 'sim' || m.batismo === 'sim') ? 'Sim' :
+                    ((m.batizado === false || m.batizado === 'nao' || m.batismo === 'nao') ? 'Não' : (m.batizado || ''));
+                var celulas = Array.isArray(m.celulas) ? m.celulas.map(function(c){ return c.nome || c.id || c; }).join(' | ') : '';
+                var mins = Array.isArray(m.ministerios) ? m.ministerios.join(' | ') : (m.ministerios || '');
+                return [
+                    m.nome||'', m.email||'', m.telefone||'', bat, funcoes.join(', '),
+                    _fmtDataCSV(m.dataCadastro || m.criadoEm || ''),
+                    _fmtDataCSV(m.nascimento||''), m.sexo||'', m.estadoCivil||'',
+                    m.endereco||'', m.municipio||'', m.uf||'', celulas, mins, m.status||'', m.nivel||''
+                ];
+            });
+            return _montarCSV(cols, linhas);
+        }
+
         // Download CSV — colunas definidas, separador ; (Excel Brasil)
         
         document.getElementById('btnBaixarGeralTudo') && document.getElementById('btnBaixarGeralTudo').addEventListener('click', function() {
-            var dataArq = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : 'lista';
+            var dataArq = _dataArqBR();
             var ok = 0;
             // 1) Membros (completo)
             try {
                 var listaM = getMembros();
-                if (listaM.length && typeof exportarMembrosCSVDefinido === 'function') {
-                    baixar(exportarMembrosCSVDefinido(listaM), 'relatorio_membros_' + dataArq + '.csv');
+                if (listaM.length) {
+                    baixar(_exportMembrosCSV(listaM), 'relatorio_membros_' + dataArq + '.csv');
                     ok++;
                 }
             } catch (e) { console.warn(e); }
@@ -477,20 +525,19 @@
             try {
                 var listaE = getEventos();
                 if (listaE.length) {
-                    var csvE = (typeof montarCSV === 'function')
-                        ? montarCSV(['Nome','Data','Local','Valor','PIX','Formas','LinkPagamento'],
-                            listaE.map(function(ev){
-                                return [ev.nome||'', (typeof formatarDataCSV==='function'?formatarDataCSV(ev.data):ev.data||''), ev.local||'', ev.valor||0, ev.pix||'', ev.forma||ev.formaPagamento||'', ev.linkPagamento||''];
-                            }))
-                        : '';
-                    if (csvE) { baixar(csvE, 'eventos_' + dataArq + '.csv'); ok++; }
+                    var csvE = _montarCSV(['Nome','Data','Local','Valor','PIX','Formas','LinkPagamento'],
+                        listaE.map(function(ev){
+                            return [ev.nome||'', _fmtDataCSV(ev.data), ev.local||'', ev.valor||0, ev.pix||'', ev.forma||ev.formaPagamento||'', ev.linkPagamento||''];
+                        }));
+                    baixar(csvE, 'eventos_' + dataArq + '.csv');
+                    ok++;
                 }
             } catch (e) { console.warn(e); }
             // 3) Inscritos em eventos
             try {
                 var listaI = (typeof getInscritosEventos === 'function') ? getInscritosEventos() : [];
-                if (listaI.length && typeof montarCSV === 'function') {
-                    var csvI = montarCSV(
+                if (listaI.length) {
+                    var csvI = _montarCSV(
                         ['Codigo','Nome','Evento','Telefone','Email','Valor','Status','MeioPagamento','DataInsc','DataPagamento','Tipo'],
                         listaI.map(function(i){
                             return [i.codigo||'', i.nome||'', i.eventoNome||'', i.telefone||'', i.email||'', i.valor||0,
@@ -530,12 +577,9 @@
         document.getElementById('btnBaixarMembros').addEventListener('click', () => {
             const lista = getMembros();
             if (!lista.length) { alert('Sem dados para baixar.'); return; }
-            var csv = (typeof exportarMembrosCSVDefinido === 'function')
-                ? exportarMembrosCSVDefinido(lista)
-                : '';
-            if (!csv) { alert('Função de exportação indisponível. Atualize conta.js'); return; }
-            var dataArq = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : (function(){ var d=new Date(); return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear(); })();
-            baixar(csv, 'relatorio_membros_' + dataArq + '.csv');
+            var csv = _exportMembrosCSV(lista);
+            if (!csv) { alert('Não foi possível gerar o CSV.'); return; }
+            baixar(csv, 'relatorio_membros_' + _dataArqBR() + '.csv');
         });
 
         // === EVENTOS ===
