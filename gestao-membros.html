@@ -282,6 +282,9 @@
             if ((m.cargo === 'Líder de Ministério' || m.nivel === 'lider_ministerio') && !(m.lideraMinisterios && m.lideraMinisterios.length) && !m.lideraMinisterio) {
                 itens.push('Marcado como líder de ministério, mas ministério de liderança não definido');
             }
+            if (Array.isArray(m.funcoesSolicitadas) && m.funcoesSolicitadas.length) {
+                itens.push('Funções pedidas pelo membro (aprovar ou ajustar): ' + m.funcoesSolicitadas.join(', '));
+            }
             return itens;
         }
 
@@ -371,9 +374,6 @@
                                 Editar alocação
                             </button>
                         `}
-                        <button onclick="resetSenha(${m.id})" class="border px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50">
-                            <i class="fa fa-key"></i> Resetar senha
-                        </button>
                         <button onclick="bloquearMembro(${m.id})" class="border border-amber-500 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-amber-50">
                             <i class="fa fa-ban"></i> Bloquear
                         </button>

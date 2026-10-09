@@ -902,15 +902,29 @@ function atualizarPerfil(dadosNovos) {
     if (!usuario) return { sucesso: false };
 
     const lista = lerMembros();
-    const indice = lista.findIndex(m => m.id === usuario.id);
+    const indice = lista.findIndex(m => String(m.id) === String(usuario.id));
     if (indice === -1) return { sucesso: false };
 
-    const { nivel, status, funcoes, ...seguros } = dadosNovos;
+    const { nivel, status, funcoes, cargo, funcoesAprovadas, ...seguros } = dadosNovos;
+    // cargo / funções oficiais só mudam com aprovação da gestão
+    delete seguros.cargo;
+    delete seguros.funcoesAprovadas;
 
     if (seguros.celulas) {
         const v = validarCelulas(seguros.celulas);
         if (v.erro) return { sucesso: false, mensagem: v.erro };
         seguros.celulas = v.lista;
+    }
+
+    if (Array.isArray(dadosNovos.funcoesSolicitadas)) {
+        const aprovadas = Array.isArray(lista[indice].funcoesAprovadas) && lista[indice].funcoesAprovadas.length
+            ? lista[indice].funcoesAprovadas
+            : (lista[indice].cargo ? [lista[indice].cargo] : ['Membro(a)']);
+        // solicita só o que ainda não está aprovado
+        const pedidas = dadosNovos.funcoesSolicitadas.filter(function (f) {
+            return aprovadas.indexOf(f) === -1 && String(f).indexOf('Membro') !== 0;
+        });
+        seguros.funcoesSolicitadas = pedidas;
     }
 
     lista[indice] = { ...lista[indice], ...seguros };
@@ -959,10 +973,23 @@ function aprovarMembro(membroId, alocacao) {
     }
 
     if (!alocacao || !alocacao.nivel) {
-        if (m.cargo === 'Líder de Ministério') m.nivel = 'lider_ministerio';
+        if (m.cargo === 'Líder de Ministério' || m.cargo === 'Líder de Ministério') m.nivel = 'lider_ministerio';
         else if (m.cargo === 'Líder de Célula') m.nivel = 'lider_celula';
         else if (!['admin', 'gestor'].includes(m.nivel)) m.nivel = 'membro';
     }
+
+    // Ao aprovar/alocar, limpa pedidos e grava funções oficiais
+    m.funcoesSolicitadas = [];
+    const aprovadas = [];
+    if (m.cargo) aprovadas.push(m.cargo);
+    if (Array.isArray(m.funcoes)) {
+        if (m.funcoes.indexOf('lider_celula') !== -1 && aprovadas.indexOf('Líder de Célula') === -1) aprovadas.push('Líder de Célula');
+        if (m.funcoes.indexOf('lider_ministerio') !== -1 && aprovadas.indexOf('Líder de Ministério') === -1) aprovadas.push('Líder de Ministério');
+        if (m.funcoes.indexOf('lider_treino') !== -1 && aprovadas.indexOf('Líder em treinamento') === -1) aprovadas.push('Líder em treinamento');
+        if (m.funcoes.indexOf('anfitriao') !== -1 && aprovadas.indexOf('Anfitrião') === -1) aprovadas.push('Anfitrião');
+    }
+    if (!aprovadas.length) aprovadas.push('Membro(a)');
+    m.funcoesAprovadas = aprovadas;
 
     lista[idx] = m;
     salvarMembros(lista);

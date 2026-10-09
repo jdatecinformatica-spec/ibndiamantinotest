@@ -126,18 +126,22 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Cargo / Função</label>
-                        <select id="cargo" class="w-full p-3 border rounded-lg">
-                            <option value="Membro(a)">Membro(a)</option>
-                            <option value="Líder de Célula">Líder de Célula</option>
-                            <option value="Líder de Ministério">Líder de Ministério</option>
-                            <option value="Líder em treinamento">Líder em treinamento</option>
-                            <option value="Discipulador(a)">Discipulador(a)</option>
-                            <option value="Pastor / Pastora">Pastor / Pastora</option>
-                            <option value="Missionário(a)">Missionário(a)</option>
-                            <option value="Voluntário(a)">Voluntário(a)</option>
-                            <option value="Outro">Outro</option>
-                        </select>
+                        
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Funções que exerce / deseja (pode marcar várias)</label>
+                        <p class="text-xs text-gray-500 mb-2">Novas funções ficam <strong>pendentes</strong> até o gestor ou admin aprovar.</p>
+                        <div id="boxFuncoesMembro" class="grid grid-cols-1 sm:grid-cols-2 gap-2 border rounded-lg p-3 bg-gray-50 text-sm">
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Membro(a)" class="accent-secondary" checked> Membro(a)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Líder de Célula" class="accent-secondary"> Líder de Célula</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Líder de Ministério" class="accent-secondary"> Líder de Ministério</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Líder em treinamento" class="accent-secondary"> Líder em treinamento</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Discipulador(a)" class="accent-secondary"> Discipulador(a)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Pastor / Pastora" class="accent-secondary"> Pastor / Pastora</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Missionário(a)" class="accent-secondary"> Missionário(a)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Voluntário(a)" class="accent-secondary"> Voluntário(a)</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Outro" class="accent-secondary"> Outro</label>
+                        </div>
+                        <p id="funcoesPendInfo" class="text-xs text-amber-700 mt-1 hidden"></p>
+
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Função específica</label>
@@ -153,27 +157,47 @@
                 <div id="msg" class="text-sm hidden"></div>
                 <button type="submit" class="w-full bg-primary text-white p-3 rounded-lg font-bold hover:bg-accent">
 
-                <div id="blocoTrocarSenha" class="border-t pt-4 mt-4">
-                    <h3 class="font-bold text-primary mb-2"><i class="fa fa-key"></i> Alterar senha de acesso</h3>
-                    <p class="text-xs text-gray-500 mb-3">Defina uma senha definitiva (mínimo 4 caracteres).</p>
-                    <div class="grid sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Senha atual</label>
-                            <div class="relative"><input type="password" id="adSenhaAtual" autocomplete="current-password" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="adSenhaAtual" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
+                <div class="border-t pt-4 mt-4">
+                    <button type="button" id="btnAbrirAlterarSenha" class="text-sm font-bold text-primary border border-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white">
+                        <i class="fa fa-key"></i> Alterar senha
+                    </button>
+                    <p class="text-xs text-gray-400 mt-1">Opcional. Só use se quiser trocar a senha de acesso.</p>
+                </div>
+
+                <!-- Modal alterar senha -->
+                <div id="modalAlterarSenha" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-2xl max-w-md w-full p-6">
+                        <h3 class="font-bold text-primary text-lg mb-1">Alterar senha</h3>
+                        <p class="text-xs text-gray-500 mb-4">Informe a senha atual e a nova senha duas vezes.</p>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Senha atual</label>
+                                <div class="relative">
+                                    <input type="password" id="adSenhaAtual" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="current-password">
+                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaAtual"><i class="fa fa-eye"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Nova senha</label>
+                                <div class="relative">
+                                    <input type="password" id="adSenhaNova" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
+                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova"><i class="fa fa-eye"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Confirmar nova senha</label>
+                                <div class="relative">
+                                    <input type="password" id="adSenhaNova2" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
+                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova2"><i class="fa fa-eye"></i></button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Nova senha</label>
-                            <div class="relative"><input type="password" id="adSenhaNova" autocomplete="new-password" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="adSenhaNova" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Confirmar nova</label>
-                            <div class="relative"><input type="password" id="adSenhaNova2" autocomplete="new-password" class="w-full border rounded-lg px-3 py-2 text-sm pr-10"><button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" data-target="adSenhaNova2" tabindex="-1" aria-label="Mostrar senha"><i class="fa fa-eye"></i></button></div>
+                        <p id="adSenhaMsg" class="text-sm mt-3 hidden text-center"></p>
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" id="btnTrocarSenhaDados" class="flex-1 bg-primary text-white py-2 rounded-lg font-bold">Salvar nova senha</button>
+                            <button type="button" id="btnFecharSenhaModal" class="flex-1 border py-2 rounded-lg font-bold">Cancelar</button>
                         </div>
                     </div>
-                    <button type="button" id="btnTrocarSenhaDados" class="mt-3 border-2 border-primary text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary hover:text-white">
-                        Salvar nova senha
-                    </button>
-                    <p id="adSenhaMsg" class="text-sm mt-2 hidden"></p>
                 </div>
 
                     <i class="fa fa-save mr-2"></i> Salvar Alterações
@@ -259,8 +283,32 @@
                     return '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="ministerio" value="' + m + '" class="accent-secondary"' + checked + '> <span>' + m + '</span></label>';
                 }).join('');
             }
-            if (usuario.cargo) document.getElementById('cargo').value = usuario.cargo;
             document.getElementById('funcaoEspecifica').value = usuario.funcaoEspecifica || '';
+            // marca funções aprovadas / solicitadas
+            (function(){
+                var marcadas = [];
+                if (Array.isArray(usuario.funcoesAprovadas) && usuario.funcoesAprovadas.length) {
+                    marcadas = usuario.funcoesAprovadas.slice();
+                } else if (usuario.cargo) {
+                    marcadas = [usuario.cargo];
+                }
+                if (Array.isArray(usuario.funcoesSolicitadas)) {
+                    usuario.funcoesSolicitadas.forEach(function(f){
+                        if (marcadas.indexOf(f) === -1) marcadas.push(f);
+                    });
+                }
+                document.querySelectorAll('input[name="fnMembro"]').forEach(function(cb){
+                    cb.checked = marcadas.indexOf(cb.value) !== -1 ||
+                        (cb.value.indexOf('Membro') === 0 && marcadas.length === 0);
+                });
+                if (usuario.funcoesSolicitadas && usuario.funcoesSolicitadas.length) {
+                    var info = document.getElementById('funcoesPendInfo');
+                    if (info) {
+                        info.textContent = 'Aguardando aprovação da gestão: ' + usuario.funcoesSolicitadas.join(', ');
+                        info.classList.remove('hidden');
+                    }
+                }
+            })();
         })();
 
         // Salva alterações via conta.js
@@ -298,9 +346,13 @@
                 dataBatismo: document.getElementById('dataBatismo').value,
                 celulas: celulas,
                 ministerios: ministerios,
-                cargo: document.getElementById('cargo').value || 'Membro',
                 funcaoEspecifica: document.getElementById('funcaoEspecifica').value.trim(),
-                observacoes: document.getElementById('observacoes').value.trim()
+                observacoes: document.getElementById('observacoes').value.trim(),
+                funcoesSolicitadas: (function(){
+                    var arr = [];
+                    document.querySelectorAll('input[name="fnMembro"]:checked').forEach(function(cb){ arr.push(cb.value); });
+                    return arr;
+                })()
             };
 
             const r = (typeof atualizarPerfil === 'function')
@@ -341,20 +393,20 @@
                 document.getElementById('adSenhaAtual').value = '';
                 document.getElementById('adSenhaNova').value = '';
                 document.getElementById('adSenhaNova2').value = '';
+                setTimeout(function(){
+                    var modal = document.getElementById('modalAlterarSenha');
+                    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+                }, 900);
             } else {
                 msg.className = 'text-sm mt-2 text-red-500 font-bold';
                 msg.textContent = r.mensagem || 'Erro ao alterar senha.';
             }
         });
-        // se veio com senha temporária, destaca o bloco
+        // senha temporária: abre modal automaticamente
         var u = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null;
         if (u && u.deveTrocarSenha) {
-            var bl = document.getElementById('blocoTrocarSenha');
-            if (bl) {
-                bl.classList.add('bg-amber-50', 'border', 'border-amber-200', 'rounded-xl', 'p-4');
-                var h = bl.querySelector('h3');
-                if (h) h.innerHTML = '<i class="fa fa-key"></i> Obrigatório: defina sua senha definitiva';
-            }
+            var modal = document.getElementById('modalAlterarSenha');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         }
     })();
     </script>
@@ -378,6 +430,64 @@
     });
 })();
 </script>
+
+
+    <script>
+    (function(){
+        var btnAb = document.getElementById('btnAbrirAlterarSenha');
+        var modal = document.getElementById('modalAlterarSenha');
+        var btnFecha = document.getElementById('btnFecharSenhaModal');
+        if (btnAb && modal) {
+            btnAb.addEventListener('click', function(){
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                var msg = document.getElementById('adSenhaMsg');
+                if (msg) msg.classList.add('hidden');
+            });
+        }
+        if (btnFecha && modal) {
+            btnFecha.addEventListener('click', function(){
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+        }
+        // preencher funções já aprovadas / solicitadas
+        var u = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null;
+        if (u) {
+            var aprovadas = [];
+            if (u.cargo) aprovadas.push(u.cargo);
+            if (Array.isArray(u.cargos) && u.cargos.length) aprovadas = u.cargos.slice();
+            if (Array.isArray(u.funcoesSolicitadas)) {
+                // mark requested too
+            }
+            document.querySelectorAll('input[name="fnMembro"]').forEach(function(cb){
+                var val = cb.value;
+                var ok = aprovadas.indexOf(val) !== -1 ||
+                    (val.indexOf('Membro') === 0 && (!u.cargo || String(u.cargo).indexOf('Membro') === 0));
+                if (Array.isArray(u.funcoesSolicitadas) && u.funcoesSolicitadas.indexOf(val) !== -1) ok = true;
+                if (Array.isArray(u.funcoesAprovadas) && u.funcoesAprovadas.indexOf(val) !== -1) ok = true;
+                cb.checked = !!ok;
+            });
+            if (u.funcoesSolicitadas && u.funcoesSolicitadas.length) {
+                var info = document.getElementById('funcoesPendInfo');
+                if (info) {
+                    info.textContent = 'Aguardando aprovação: ' + u.funcoesSolicitadas.join(', ');
+                    info.classList.remove('hidden');
+                }
+            }
+        }
+        // ao salvar formulário, incluir funções solicitadas
+        var form = document.getElementById('formDados');
+        if (form) {
+            form.addEventListener('submit', function(){
+                var marcadas = [];
+                document.querySelectorAll('input[name="fnMembro"]:checked').forEach(function(cb){ marcadas.push(cb.value); });
+                // guarda no campo hidden se existir, ou window para o handler usar
+                window._funcoesMarcadasCadastro = marcadas;
+            }, true);
+        }
+    })();
+    </script>
 
 </body>
 </html>
