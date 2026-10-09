@@ -1659,6 +1659,119 @@ function relatoriosDaCelula(celulaId) {
         .sort((a, b) => (b.data || '').localeCompare(a.data || ''));
 }
 
+
+/** CSV no padrão Excel Brasil: ; como separador, UTF-8 com BOM, colunas fixas */
+function csvEscapar(v) {
+    var s = (v === null || v === undefined) ? '' : String(v);
+    s = s.replace(/\r?\n/g, ' ').replace(/"/g, '""');
+    return '"' + s + '"';
+}
+function montarCSV(cabecalhos, linhas) {
+    var sep = ';';
+    var head = cabecalhos.map(csvEscapar).join(sep);
+    var body = (linhas || []).map(function(row) {
+        return row.map(csvEscapar).join(sep);
+    }).join('\n');
+    return '\uFEFF' + head + '\n' + body;
+}
+function dataArquivoBR(d) {
+    var dt = d ? new Date(d) : new Date();
+    if (isNaN(dt.getTime())) dt = new Date();
+    var dd = String(dt.getDate()).padStart(2, '0');
+    var mm = String(dt.getMonth() + 1).padStart(2, '0');
+    var aa = dt.getFullYear();
+    return dd + '-' + mm + '-' + aa;
+}
+function formatarDataCSV(d) {
+    if (!d) return '';
+    d = String(d).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) return d.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+        var p = d.slice(0, 10).split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    return d;
+}
+function exportarMembrosCSVDefinido(lista) {
+    lista = lista || (typeof lerMembros === 'function' ? lerMembros() : []);
+    var cols = [
+        'Nome', 'Email', 'Telefone', 'Batizado', 'Funções', 'Data de Cadastro',
+        'Nascimento', 'Sexo', 'Estado Civil', 'Endereço', 'Município', 'UF',
+        'Células', 'Ministérios', 'Status', 'Nível'
+    ];
+    var linhas = lista.map(function(m) {
+        var funcoes = [];
+        if (m.cargo) funcoes.push(m.cargo);
+        if (Array.isArray(m.funcoesAprovadas)) {
+            m.funcoesAprovadas.forEach(function(f) { if (funcoes.indexOf(f) === -1) funcoes.push(f); });
+        }
+        if (Array.isArray(m.funcoes)) {
+            m.funcoes.forEach(function(f) {
+                var map = { lider_celula: 'Líder de Célula', lider_ministerio: 'Líder de Ministério', lider_treino: 'Líder em treinamento', anfitriao: 'Anfitrião', admin: 'Administrador', gestor: 'Gestor' };
+                var lab = map[f] || f;
+                if (funcoes.indexOf(lab) === -1) funcoes.push(lab);
+            });
+        }
+        if (!funcoes.length) funcoes.push('Membro');
+        var celulas = Array.isArray(m.celulas) ? m.celulas.map(function(c) { return c.nome || c.id || c; }).join(' | ') : '';
+        var mins = Array.isArray(m.ministerios) ? m.ministerios.join(' | ') : (m.ministerios || '');
+        var bat = (m.batizado === true || m.batizado === 'sim' || m.batismo === 'sim') ? 'Sim' : (m.batizado === false || m.batizado === 'nao' || m.batismo === 'nao' ? 'Não' : (m.batizado || ''));
+        return [
+            m.nome || '',
+            m.email || '',
+            m.telefone || '',
+            bat,
+            funcoes.join(', '),
+            formatarDataCSV(m.dataCadastro || m.criadoEm || m.dataInscricao || ''),
+            formatarDataCSV(m.nascimento || ''),
+            m.sexo || '',
+            m.estadoCivil || '',
+            m.endereco || '',
+            m.municipio || '',
+            m.uf || '',
+            celulas,
+            mins,
+            m.status || '',
+            m.nivel || ''
+        ];
+    });
+    return montarCSV(cols, linhas);
+}
+function exportarVisitantesCSVDefinido(lista) {
+    lista = lista || [];
+    try {
+        if (!lista.length) {
+            var v = JSON.parse(localStorage.getItem('ibn_visitantes') || '[]');
+            if (Array.isArray(v)) lista = v;
+        }
+    } catch (e) {}
+    var cols = [
+        'NomeCompleto', 'DataNascimento', 'Idade', 'DataVisita', 'Telefone', 'EstadoCivil',
+        'Endereco', 'Bairro', 'Cidade', 'AceitouJesus', 'Batizado', 'DataBatismo',
+        'Observacoes', 'Celula', 'AtividadeNaCelula'
+    ];
+    var linhas = lista.map(function(v) {
+        return [
+            v.nome || v.NomeCompleto || '',
+            formatarDataCSV(v.nascimento || v.DataNascimento || ''),
+            v.idade || v.Idade || '',
+            formatarDataCSV(v.dataVisita || v.DataVisita || v.criadoEm || ''),
+            v.telefone || v.Telefone || '',
+            v.estadoCivil || v.EstadoCivil || '',
+            v.endereco || v.Endereco || '',
+            v.bairro || v.Bairro || '',
+            v.municipio || v.cidade || v.Cidade || '',
+            v.aceitouJesus || v.AceitouJesus || '',
+            (v.batizado === true || v.batizado === 'sim') ? 'Sim' : (v.batizado === false || v.batizado === 'nao' ? 'Não' : (v.batizado || v.Batizado || '')),
+            formatarDataCSV(v.dataBatismo || v.DataBatismo || ''),
+            v.observacoes || v.Observacoes || '',
+            v.celula || v.Celula || '',
+            v.atividade || v.AtividadeNaCelula || ''
+        ];
+    });
+    return montarCSV(cols, linhas);
+}
+
 function exportarRelatoriosCSV(celulaIdFiltro) {
     const u = getUsuarioLogado();
     if (!u) return { sucesso: false, mensagem: 'Faça login.' };
@@ -1673,27 +1786,32 @@ function exportarRelatoriosCSV(celulaIdFiltro) {
     if (celulaIdFiltro) lista = lista.filter(r => r.celulaId === celulaIdFiltro);
     if (!lista.length) return { sucesso: false, mensagem: 'Nenhum relatório para exportar.' };
 
-    const sep = ';';
-    const header = ['Data', 'Célula', 'Qtd presentes', 'Oferta PIX', 'Oferta espécie', 'Total ofertas', 'Observações', 'Registrado por'].join(sep);
+    const cols = ['Data', 'Célula', 'Qtd presentes', 'Oferta PIX', 'Oferta espécie', 'Total ofertas', 'Observações', 'Registrado por'];
     const linhas = lista.map(r => {
-        const cel = LISTA_CELULAS.find(c => c.id === r.celulaId);
+        const cel = (typeof LISTA_CELULAS !== 'undefined') ? LISTA_CELULAS.find(c => c.id === r.celulaId) : null;
         const nomeCel = cel ? cel.nome : r.celulaId;
         return [
-            r.data || '',
-            '"' + (nomeCel || '').replace(/"/g, '""') + '"',
+            formatarDataCSV(r.data || ''),
+            nomeCel || '',
             r.qtdPresentes || 0,
-            (r.ofertaPix || 0).toFixed(2).replace('.', ','),
-            (r.ofertaEspecie || 0).toFixed(2).replace('.', ','),
-            (r.totalOfertas || 0).toFixed(2).replace('.', ','),
-            '"' + (r.observacoes || '').replace(/"/g, '""') + '"',
-            '"' + (r.autorNome || '').replace(/"/g, '""') + '"'
-        ].join(sep);
+            (Number(r.ofertaPix || 0)).toFixed(2).replace('.', ','),
+            (Number(r.ofertaEspecie || 0)).toFixed(2).replace('.', ','),
+            (Number(r.totalOfertas || 0)).toFixed(2).replace('.', ','),
+            r.observacoes || '',
+            r.autorNome || ''
+        ];
     });
-    const csv = '\uFEFF' + header + '\n' + linhas.join('\n');
-    return { sucesso: true, csv: csv, nomeArquivo: celulaIdFiltro ? ('relatorio-' + celulaIdFiltro + '.csv') : 'relatorios-celulas-geral.csv' };
+    const csv = montarCSV(cols, linhas);
+    const dataArq = dataArquivoBR();
+    const nomeArquivo = celulaIdFiltro
+        ? ('relatorio-celula-' + celulaIdFiltro + '_' + dataArq + '.csv')
+        : ('relatorios-celulas-geral_' + dataArq + '.csv');
+    return { sucesso: true, csv: csv, nomeArquivo: nomeArquivo };
 }
 
 function baixarCSV(conteudo, nomeArquivo) {
+    // Garante BOM se ainda não tiver
+    if (conteudo && conteudo.charCodeAt(0) !== 0xFEFF) conteudo = '﻿' + conteudo;
     const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

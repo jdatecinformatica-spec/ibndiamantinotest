@@ -88,7 +88,10 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-primary">👥 Membros Cadastrados</h2>
                     <button id="btnBaixarMembros" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">
-                        <i class="fa fa-download"></i> Baixar CSV Completo
+                        <i class="fa fa-download"></i> Baixar CSV Membros
+                    </button>
+                    <button id="btnBaixarGeralTudo" class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-accent">
+                        <i class="fa fa-files-o"></i> Baixar relatório geral (tudo)
                     </button>
                 </div>
                 <p class="text-sm text-gray-500 mb-3" id="qtdMembros">0 membros</p>
@@ -457,25 +460,82 @@
             if (typeof renderizarMembros === 'function') renderizarMembros();
         };
 
-        // Download CSV
+        // Download CSV — colunas definidas, separador ; (Excel Brasil)
+        
+        document.getElementById('btnBaixarGeralTudo') && document.getElementById('btnBaixarGeralTudo').addEventListener('click', function() {
+            var dataArq = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : 'lista';
+            var ok = 0;
+            // 1) Membros (completo)
+            try {
+                var listaM = getMembros();
+                if (listaM.length && typeof exportarMembrosCSVDefinido === 'function') {
+                    baixar(exportarMembrosCSVDefinido(listaM), 'relatorio_membros_' + dataArq + '.csv');
+                    ok++;
+                }
+            } catch (e) { console.warn(e); }
+            // 2) Eventos
+            try {
+                var listaE = getEventos();
+                if (listaE.length) {
+                    var csvE = (typeof montarCSV === 'function')
+                        ? montarCSV(['Nome','Data','Local','Valor','PIX','Formas','LinkPagamento'],
+                            listaE.map(function(ev){
+                                return [ev.nome||'', (typeof formatarDataCSV==='function'?formatarDataCSV(ev.data):ev.data||''), ev.local||'', ev.valor||0, ev.pix||'', ev.forma||ev.formaPagamento||'', ev.linkPagamento||''];
+                            }))
+                        : '';
+                    if (csvE) { baixar(csvE, 'eventos_' + dataArq + '.csv'); ok++; }
+                }
+            } catch (e) { console.warn(e); }
+            // 3) Inscritos em eventos
+            try {
+                var listaI = (typeof getInscritosEventos === 'function') ? getInscritosEventos() : [];
+                if (listaI.length && typeof montarCSV === 'function') {
+                    var csvI = montarCSV(
+                        ['Codigo','Nome','Evento','Telefone','Email','Valor','Status','MeioPagamento','DataInsc','DataPagamento','Tipo'],
+                        listaI.map(function(i){
+                            return [i.codigo||'', i.nome||'', i.eventoNome||'', i.telefone||'', i.email||'', i.valor||0,
+                                i.statusPagamento || (i.pago ? 'confirmado' : 'pendente'), i.meioPagamento||'', i.dataInsc||'', i.dataPagamento||'', i.tipo||''];
+                        })
+                    );
+                    baixar(csvI, 'inscritos-eventos_' + dataArq + '.csv');
+                    ok++;
+                }
+            } catch (e) { console.warn(e); }
+            // 4) Relatórios de células
+            try {
+                if (typeof exportarRelatoriosCSV === 'function') {
+                    var r = exportarRelatoriosCSV(null);
+                    if (r && r.sucesso && r.csv) {
+                        baixar(r.csv, r.nomeArquivo || ('relatorios-celulas-geral_' + dataArq + '.csv'));
+                        ok++;
+                    }
+                }
+            } catch (e) { console.warn(e); }
+            // 5) Visitantes (se houver)
+            try {
+                if (typeof exportarVisitantesCSVDefinido === 'function') {
+                    var csvV = exportarVisitantesCSVDefinido();
+                    // só baixa se tiver linha além do cabeçalho
+                    if (csvV && csvV.split('\n').length > 1) {
+                        baixar(csvV, 'visitantes_' + dataArq + '.csv');
+                        ok++;
+                    }
+                }
+            } catch (e) { console.warn(e); }
+
+            if (ok === 0) alert('Nenhum dado para exportar ainda.');
+            else alert('Relatório geral: ' + ok + ' arquivo(s) CSV baixado(s).\nColunas separadas por ; — data no nome: ' + dataArq);
+        });
+
         document.getElementById('btnBaixarMembros').addEventListener('click', () => {
             const lista = getMembros();
             if (!lista.length) { alert('Sem dados para baixar.'); return; }
-            const cabecalho = 'Nome,Telefone,E-mail,Sexo,Nascimento,Estado Civil,Endereço,Origem,Batizado,Data Batismo,Observações\n';
-            const linhas = lista.map(m => [
-                `"${m.nome}"`,
-                `"${m.telefone || ''}"`,
-                `"${m.email || ''}"`,
-                `"${m.sexo || ''}"`,
-                `"${m.nascimento || ''}"`,
-                `"${m.estadoCivil || ''}"`,
-                `"${m.endereco || ''}"`,
-                `"${m.origem || ''}"`,
-                `"${m.batizado || ''}"`,
-                `"${m.dataBatismo || ''}"`,
-                `"${m.observacoes || ''}"`
-            ].join(',')).join('\n');
-            baixar(cabecalho + linhas, 'membros-completo.csv');
+            var csv = (typeof exportarMembrosCSVDefinido === 'function')
+                ? exportarMembrosCSVDefinido(lista)
+                : '';
+            if (!csv) { alert('Função de exportação indisponível. Atualize conta.js'); return; }
+            var dataArq = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : (function(){ var d=new Date(); return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear(); })();
+            baixar(csv, 'relatorio_membros_' + dataArq + '.csv');
         });
 
         // === EVENTOS ===
@@ -537,8 +597,11 @@
         document.getElementById('btnBaixarEventos').addEventListener('click', () => {
             const lista = getEventos();
             if (!lista.length) { alert('Sem dados.'); return; }
-            const csv = 'Nome,Data,Local\n' + lista.map(ev => `"${ev.nome}","${ev.data}","${ev.local}"`).join('\n');
-            baixar(csv, 'eventos.csv');
+            const csv = montarCSV
+                ? montarCSV(['Nome','Data','Local','Valor','PIX','Formas','LinkPagamento'], lista.map(ev => [ev.nome, ev.data, ev.local||'', ev.valor||0, ev.pix||'', ev.forma||ev.formaPagamento||'', ev.linkPagamento||'']))
+                : ('Nome;Data;Local\n' + lista.map(ev => [ev.nome,ev.data,ev.local].map(x=>'"'+String(x||'').replace(/"/g,'""')+'"').join(';')).join('\n'));
+            var dataArqE = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : '';
+            baixar(csv, 'eventos_' + (dataArqE || 'lista') + '.csv');
         });
 
         
@@ -593,16 +656,29 @@
             if (b) b.addEventListener('click', function(){
                 var lista = getInscritosEventos();
                 if (!lista.length) return alert('Sem inscritos.');
-                var csv = 'Codigo;Nome;Evento;Telefone;Email;Valor;Status;DataInsc;DataPagamento\n' +
-                    lista.map(function(i){
-                        return [i.codigo,i.nome,i.eventoNome,i.telefone,i.email,i.valor,i.statusPagamento|| (i.pago?'confirmado':'pendente'),i.dataInsc,i.dataPagamento].map(function(x){ return '"' + String(x||'').replace(/"/g,'') + '"'; }).join(';');
-                    }).join('\n');
-                baixar(csv, 'inscritos-eventos.csv');
+                var csv = (typeof montarCSV === 'function')
+                    ? montarCSV(
+                        ['Codigo','Nome','Evento','Telefone','Email','Valor','Status','MeioPagamento','DataInsc','DataPagamento','Tipo'],
+                        lista.map(function(i){
+                            return [
+                                i.codigo||'', i.nome||'', i.eventoNome||'', i.telefone||'', i.email||'',
+                                i.valor||0,
+                                i.statusPagamento || (i.pago ? 'confirmado' : 'pendente'),
+                                i.meioPagamento||'',
+                                i.dataInsc||'', i.dataPagamento||'',
+                                i.tipo||''
+                            ];
+                        })
+                      )
+                    : '';
+                var dataArqI = (typeof dataArquivoBR === 'function') ? dataArquivoBR() : '';
+                baixar(csv, 'inscritos-eventos_' + (dataArqI||'lista') + '.csv');
             });
         });
 
         // === UTILITÁRIO ===
         function baixar(conteudo, nome) {
+            if (conteudo && conteudo.charCodeAt(0) !== 0xFEFF) conteudo = '﻿' + conteudo;
             const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

@@ -69,6 +69,7 @@ const IBNNuvem = (function () {
             const col = db.collection('membros');
             (lista || []).forEach(function (m) {
                 if (!m || m.id === undefined || m.id === null) return;
+                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
                 const ref = col.doc(String(m.id));
                 batch.set(ref, membroPublico(m), { merge: true });
             });
@@ -93,14 +94,58 @@ const IBNNuvem = (function () {
     }
 
 
+    async function puxarExcluidosParaLocal() {
+        if (!iniciar() || !db) return { sucesso: false };
+        try {
+            const snap = await db.collection('config').doc('membros_excluidos').get();
+            if (!snap.exists) return { sucesso: true, lista: [] };
+            const data = snap.data() || {};
+            const listaNuvem = Array.isArray(data.lista) ? data.lista : [];
+            let local = [];
+            try { local = JSON.parse(localStorage.getItem('ibn_membros_excluidos') || '[]'); } catch (e) { local = []; }
+            const porId = {};
+            local.concat(listaNuvem).forEach(function (x) {
+                if (!x) return;
+                const k = String(x.id || x.chave || x.email || '');
+                if (k) porId[k] = Object.assign({}, porId[k] || {}, x);
+            });
+            const mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
+            localStorage.setItem('ibn_membros_excluidos', JSON.stringify(mesclada));
+            return { sucesso: true, lista: mesclada };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
+
+    async function sincronizarExcluidos(lista) {
+        if (!iniciar() || !db) return { sucesso: false };
+        try {
+            await db.collection('config').doc('membros_excluidos').set({
+                lista: lista || [],
+                atualizadoEm: new Date().toISOString()
+            }, { merge: true });
+            return { sucesso: true };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
+
     async function puxarMembrosParaLocal() {
         const r = await buscarMembros();
         if (!r.sucesso) return r;
         try {
+            // Carrega lista de removidos para não ressuscitar
+            try { await puxarExcluidosParaLocal(); } catch (e) {}
             const local = (typeof lerMembros === 'function') ? lerMembros() : [];
             const porId = {};
-            local.forEach(function (m) { if (m && m.id !== undefined) porId[String(m.id)] = m; });
+            local.forEach(function (m) {
+                if (!m || m.id === undefined) return;
+                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
+                porId[String(m.id)] = m;
+            });
             (r.lista || []).forEach(function (m) {
+                if (!m || m.id === undefined) return;
+                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
                 const id = String(m.id);
                 if (!porId[id]) {
                     porId[id] = m;
@@ -108,13 +153,15 @@ const IBNNuvem = (function () {
                     const senhaLocal = porId[id].senha;
                     const respLocal = porId[id].respostaSeguranca;
                     porId[id] = Object.assign({}, porId[id], m);
-                    // Nuvem sem senha não apaga a senha que já está neste aparelho
                     if (!m.senha && senhaLocal) porId[id].senha = senhaLocal;
                     if (!m.respostaSeguranca && respLocal) porId[id].respostaSeguranca = respLocal;
                 }
             });
+            // Remove do local qualquer um que esteja na lista de excluídos
             let mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
-            // Grava e deduplica por nome+nascimento
+            if (typeof membroFoiExcluido === 'function') {
+                mesclada = mesclada.filter(function (m) { return !membroFoiExcluido(m); });
+            }
             localStorage.setItem('ibn_membros', JSON.stringify(mesclada));
             if (typeof deduplicarMembrosLocais === 'function') {
                 mesclada = deduplicarMembrosLocais();
@@ -183,24 +230,9 @@ const IBNNuvem = (function () {
 
     /** CSV de membros — mesmo formato do painel admin */
     function csvMembros(lista) {
-        const sep = ';';
-        const header = [
-            'Nome', 'Telefone', 'E-mail', 'Sexo', 'Nascimento', 'Estado Civil',
-            'Endereço', 'Município', 'UF', 'Origem', 'Batizado', 'Data Batismo',
-            'Cargo', 'Função específica', 'Lidera célula', 'Lidera ministério',
-            'Nível', 'Status', 'Células', 'Ministérios', 'Observações', 'Data Cadastro'
-        ].join(sep);
-        const linhas = (lista || []).map(function (m) {
-            const celulas = Array.isArray(m.celulas)
-                ? m.celulas.map(function (c) { return c.nome || c.id || c; }).join(' | ')
-                : '';
-            const ministerios = Array.isArray(m.ministerios) ? m.ministerios.join(' | ') : (m.ministerios || '');
-            const bat = (m.batizado === true || m.batizado === 'sim' || m.batizado === 'Sim') ? 'Sim'
-                : (m.batizado === false || m.batizado === 'nao' || m.batizado === 'Não') ? 'Não'
-                : (m.batizado || '');
-            function q(v) {
-                return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-            }
+            if (typeof exportarMembrosCSVDefinido === 'function') return exportarMembrosCSVDefinido(lista || []);
+            return '';
+        }
             var nomeCelLider = m.lideraCelulaId || '';
             if (m.lideraCelulaId && typeof LISTA_CELULAS !== 'undefined') {
                 var celL = LISTA_CELULAS.find(function(c){ return c.id === m.lideraCelulaId; });
@@ -264,7 +296,7 @@ const IBNNuvem = (function () {
         const r = await buscarMembros();
         if (!r.sucesso) return r;
         if (!r.lista.length) return { sucesso: false, mensagem: 'Nenhum membro na nuvem ainda.' };
-        baixarArquivo(csvMembros(r.lista), 'membros-ibn-nuvem.csv');
+        baixarArquivo(csvMembros(r.lista), (typeof dataArquivoBR==='function' ? ('membros-ibn-nuvem_' + dataArquivoBR() + '.csv') : 'membros-ibn-nuvem.csv'));
         return { sucesso: true, quantidade: r.lista.length };
     }
 
@@ -671,6 +703,8 @@ const IBNNuvem = (function () {
         sincronizarUmMembro: sincronizarUmMembro,
         buscarMembros: buscarMembros,
         puxarMembrosParaLocal: puxarMembrosParaLocal,
+        puxarExcluidosParaLocal: puxarExcluidosParaLocal,
+        sincronizarExcluidos: sincronizarExcluidos,
         sincronizarRelatorio: sincronizarRelatorio,
         buscarRelatorios: buscarRelatorios,
         exportarMembrosCSV: exportarMembrosCSV,
