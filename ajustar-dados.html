@@ -135,7 +135,7 @@
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Líder de Ministério" class="accent-secondary"> Líder de Ministério</label>
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Líder em treinamento" class="accent-secondary"> Líder em treinamento</label>
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Discipulador(a)" class="accent-secondary"> Discipulador(a)</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Pastor / Pastora" class="accent-secondary"> Pastor / Pastora</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Pastor(a)" class="accent-secondary"> Pastor(a)</label>
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Missionário(a)" class="accent-secondary"> Missionário(a)</label>
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Voluntário(a)" class="accent-secondary"> Voluntário(a)</label>
                             <label class="flex items-center gap-2"><input type="checkbox" name="fnMembro" value="Outro" class="accent-secondary"> Outro</label>
@@ -155,7 +155,10 @@
                 </div>
 
                 <div id="msg" class="text-sm hidden"></div>
+
                 <button type="submit" class="w-full bg-primary text-white p-3 rounded-lg font-bold hover:bg-accent">
+                    <i class="fa fa-save mr-2"></i> Salvar Alterações
+                </button>
 
                 <div class="border-t pt-4 mt-4">
                     <button type="button" id="btnAbrirAlterarSenha" class="text-sm font-bold text-primary border border-primary px-4 py-2 rounded-lg hover:bg-primary hover:text-white">
@@ -163,46 +166,43 @@
                     </button>
                     <p class="text-xs text-gray-400 mt-1">Opcional. Só use se quiser trocar a senha de acesso.</p>
                 </div>
+            </form>
 
-                <!-- Modal alterar senha -->
-                <div id="modalAlterarSenha" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-                    <div class="bg-white rounded-2xl max-w-md w-full p-6">
-                        <h3 class="font-bold text-primary text-lg mb-1">Alterar senha</h3>
-                        <p class="text-xs text-gray-500 mb-4">Informe a senha atual e a nova senha duas vezes.</p>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Senha atual</label>
-                                <div class="relative">
-                                    <input type="password" id="adSenhaAtual" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="current-password">
-                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaAtual"><i class="fa fa-eye"></i></button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Nova senha</label>
-                                <div class="relative">
-                                    <input type="password" id="adSenhaNova" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
-                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova"><i class="fa fa-eye"></i></button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-1">Confirmar nova senha</label>
-                                <div class="relative">
-                                    <input type="password" id="adSenhaNova2" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
-                                    <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova2"><i class="fa fa-eye"></i></button>
-                                </div>
+            <!-- Modal alterar senha (fora do form) -->
+            <div id="modalAlterarSenha" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-2xl max-w-md w-full p-6">
+                    <h3 class="font-bold text-primary text-lg mb-1">Alterar senha</h3>
+                    <p class="text-xs text-gray-500 mb-4">Informe a senha atual e a nova senha duas vezes.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Senha atual</label>
+                            <div class="relative">
+                                <input type="password" id="adSenhaAtual" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="current-password">
+                                <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaAtual"><i class="fa fa-eye"></i></button>
                             </div>
                         </div>
-                        <p id="adSenhaMsg" class="text-sm mt-3 hidden text-center"></p>
-                        <div class="flex gap-2 mt-4">
-                            <button type="button" id="btnTrocarSenhaDados" class="flex-1 bg-primary text-white py-2 rounded-lg font-bold">Salvar nova senha</button>
-                            <button type="button" id="btnFecharSenhaModal" class="flex-1 border py-2 rounded-lg font-bold">Cancelar</button>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Nova senha</label>
+                            <div class="relative">
+                                <input type="password" id="adSenhaNova" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
+                                <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova"><i class="fa fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Confirmar nova senha</label>
+                            <div class="relative">
+                                <input type="password" id="adSenhaNova2" class="w-full border rounded-lg px-3 py-2 text-sm pr-10" autocomplete="new-password">
+                                <button type="button" class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" data-target="adSenhaNova2"><i class="fa fa-eye"></i></button>
+                            </div>
                         </div>
                     </div>
+                    <p id="adSenhaMsg" class="text-sm mt-3 hidden text-center"></p>
+                    <div class="flex gap-2 mt-4">
+                        <button type="button" id="btnTrocarSenhaDados" class="flex-1 bg-primary text-white py-2 rounded-lg font-bold">Salvar nova senha</button>
+                        <button type="button" id="btnFecharSenhaModal" class="flex-1 border py-2 rounded-lg font-bold">Cancelar</button>
+                    </div>
                 </div>
-
-                    <i class="fa fa-save mr-2"></i> Salvar Alterações
-                </button>
-            </form>
+            </div>
 
             <p class="text-center mt-6 space-y-2">
                 <a href="area-membro.html" class="text-secondary font-bold hover:underline block">← Voltar à Área do Membro</a>

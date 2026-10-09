@@ -113,7 +113,7 @@ const LISTA_CARGOS = [
     'Líder de Ministério',
     'Líder em treinamento',
     'Discipulador(a)',
-    'Pastor / Pastora',
+    'Pastor(a)',
     'Missionário(a)',
     'Voluntário(a)',
     'Outro'
