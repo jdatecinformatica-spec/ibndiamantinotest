@@ -108,14 +108,14 @@ const LISTA_MINISTERIOS = [
 ];
 
 const LISTA_CARGOS = [
-    'Membro',
+    'Membro(a)',
     'Líder de Célula',
     'Líder de Ministério',
     'Líder em treinamento',
-    'Discipulador',
-    'Pastor',
+    'Discipulador(a)',
+    'Pastor / Pastora',
     'Missionário(a)',
-    'Voluntário',
+    'Voluntário(a)',
     'Outro'
 ];
 
