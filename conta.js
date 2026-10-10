@@ -181,9 +181,21 @@ function salvarMembros(lista) {
     // Cópia na nuvem (se configurada) — não bloqueia o uso local
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
-            IBNNuvem.sincronizarMembros(lista);
+            IBNNuvem.sincronizarMembros(lista).then(function (r) {
+                if (r && !r.sucesso) console.warn('Nuvem (membros):', r.mensagem || r);
+            }).catch(function (e) { console.warn('Nuvem (membros):', e); });
         }
     } catch (e) { /* silencioso */ }
+}
+
+/** Garante um membro específico na nuvem (cadastro / edição) */
+function enviarMembroParaNuvem(membro) {
+    try {
+        if (typeof IBNNuvem === 'undefined' || !IBNNuvem.sincronizarUmMembro || !membro) return;
+        IBNNuvem.sincronizarUmMembro(membro).then(function (r) {
+            if (r && !r.sucesso) console.warn('Nuvem (1 membro):', r.mensagem || r);
+        }).catch(function (e) { console.warn('Nuvem (1 membro):', e); });
+    } catch (e) {}
 }
 
 
@@ -552,6 +564,7 @@ function cadastrarMembro(dados) {
     salvarMembros(lista);
     iniciarSessao(novo);
     try {
+        enviarMembroParaNuvem(novo);
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
             IBNNuvem.registrarAtividade('cadastro', 'Novo cadastro no site', novo);
         }

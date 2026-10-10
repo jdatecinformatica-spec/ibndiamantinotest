@@ -63,18 +63,27 @@ const IBNNuvem = (function () {
     }
 
     async function sincronizarMembros(lista) {
-        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro };
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
-            const batch = db.batch();
             const col = db.collection('membros');
-            (lista || []).forEach(function (m) {
-                if (!m || m.id === undefined || m.id === null) return;
-                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
-                const ref = col.doc(String(m.id));
-                batch.set(ref, membroPublico(m), { merge: true });
+            const itens = (lista || []).filter(function (m) {
+                if (!m || m.id === undefined || m.id === null || m.id === '') return false;
+                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return false;
+                return true;
             });
-            await batch.commit();
-            return { sucesso: true };
+            // Firestore: no máximo 500 ops por batch
+            const CHUNK = 400;
+            let enviados = 0;
+            for (let i = 0; i < itens.length; i += CHUNK) {
+                const fatia = itens.slice(i, i + CHUNK);
+                const batch = db.batch();
+                fatia.forEach(function (m) {
+                    batch.set(col.doc(String(m.id)), membroPublico(m), { merge: true });
+                });
+                await batch.commit();
+                enviados += fatia.length;
+            }
+            return { sucesso: true, quantidade: enviados };
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
             console.warn('IBNNuvem.sincronizarMembros:', ultimoErro);
@@ -83,12 +92,20 @@ const IBNNuvem = (function () {
     }
 
     async function sincronizarUmMembro(m) {
-        if (!iniciar() || !db || !m) return { sucesso: false };
+        if (!m) return { sucesso: false, mensagem: 'Membro vazio' };
+        if (m.id === undefined || m.id === null || m.id === '') {
+            m.id = Date.now();
+        }
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
+            if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) {
+                return { sucesso: false, mensagem: 'Membro na lista de excluídos' };
+            }
             await db.collection('membros').doc(String(m.id)).set(membroPublico(m), { merge: true });
             return { sucesso: true };
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
+            console.warn('IBNNuvem.sincronizarUmMembro:', ultimoErro);
             return { sucesso: false, mensagem: ultimoErro };
         }
     }

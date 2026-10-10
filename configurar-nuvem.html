@@ -198,6 +198,9 @@ service cloud.firestore {
             }).join('');
         });
         atualizarStatus();
+        // Firebase pode carregar um pouco depois
+        setTimeout(atualizarStatus, 800);
+        setTimeout(atualizarStatus, 2000);
     </script>
 </body>
 </html>
