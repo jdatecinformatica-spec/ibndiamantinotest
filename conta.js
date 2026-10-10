@@ -1772,6 +1772,100 @@ function exportarVisitantesCSVDefinido(lista) {
     return montarCSV(cols, linhas);
 }
 
+
+// ========== ANIVERSARIANTES (somente membros) ==========
+function _mdNascimento(m) {
+    var iso = normalizarDataParaISO(m.nascimento || m.dataNascimento || '');
+    if (!iso || iso.length < 10) return null;
+    return { mes: parseInt(iso.slice(5, 7), 10), dia: parseInt(iso.slice(8, 10), 10), iso: iso };
+}
+function _idadeAniversario(isoNasc, refDate) {
+    if (!isoNasc) return null;
+    var n = new Date(isoNasc.slice(0, 10) + 'T12:00:00');
+    if (isNaN(n.getTime())) return null;
+    var r = refDate || new Date();
+    var idade = r.getFullYear() - n.getFullYear();
+    var m = r.getMonth() - n.getMonth();
+    if (m < 0 || (m === 0 && r.getDate() < n.getDate())) idade--;
+    return idade;
+}
+function listarAniversariantesNaData(refDate) {
+    refDate = refDate || new Date();
+    var mes = refDate.getMonth() + 1;
+    var dia = refDate.getDate();
+    var lista = (typeof lerMembros === 'function' ? lerMembros() : []).filter(function (m) {
+        if (!m || m.status === 'rejeitado' || m.status === 'excluido') return false;
+        if (m.tipo === 'visitante' || m.status === 'visitante') return false;
+        var md = _mdNascimento(m);
+        return md && md.mes === mes && md.dia === dia;
+    });
+    return lista.map(function (m) {
+        var md = _mdNascimento(m);
+        return {
+            id: m.id,
+            nome: m.nome || '',
+            telefone: m.telefone || '',
+            email: m.email || '',
+            nascimento: md ? md.iso : '',
+            idade: _idadeAniversario(md ? md.iso : null, refDate)
+        };
+    }).sort(function (a, b) { return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); });
+}
+function listarAniversariantesHoje() {
+    return listarAniversariantesNaData(new Date());
+}
+/** Próximos N dias (inclui hoje se houver). Retorna [{ dataIso, dataBR, aniversariantes: [] }] */
+function listarProximosAniversariantes(dias) {
+    dias = dias || 8;
+    var out = [];
+    var base = new Date();
+    base.setHours(12, 0, 0, 0);
+    for (var i = 0; i <= dias; i++) {
+        var d = new Date(base.getTime());
+        d.setDate(base.getDate() + i);
+        var lista = listarAniversariantesNaData(d);
+        if (!lista.length) continue;
+        var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        var br = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+        out.push({ dataIso: iso, dataBR: br, diasAte: i, aniversariantes: lista });
+    }
+    return out;
+}
+function ehAniversarioHojeMembro(m) {
+    if (!m) return false;
+    var md = _mdNascimento(m);
+    if (!md) return false;
+    var hoje = new Date();
+    return md.mes === (hoje.getMonth() + 1) && md.dia === hoje.getDate();
+}
+function mensagemAniversarioPadrao(nomeAniv, nomeRemetente) {
+    var n = (nomeAniv || 'irmão(ã)').split(' ')[0];
+    var de = (nomeRemetente || '').split(' ')[0];
+    return '🎂 Feliz aniversário, ' + n + '!\n\nQue Deus continue abençoando sua vida com muita paz, saúde e alegria. A família IBN Diamantino celebra este dia com você!\n\nCom carinho' + (de ? ', ' + de : '') + ' 🙏';
+}
+function linkWhatsAppAniversario(telefone, texto) {
+    var dig = String(telefone || '').replace(/\D/g, '');
+    if (!dig) return null;
+    if (dig.length <= 11) dig = '55' + dig;
+    return 'https://wa.me/' + dig + '?text=' + encodeURIComponent(texto || '');
+}
+function registrarMensagemAniversarioLocal(deId, deNome, paraId, paraNome, texto) {
+    try {
+        var key = 'ibn_msgs_aniversario';
+        var arr = JSON.parse(localStorage.getItem(key) || '[]');
+        arr.push({
+            id: 'msg-' + Date.now(),
+            deId: deId, deNome: deNome,
+            paraId: paraId, paraNome: paraNome,
+            texto: texto,
+            em: new Date().toISOString()
+        });
+        if (arr.length > 200) arr = arr.slice(-200);
+        localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) {}
+}
+
+
 function exportarRelatoriosCSV(celulaIdFiltro) {
     const u = getUsuarioLogado();
     if (!u) return { sucesso: false, mensagem: 'Faça login.' };
