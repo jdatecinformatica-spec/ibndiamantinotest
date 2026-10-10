@@ -247,9 +247,28 @@ const IBNNuvem = (function () {
 
     /** CSV de membros — mesmo formato do painel admin */
     function csvMembros(lista) {
-            if (typeof exportarMembrosCSVDefinido === 'function') return exportarMembrosCSVDefinido(lista || []);
-            return '';
+        // Preferência: exportação padronizada do conta.js (se existir)
+        if (typeof exportarMembrosCSVDefinido === 'function') {
+            try { return exportarMembrosCSVDefinido(lista || []); } catch (e) {}
         }
+        const sep = ';';
+        const header = [
+            'Nome', 'Telefone', 'E-mail', 'Sexo', 'Nascimento', 'Estado Civil',
+            'Endereço', 'Município', 'UF', 'Origem', 'Batizado', 'Data Batismo',
+            'Cargo', 'Função específica', 'Lidera célula', 'Lidera ministério',
+            'Nível', 'Status', 'Células', 'Ministérios', 'Observações', 'Data Cadastro'
+        ].join(sep);
+        const linhas = (lista || []).map(function (m) {
+            const celulas = Array.isArray(m.celulas)
+                ? m.celulas.map(function (c) { return c.nome || c.id || c; }).join(' | ')
+                : '';
+            const ministerios = Array.isArray(m.ministerios) ? m.ministerios.join(' | ') : (m.ministerios || '');
+            const bat = (m.batizado === true || m.batizado === 'sim' || m.batizado === 'Sim') ? 'Sim'
+                : (m.batizado === false || m.batizado === 'nao' || m.batizado === 'Não') ? 'Não'
+                : (m.batizado || '');
+            function q(v) {
+                return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            }
             var nomeCelLider = m.lideraCelulaId || '';
             if (m.lideraCelulaId && typeof LISTA_CELULAS !== 'undefined') {
                 var celL = LISTA_CELULAS.find(function(c){ return c.id === m.lideraCelulaId; });
@@ -313,7 +332,7 @@ const IBNNuvem = (function () {
         const r = await buscarMembros();
         if (!r.sucesso) return r;
         if (!r.lista.length) return { sucesso: false, mensagem: 'Nenhum membro na nuvem ainda.' };
-        baixarArquivo(csvMembros(r.lista), (typeof dataArquivoBR==='function' ? ('membros-ibn-nuvem_' + dataArquivoBR() + '.csv') : 'membros-ibn-nuvem.csv'));
+        baixarArquivo(csvMembros(r.lista), (typeof dataArquivoBR === 'function' ? ('membros-ibn-nuvem_' + dataArquivoBR() + '.csv') : 'membros-ibn-nuvem.csv'));
         return { sucesso: true, quantidade: r.lista.length };
     }
 
