@@ -405,7 +405,7 @@
             localStorage.setItem('ibn_fotos', JSON.stringify(lista));
         }
         function adicionarFoto(foto) {
-            if (!foto.id) foto.id = 'foto-' + Date.now();
+            if (!foto.id) foto.id = 'foto-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
             if (!foto.criadoEm) foto.criadoEm = new Date().toISOString();
             const lista = carregarFotos();
             lista.unshift(foto);
@@ -615,7 +615,7 @@
                 const mesAno = nomeMes + ' de ' + dataObj.getFullYear();
 
                 const novaFoto = {
-                    id: 'foto-' + Date.now(),
+                    id: 'foto-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
                     titulo: titulo,
                     imagem: imagemCompacta,
                     dataFormatada: dataFormatada,

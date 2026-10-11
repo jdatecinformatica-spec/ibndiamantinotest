@@ -732,6 +732,105 @@ const IBNNuvem = (function () {
         }
     }
 
+
+    /**
+     * Sincronização silenciosa ao login / abrir o site:
+     * envia o membro logado + fotos dele que estão só neste aparelho.
+     * Não exige o membro saber de nada.
+     */
+    async function sincronizarSessaoMembro(usuario) {
+        if (!usuario) {
+            try {
+                if (typeof getUsuarioLogado === 'function') usuario = getUsuarioLogado();
+            } catch (e) {}
+        }
+        if (!usuario || !usuario.id) return { sucesso: false, mensagem: 'Sem sessão' };
+        if (!iniciar()) return { sucesso: false, mensagem: ultimoErro || 'Nuvem offline' };
+
+        // Evita spam: no máximo 1x a cada 3 minutos por membro neste aparelho
+        try {
+            var chave = 'ibn_sync_sessao_' + String(usuario.id);
+            var ultima = parseInt(localStorage.getItem(chave) || '0', 10);
+            if (ultima && (Date.now() - ultima) < 3 * 60 * 1000) {
+                return { sucesso: true, mensagem: 'Já sincronizado há pouco', pulado: true };
+            }
+        } catch (e) {}
+
+        var resultados = { membro: false, fotos: 0, fotosCelula: 0, fotosPuxadas: false };
+
+        // 1) PUXA fotos da nuvem ANTES de enviar — o que admin/gestor apagou some deste aparelho
+        //    (evita reenviar foto já excluída)
+        try {
+            await puxarFotosParaLocal();
+            await puxarFotosCelulasParaLocal();
+            resultados.fotosPuxadas = true;
+        } catch (e) {
+            console.warn('sync sessão puxar fotos:', e);
+        }
+
+        // 2) Membro completo da lista local (tem senha e todos os campos)
+        try {
+            var completo = usuario;
+            if (typeof lerMembros === 'function') {
+                var lista = lerMembros() || [];
+                var achado = lista.find(function (m) { return String(m.id) === String(usuario.id); });
+                if (achado) completo = achado;
+            }
+            var rm = await sincronizarUmMembro(completo);
+            resultados.membro = !!(rm && rm.sucesso);
+        } catch (e) {
+            console.warn('sync sessão membro:', e);
+        }
+
+        // 3) Envia fotos DESTE autor que ainda estão no aparelho (não apagadas na nuvem)
+        try {
+            var fotos = JSON.parse(localStorage.getItem('ibn_fotos') || '[]');
+            for (var i = 0; i < fotos.length; i++) {
+                var f = fotos[i];
+                if (!f) continue;
+                var autorOk = String(f.autorId || '') === String(usuario.id) ||
+                    (f.autor && usuario.nome && String(f.autor).toLowerCase() === String(usuario.nome).toLowerCase());
+                if (!autorOk) continue;
+                var rf = await salvarFotoNuvem(f);
+                if (rf && rf.sucesso) resultados.fotos++;
+            }
+        } catch (e) {}
+
+        try {
+            var fcs = JSON.parse(localStorage.getItem('ibn_fotos_celulas') || '[]');
+            for (var j = 0; j < fcs.length; j++) {
+                var fc = fcs[j];
+                if (!fc) continue;
+                var okA = String(fc.autorId || '') === String(usuario.id) ||
+                    (fc.autor && usuario.nome && String(fc.autor).toLowerCase() === String(usuario.nome).toLowerCase());
+                if (!okA) continue;
+                var rfc = await salvarFotoCelulaNuvem(fc);
+                if (rfc && rfc.sucesso) resultados.fotosCelula++;
+            }
+        } catch (e) {}
+
+        try {
+            localStorage.setItem('ibn_sync_sessao_' + String(usuario.id), String(Date.now()));
+        } catch (e) {}
+
+        return {
+            sucesso: resultados.membro || resultados.fotos > 0 || resultados.fotosCelula > 0,
+            mensagem: 'Sessão sync',
+            detalhes: resultados
+        };
+    }
+
+    /** Agenda sync ao abrir página (não trava a tela) */
+    function agendarSyncSessao(usuario, atrasoMs) {
+        atrasoMs = atrasoMs == null ? 1200 : atrasoMs;
+        setTimeout(function () {
+            sincronizarSessaoMembro(usuario).catch(function (e) {
+                console.warn('agendarSyncSessao:', e);
+            });
+        }, atrasoMs);
+    }
+
+
     return {
         iniciar: iniciar,
         status: status,
@@ -746,6 +845,8 @@ const IBNNuvem = (function () {
         exportarMembrosCSV: exportarMembrosCSV,
         exportarRelatoriosCSV: exportarRelatoriosCSV,
         enviarTudoDoAparelho: enviarTudoDoAparelho,
+        sincronizarSessaoMembro: sincronizarSessaoMembro,
+        agendarSyncSessao: agendarSyncSessao,
         csvMembros: csvMembros,
         csvRelatorios: csvRelatorios,
         baixarArquivo: baixarArquivo,

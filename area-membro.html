@@ -467,5 +467,19 @@
 })();
 </script>
 
+
+<script>
+(function(){
+    function trySync() {
+        try {
+            if (typeof IBNNuvem === 'undefined' || !IBNNuvem.agendarSyncSessao) return;
+            var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+            if (u && u.id) IBNNuvem.agendarSyncSessao(u, 1000);
+        } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trySync);
+    else trySync();
+})();
+</script>
 </body>
 </html>

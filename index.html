@@ -2330,5 +2330,21 @@
 })();
 </script>
 
+
+<script>
+(function(){
+    // Ao abrir o site logado: envia dados/fotos do membro para a nuvem (automático)
+    function trySync() {
+        try {
+            if (typeof IBNNuvem === 'undefined' || !IBNNuvem.agendarSyncSessao) return;
+            var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+            if (u && u.id) IBNNuvem.agendarSyncSessao(u, 1500);
+        } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trySync);
+    else trySync();
+})();
+</script>
+
 </body>
 </html>

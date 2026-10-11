@@ -579,6 +579,12 @@ function iniciarSessao(membro) {
     // Chave oficial + chave usada na versão "map" (compatibilidade total)
     localStorage.setItem(CHAVE_SESSAO, json);
     localStorage.setItem('usuarioLogado', json);
+    // Sincroniza dados e fotos deste membro com a nuvem (silencioso)
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.agendarSyncSessao) {
+            IBNNuvem.agendarSyncSessao(membro, 800);
+        }
+    } catch (e) {}
 }
 
 function getUsuarioLogado() {
@@ -1165,7 +1171,7 @@ function adicionarFotoCelula(foto) {
     }
     const lista = lerFotosCelulas();
     lista.unshift({
-        id: Date.now(),
+        id: 'fc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
         ...foto,
         autorId: u.id,
         autorNome: u.nome,
