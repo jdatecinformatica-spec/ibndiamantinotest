@@ -1305,6 +1305,726 @@ function membrosDaCelula(celulaId) {
     });
 }
 
+
+/** Contas mestras de sistema — não entram na lista de membros da igreja */
+function isContaSistema(m) {
+    if (!m) return false;
+    var id = String(m.id || '');
+    var email = String(m.email || '').toLowerCase();
+    var nome = String(m.nome || '').toLowerCase().trim();
+    var nivel = String(m.nivel || '').toLowerCase();
+    if (id === 'gestor-master' || id.indexOf('legado-') === 0) return true;
+    if (email === 'gestor@ibndiamantino.com.br' || email === 'admin@ibndiamantino.com.br') return true;
+    if ((nome === 'gestor master' || nome === 'admin master') && (nivel === 'gestor' || nivel === 'admin' || !nivel)) return true;
+    if (typeof CONTAS_MESTRAS !== 'undefined' && Array.isArray(CONTAS_MESTRAS)) {
+        for (var i = 0; i < CONTAS_MESTRAS.length; i++) {
+            var c = CONTAS_MESTRAS[i];
+            if (String(c.id) === id) return true;
+            if (c.email && String(c.email).toLowerCase() === email) return true;
+        }
+    }
+    return false;
+}
+function membrosReais() {
+    return ((typeof lerMembros === 'function') ? lerMembros() : []).filter(function (m) {
+        return !isContaSistema(m);
+    });
+}
+function isLiderDoMinisterio(u, nomeMinisterio) {
+    if (!u || !nomeMinisterio) return false;
+    if (typeof isAdmin === 'function' && isAdmin(u)) return true;
+    if (u.nivel === 'gestor' || u.nivel === 'admin') return true;
+    // Somente se o cadastro diz que lidera ESTE ministério
+    return lideraEsteMinisterio(u, nomeMinisterio);
+}
+
+
+// ========== MODELO DE FUNÇÕES POR MINISTÉRIO (formulário de escala) ==========
+const CHAVE_MODELO_ESCALA = 'ibn_modelo_escala_ministerios';
+/** Modelo padrão Atmosfera: função + quantidade sugerida */
+const MODELO_ESCALA_PADRAO = {
+    'Atmosfera': [
+        { funcao: 'Balcão Inf.', qtd: 1 },
+        { funcao: 'Estacionamento', qtd: 3 },
+        { funcao: 'Saudação Festiva', qtd: 8 },
+        { funcao: 'Saudação Recepção', qtd: 6 },
+        { funcao: 'Recepção Casal', qtd: 2 },
+        { funcao: 'Recepção Visitantes', qtd: 2 },
+        { funcao: 'Altar', qtd: 2 },
+        { funcao: 'Abertura', qtd: 1 },
+        { funcao: 'Dízimo e Oferta', qtd: 1 },
+        { funcao: 'Máquina Cartão', qtd: 1 },
+        { funcao: 'Pregador', qtd: 1 },
+        { funcao: 'Observação', qtd: 0 }
+    ],
+    'Acolhimento': [
+        { funcao: 'Recepção porta', qtd: 2 },
+        { funcao: 'Orientação visitantes', qtd: 2 },
+        { funcao: 'Café / apoio', qtd: 2 }
+    ],
+    'Louvor': [
+        { funcao: 'Vocal', qtd: 4 },
+        { funcao: 'Violão', qtd: 1 },
+        { funcao: 'Teclado', qtd: 1 },
+        { funcao: 'Bateria', qtd: 1 },
+        { funcao: 'Som', qtd: 1 }
+    ],
+    'Mídias Sociais': [
+        { funcao: 'Câmera', qtd: 2 },
+        { funcao: 'Transmissão', qtd: 1 },
+        { funcao: 'Stories / posts', qtd: 1 }
+    ],
+    'Intercessão': [
+        { funcao: 'Intercessor', qtd: 4 },
+        { funcao: 'Coordenação', qtd: 1 }
+    ]
+};
+
+function lerTodosModelosEscala() {
+    try {
+        var salvos = JSON.parse(localStorage.getItem(CHAVE_MODELO_ESCALA) || '{}');
+        var base = JSON.parse(JSON.stringify(MODELO_ESCALA_PADRAO));
+        Object.keys(salvos || {}).forEach(function (k) { base[k] = salvos[k]; });
+        return base;
+    } catch (e) {
+        return JSON.parse(JSON.stringify(MODELO_ESCALA_PADRAO));
+    }
+}
+function lerModeloFuncoesMinisterio(ministerio) {
+    var all = lerTodosModelosEscala();
+    if (all[ministerio] && all[ministerio].length) return all[ministerio];
+    // genérico se não existir
+    return [
+        { funcao: 'Função 1', qtd: 1 },
+        { funcao: 'Função 2', qtd: 2 },
+        { funcao: 'Apoio', qtd: 2 }
+    ];
+}
+function salvarModeloFuncoesMinisterio(ministerio, lista) {
+    try {
+        var salvos = JSON.parse(localStorage.getItem(CHAVE_MODELO_ESCALA) || '{}');
+        salvos[ministerio] = lista || [];
+        localStorage.setItem(CHAVE_MODELO_ESCALA, JSON.stringify(salvos));
+    } catch (e) {}
+}
+
+/**
+ * Monta uma linha de escala a partir do formulário e grava.
+ * dados = { ministerio, dataLabel, dataIso, preenchimento: { 'Estacionamento': ['Juarez','Napoleão'], ... }, observacao }
+ */
+function salvarDiaEscalaFormulario(dados) {
+    if (!dados || !dados.ministerio) return { sucesso: false, mensagem: 'Ministério obrigatório' };
+    var min = dados.ministerio;
+    var linhas = lerEscalaCultosMinisterio(min);
+    var iso = dados.dataIso || '';
+    if (!iso && dados.dataLabel) {
+        var pd = parseDataEscalaLabel(dados.dataLabel);
+        if (pd) iso = pd.iso;
+    }
+    // remove dia igual se já existir
+    linhas = linhas.filter(function (l) {
+        return String(l.dataIso || '') !== String(iso) && String(l.dataLabel || '') !== String(dados.dataLabel || '');
+    });
+    var funcoes = dados.preenchimento || {};
+    linhas.push({
+        dataLabel: dados.dataLabel || iso,
+        dataIso: iso,
+        funcoes: funcoes,
+        observacao: dados.observacao || '',
+        ministerio: min,
+        status: dados.status || 'rascunho', // rascunho | finalizada
+        atualizadoEm: new Date().toISOString()
+    });
+    linhas.sort(function (a, b) {
+        return String(a.dataIso || a.dataLabel).localeCompare(String(b.dataIso || b.dataLabel));
+    });
+    salvarEscalaCultosMinisterio(min, linhas);
+    return { sucesso: true, mensagem: 'Escala do dia salva para ' + min, linhas: linhas };
+}
+
+/** Gera CSV do ministério (mesmo formato Atmosfera) */
+function exportarEscalaCSV(ministerio) {
+    var linhas = lerEscalaCultosMinisterio(ministerio);
+    var modelo = lerModeloFuncoesMinisterio(ministerio);
+    var cols = ['Data'].concat(modelo.map(function (m) { return m.funcao; }).filter(function (f) {
+        return !/^observa/i.test(f);
+    }));
+    if (cols.indexOf('Observação') === -1) cols.push('Observação');
+    var sep = ';';
+    var out = [cols.join(sep)];
+    linhas.forEach(function (l) {
+        var row = [l.dataLabel || l.dataIso || ''];
+        cols.slice(1).forEach(function (c) {
+            if (/^observa/i.test(c)) {
+                row.push(l.observacao || '');
+                return;
+            }
+            var nomes = (l.funcoes && l.funcoes[c]) ? l.funcoes[c] : [];
+            row.push(Array.isArray(nomes) ? nomes.join(', ') : String(nomes || ''));
+        });
+        out.push(row.join(sep));
+    });
+    var csv = '\uFEFF' + out.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    var d = new Date();
+    var ds = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+    a.download = 'escala_' + String(ministerio || 'ministerio').replace(/\s+/g, '_').toLowerCase() + '_' + ds + '.csv';
+    a.click();
+    return { sucesso: true, mensagem: 'CSV gerado' };
+}
+
+
+// ========== ESCALA DE CULTOS / SERVIÇOS (modelo Atmosfera CSV) ==========
+const CHAVE_ESCALA_CULTOS = 'ibn_escala_cultos';
+/** Funções padrão Atmosfera (colunas do CSV) */
+const ESCALA_FUNCOES_ATMOSFERA = [
+    'Balcão Inf.', 'Estacionamento', 'Saudação Festiva', 'Saudação Recepção',
+    'Recepção Casal', 'Recepção Visitantes', 'Altar', 'Abertura',
+    'Dízimo e Oferta', 'Máquina Cartão', 'Pregador', 'Observação'
+];
+
+function lerTodasEscalasCultos() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_ESCALA_CULTOS) || '{}'); }
+    catch (e) { return {}; }
+}
+function salvarTodasEscalasCultos(obj) {
+    localStorage.setItem(CHAVE_ESCALA_CULTOS, JSON.stringify(obj || {}));
+}
+/** Escala de um ministério: array de { dataLabel, dataIso, funcoes: { nomeFuncao: [nomes...] }, observacao } */
+function lerEscalaCultosMinisterio(ministerio) {
+    var all = lerTodasEscalasCultos();
+    var m = all[ministerio] || all['Atmosfera'];
+    return Array.isArray(m) ? m : [];
+}
+function salvarEscalaCultosMinisterio(ministerio, linhas) {
+    var all = lerTodasEscalasCultos();
+    all[ministerio || 'Atmosfera'] = linhas || [];
+    salvarTodasEscalasCultos(all);
+}
+
+/** Converte "DOM 13/09/26" ou "QUINTA 17/09/26" em Date / ISO */
+function parseDataEscalaLabel(label) {
+    var s = String(label || '').trim();
+    var m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (!m) return null;
+    var dd = parseInt(m[1], 10);
+    var mm = parseInt(m[2], 10) - 1;
+    var aa = parseInt(m[3], 10);
+    if (aa < 100) aa += 2000;
+    var d = new Date(aa, mm, dd, 12, 0, 0);
+    if (isNaN(d.getTime())) return null;
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    return { date: d, iso: iso, label: s };
+}
+
+/** Parte nomes: "Juarez, Juscelio e Napoleão" → lista */
+function parseNomesEscala(celula) {
+    var s = String(celula || '').trim();
+    if (!s) return [];
+    s = s.replace(/\s+e\s+/gi, ',').replace(/\s+&\s+/g, ',');
+    return s.split(/[,;/|]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+}
+
+/**
+ * Importa CSV no formato Atmosfera (separador ;).
+ * Retorna { sucesso, quantidade, linhas, mensagem }
+ */
+function importarEscalaCSV(textoCSV, ministerio) {
+    ministerio = ministerio || 'Atmosfera';
+    if (!textoCSV || !String(textoCSV).trim()) {
+        return { sucesso: false, mensagem: 'Arquivo vazio.' };
+    }
+    var texto = String(textoCSV).replace(/^\uFEFF/, '');
+    var linhasBrutas = texto.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    if (linhasBrutas.length < 2) {
+        return { sucesso: false, mensagem: 'CSV precisa de cabeçalho e pelo menos uma linha.' };
+    }
+    var sep = linhasBrutas[0].indexOf(';') >= 0 ? ';' : ',';
+    var header = linhasBrutas[0].split(sep).map(function (h) { return h.trim(); });
+    var idxData = 0;
+    var funcoesCols = [];
+    header.forEach(function (h, i) {
+        if (i === 0 || /^data$/i.test(h)) { idxData = i; return; }
+        if (/observa/i.test(h)) return;
+        funcoesCols.push({ i: i, nome: h });
+    });
+    var idxObs = header.findIndex(function (h) { return /observa/i.test(h); });
+    var linhas = [];
+    for (var r = 1; r < linhasBrutas.length; r++) {
+        var cols = linhasBrutas[r].split(sep);
+        var dataLabel = (cols[idxData] || '').trim();
+        if (!dataLabel) continue;
+        var pd = parseDataEscalaLabel(dataLabel);
+        var funcoes = {};
+        funcoesCols.forEach(function (fc) {
+            var nomes = parseNomesEscala(cols[fc.i] || '');
+            if (nomes.length) funcoes[fc.nome] = nomes;
+        });
+        linhas.push({
+            dataLabel: dataLabel,
+            dataIso: pd ? pd.iso : '',
+            funcoes: funcoes,
+            observacao: idxObs >= 0 ? String(cols[idxObs] || '').trim() : '',
+            ministerio: ministerio
+        });
+    }
+    // ordena por data
+    linhas.sort(function (a, b) {
+        return String(a.dataIso || a.dataLabel).localeCompare(String(b.dataIso || b.dataLabel));
+    });
+    salvarEscalaCultosMinisterio(ministerio, linhas);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('escala_csv', 'Importou escala ' + ministerio + ' (' + linhas.length + ' dias)', getUsuarioLogado());
+        }
+    } catch (e) {}
+    return { sucesso: true, quantidade: linhas.length, linhas: linhas, mensagem: linhas.length + ' dia(s) importados para ' + ministerio };
+}
+
+/** Nome do membro parece estar na lista da escala? */
+function nomeBateEscala(nomeCompleto, nomeNaEscala) {
+    var full = String(nomeCompleto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    var part = String(nomeNaEscala || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!full || !part) return false;
+    if (full === part) return true;
+    var partesFull = full.split(/\s+/);
+    var partesE = part.split(/\s+/);
+    // primeiro nome
+    if (partesFull[0] && partesE[0] && partesFull[0] === partesE[0]) {
+        // se escala tem só primeiro nome, ok; se tem sobrenome, exige coincidência parcial
+        if (partesE.length === 1) return true;
+        return partesE.every(function (pe) {
+            return partesFull.some(function (pf) { return pf.indexOf(pe) === 0 || pe.indexOf(pf) === 0; });
+        });
+    }
+    // contém
+    if (full.indexOf(part) !== -1 || part.indexOf(partesFull[0]) !== -1) return true;
+    return false;
+}
+
+/**
+ * Próximos compromissos do membro na escala (hoje e amanhã prioridade).
+ * Retorna [{ dataLabel, dataIso, diasAte, funcoes: [nomeFuncao], ministerio, observacao }]
+ */
+function escalaProximasDoMembro(membro, horizonteDias) {
+    horizonteDias = horizonteDias == null ? 14 : horizonteDias;
+    membro = membro || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+    if (!membro || !membro.nome) return [];
+    var hoje = new Date();
+    hoje.setHours(12, 0, 0, 0);
+    var all = lerTodasEscalasCultos();
+    var out = [];
+    Object.keys(all).forEach(function (min) {
+        (all[min] || []).forEach(function (linha) {
+            if (!linha.dataIso) return;
+            var d = new Date(linha.dataIso + 'T12:00:00');
+            if (isNaN(d.getTime())) return;
+            var diff = Math.round((d - hoje) / 86400000);
+            if (diff < 0 || diff > horizonteDias) return;
+            var funcoesHit = [];
+            var funcoes = linha.funcoes || {};
+            Object.keys(funcoes).forEach(function (fn) {
+                (funcoes[fn] || []).forEach(function (nomeE) {
+                    if (nomeBateEscala(membro.nome, nomeE)) funcoesHit.push(fn);
+                });
+            });
+            if (!funcoesHit.length) return;
+            // unique
+            funcoesHit = funcoesHit.filter(function (v, i, a) { return a.indexOf(v) === i; });
+            out.push({
+                dataLabel: linha.dataLabel,
+                dataIso: linha.dataIso,
+                diasAte: diff,
+                funcoes: funcoesHit,
+                ministerio: min,
+                observacao: linha.observacao || ''
+            });
+        });
+    });
+    out.sort(function (a, b) { return a.diasAte - b.diasAte; });
+    return out;
+}
+
+/** Horário padrão do culto para lembretes (pode ajustar) */
+var ESCALA_HORARIO_CULTO_PADRAO = '19:00';
+
+function escalaDataHoraCulto(dataIso, horario) {
+    horario = horario || ESCALA_HORARIO_CULTO_PADRAO;
+    var hm = String(horario).split(':');
+    var h = parseInt(hm[0], 10) || 19;
+    var mi = parseInt(hm[1], 10) || 0;
+    return new Date(dataIso + 'T' + String(h).padStart(2,'0') + ':' + String(mi).padStart(2,'0') + ':00');
+}
+
+/**
+ * Avisos prioritários no site (logado):
+ * - até 45 dias: lista completa disponível
+ * - 36h antes e no dia: banner
+ * - 4h antes: banner urgente
+ */
+function escalaAvisosUrgentes(membro) {
+    membro = membro || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+    var lista = escalaProximasDoMembro(membro, 3);
+    var agora = new Date();
+    return lista.filter(function (x) {
+        if (x.diasAte > 2) return false;
+        var culto = escalaDataHoraCulto(x.dataIso);
+        var horas = (culto - agora) / 3600000;
+        // janela: 36h antes até o culto (e um pouco depois no mesmo dia)
+        return horas <= 36 && horas >= -2;
+    }).map(function (x) {
+        var culto = escalaDataHoraCulto(x.dataIso);
+        var horas = (culto - agora) / 3600000;
+        x.horasAte = Math.round(horas * 10) / 10;
+        x.urgente4h = horas <= 4 && horas >= 0;
+        x.janela36h = horas <= 36 && horas > 4;
+        return x;
+    });
+}
+
+function textoLembreteEscala(membro, item) {
+    var nome = (membro && membro.nome) ? String(membro.nome).split(' ')[0] : 'irmão(ã)';
+    var funcoes = (item.funcoes || []).join(', ') || 'sua função';
+    var min = item.ministerio || 'IBN';
+    var quando = item.diasAte === 0 ? 'hoje' : (item.diasAte === 1 ? 'amanhã' : (item.dataLabel || item.dataIso));
+    var obs = item.observacao ? ' (' + item.observacao + ')' : '';
+    return 'Olá, ' + nome + '! Lembrete IBN Diamantino.\n\n' +
+        'Você está na escala ' + quando + ' — ministério *' + min + '*.\n' +
+        'Função: *' + funcoes + '*' + obs + '.\n\n' +
+        'Por favor, esteja na igreja *30 minutos antes*.\n' +
+        'Deus abençoe! 🙏';
+}
+
+function telefoneWhatsAppBR(tel) {
+    var d = String(tel || '').replace(/\D/g, '');
+    if (!d) return '';
+    if (d.length <= 11 && d.charAt(0) !== '5') d = '55' + d;
+    return d;
+}
+
+function linkWhatsAppEscala(telefone, texto) {
+    var d = telefoneWhatsAppBR(telefone);
+    if (!d) return '';
+    return 'https://wa.me/' + d + '?text=' + encodeURIComponent(texto || '');
+}
+
+/** Monta lista de lembretes WhatsApp para um dia/ministério (secretaria envia) */
+function montarLembretesWhatsAppEscala(ministerio, dataIso) {
+    var linhas = lerEscalaCultosMinisterio(ministerio);
+    var linha = (linhas || []).find(function (l) { return String(l.dataIso) === String(dataIso); });
+    if (!linha) return [];
+    var membros = (typeof membrosReais === 'function') ? membrosReais() : lerMembros();
+    var out = [];
+    var funcoes = linha.funcoes || {};
+    Object.keys(funcoes).forEach(function (fn) {
+        (funcoes[fn] || []).forEach(function (nomeE) {
+            var m = (membros || []).find(function (p) { return nomeBateEscala(p.nome, nomeE); });
+            var item = {
+                dataLabel: linha.dataLabel,
+                dataIso: linha.dataIso,
+                diasAte: 0,
+                funcoes: [fn],
+                ministerio: ministerio,
+                observacao: linha.observacao || ''
+            };
+            var texto = textoLembreteEscala(m || { nome: nomeE }, item);
+            var tel = m ? m.telefone : '';
+            out.push({
+                nome: m ? m.nome : nomeE,
+                telefone: tel,
+                funcao: fn,
+                texto: texto,
+                link: linkWhatsAppEscala(tel, texto)
+            });
+        });
+    });
+    return out;
+}
+
+/** Escala completa do ministério nos próximos N dias (padrão 45) */
+function escalaCompletaMinisterio(ministerio, horizonteDias) {
+    horizonteDias = horizonteDias == null ? 120 : horizonteDias;
+    var hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    var linhas = lerEscalaCultosMinisterio(ministerio) || [];
+    return linhas.filter(function (l) {
+        if (!l.dataIso) return true;
+        var d = new Date(l.dataIso + 'T12:00:00');
+        var diff = Math.round((d - hoje) / 86400000);
+        return diff >= -1 && diff <= horizonteDias;
+    }).sort(function (a, b) {
+        return String(a.dataIso || '').localeCompare(String(b.dataIso || ''));
+    });
+}
+
+function removerDiaEscala(ministerio, dataIso) {
+    var linhas = lerEscalaCultosMinisterio(ministerio) || [];
+    linhas = linhas.filter(function (l) { return String(l.dataIso) !== String(dataIso); });
+    salvarEscalaCultosMinisterio(ministerio, linhas);
+    return { sucesso: true };
+}
+
+
+
+// ========== CONFIRMAÇÃO DE ESCALA (membro confirma; líder acompanha) ==========
+const CHAVE_CONFIRMA_ESCALA = 'ibn_escala_confirmacoes';
+
+function lerConfirmacoesEscala() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_CONFIRMA_ESCALA) || '{}'); }
+    catch (e) { return {}; }
+}
+function salvarConfirmacoesEscala(obj) {
+    localStorage.setItem(CHAVE_CONFIRMA_ESCALA, JSON.stringify(obj || {}));
+}
+/** chave única: ministerio|dataIso|membroId */
+function chaveConfirmacaoEscala(ministerio, dataIso, membroId) {
+    return String(ministerio || '') + '|' + String(dataIso || '') + '|' + String(membroId || '');
+}
+
+// ========== NOTIFICAÇÕES PUSH / LOCAIS (escala) ==========
+function statusPermissaoNotificacao() {
+    if (typeof Notification === 'undefined') return 'unsupported';
+    return Notification.permission; // granted | denied | default
+}
+
+/** Pede permissão e grava no cadastro do membro (granted/denied/default) */
+async function pedirPermissaoNotificacoes(membro) {
+    membro = membro || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+    if (!membro || !membro.id) return { sucesso: false, permissao: 'default' };
+    if (typeof Notification === 'undefined') {
+        gravarPermissaoNotifMembro(membro.id, 'unsupported');
+        return { sucesso: false, permissao: 'unsupported' };
+    }
+    try {
+        var perm = Notification.permission;
+        if (perm === 'default') {
+            perm = await Notification.requestPermission();
+        }
+        gravarPermissaoNotifMembro(membro.id, perm);
+        // registra SW se ainda não
+        try {
+            if ('serviceWorker' in navigator) {
+                await navigator.serviceWorker.register('sw.js');
+            }
+        } catch (e) {}
+        return { sucesso: perm === 'granted', permissao: perm };
+    } catch (e) {
+        gravarPermissaoNotifMembro(membro.id, 'denied');
+        return { sucesso: false, permissao: 'denied', mensagem: String(e) };
+    }
+}
+
+function gravarPermissaoNotifMembro(membroId, permissao) {
+    try {
+        var lista = (typeof lerMembros === 'function') ? lerMembros() : [];
+        var idx = lista.findIndex(function (m) { return String(m.id) === String(membroId); });
+        if (idx === -1) return;
+        lista[idx].notifPermission = permissao;
+        lista[idx].notifAtualizadoEm = new Date().toISOString();
+        if (typeof salvarMembros === 'function') salvarMembros(lista);
+        else localStorage.setItem('ibn_membros', JSON.stringify(lista));
+        // atualiza sessão
+        try {
+            var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+            if (u && String(u.id) === String(membroId) && typeof iniciarSessao === 'function') {
+                u.notifPermission = permissao;
+                iniciarSessao(u);
+            }
+        } catch (e) {}
+        try {
+            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarUmMembro) {
+                IBNNuvem.sincronizarUmMembro(lista[idx]);
+            }
+        } catch (e) {}
+    } catch (e) {}
+}
+
+/**
+ * Mostra notificação local (aparelho).
+ * Funciona se permission=granted; com site aberto ou via service worker.
+ */
+async function mostrarNotificacaoEscala(titulo, corpo, tag) {
+    if (typeof Notification === 'undefined') return false;
+    if (Notification.permission !== 'granted') return false;
+    try {
+        if ('serviceWorker' in navigator) {
+            var reg = await navigator.serviceWorker.ready;
+            if (reg && reg.active) {
+                reg.active.postMessage({
+                    type: 'MOSTRAR_NOTIFICACAO',
+                    titulo: titulo || 'IBN Diamantino',
+                    corpo: corpo || '',
+                    tag: tag || 'ibn-escala',
+                    url: './index.html',
+                    requireInteraction: true
+                });
+                // fallback direto no registration
+                await reg.showNotification(titulo || 'IBN Diamantino', {
+                    body: corpo || '',
+                    tag: tag || 'ibn-escala',
+                    data: { url: './index.html' },
+                    requireInteraction: true
+                });
+                return true;
+            }
+        }
+        new Notification(titulo || 'IBN Diamantino', { body: corpo || '', tag: tag || 'ibn-escala' });
+        return true;
+    } catch (e) {
+        try {
+            new Notification(titulo || 'IBN Diamantino', { body: corpo || '' });
+            return true;
+        } catch (e2) { return false; }
+    }
+}
+
+/** Ao abrir o site logado: pede permissão (1x) e dispara notif se escala em 36h */
+async function processarNotificacoesEscalaAoAbrir() {
+    var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+    if (!u || !u.id) return;
+    // pede permissão só se ainda default
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        // não força na hora do login agressivo — só se já tem escala próxima
+        var avisosPre = (typeof escalaAvisosUrgentes === 'function') ? escalaAvisosUrgentes(u) : [];
+        if (avisosPre.length) {
+            await pedirPermissaoNotificacoes(u);
+        }
+    } else if (typeof Notification !== 'undefined') {
+        gravarPermissaoNotifMembro(u.id, Notification.permission);
+    }
+    var avisos = (typeof escalaAvisosUrgentes === 'function') ? escalaAvisosUrgentes(u) : [];
+    if (!avisos.length) return;
+    var a = avisos[0];
+    var chave = 'ibn_push_escala_' + a.dataIso + '_' + u.id;
+    try {
+        if (sessionStorage.getItem(chave)) return; // já mostrou nesta sessão
+        sessionStorage.setItem(chave, '1');
+    } catch (e) {}
+    var funcoes = (a.funcoes || []).join(', ');
+    var corpo = 'Você está na escala ' + (a.diasAte === 0 ? 'HOJE' : 'em breve') +
+        ' (' + (a.dataLabel || '') + '): ' + funcoes +
+        (a.ministerio ? ' — ' + a.ministerio : '') +
+        '. Esteja 30 minutos antes na igreja. Abra o site e confirme que recebeu.';
+    await mostrarNotificacaoEscala('📋 Escala IBN Diamantino', corpo, 'escala-' + a.dataIso);
+}
+
+
+function confirmarRecebimentoEscala(ministerio, dataIso, membro) {
+    membro = membro || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+    if (!membro || !membro.id) return { sucesso: false, mensagem: 'Faça login.' };
+    var all = lerConfirmacoesEscala();
+    var k = chaveConfirmacaoEscala(ministerio, dataIso, membro.id);
+    all[k] = {
+        membroId: membro.id,
+        nome: membro.nome,
+        ministerio: ministerio,
+        dataIso: dataIso,
+        confirmadoEm: new Date().toISOString(),
+        aparelho: (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.slice(0, 80) : ''
+    };
+    salvarConfirmacoesEscala(all);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('escala_confirmou', 'Confirmou escala ' + ministerio + ' ' + dataIso, membro);
+        }
+    } catch (e) {}
+    return { sucesso: true, mensagem: 'Confirmação registrada. Obrigado!' };
+}
+function membroConfirmouEscala(ministerio, dataIso, membroId) {
+    var all = lerConfirmacoesEscala();
+    return !!all[chaveConfirmacaoEscala(ministerio, dataIso, membroId)];
+}
+
+/**
+ * Lista de escalados para o líder nas próximas 36h (com telefone, WA, confirmação).
+ * Retorna [{ nome, telefone, funcao, ministerio, dataIso, dataLabel, confirmou, linkWa, linkTel }]
+ */
+function listaEscaladosJanela36h(ministerioFiltro) {
+    var agora = new Date();
+    var all = lerTodasEscalasCultos();
+    var membros = (typeof membrosReais === 'function') ? membrosReais() : (typeof lerMembros === 'function' ? lerMembros() : []);
+    var out = [];
+    Object.keys(all).forEach(function (min) {
+        if (ministerioFiltro && String(min).toLowerCase() !== String(ministerioFiltro).toLowerCase()) return;
+        (all[min] || []).forEach(function (linha) {
+            if (!linha.dataIso) return;
+            var culto = (typeof escalaDataHoraCulto === 'function')
+                ? escalaDataHoraCulto(linha.dataIso)
+                : new Date(linha.dataIso + 'T19:00:00');
+            var horas = (culto - agora) / 3600000;
+            if (horas > 36 || horas < -1) return;
+            var funcoes = linha.funcoes || {};
+            Object.keys(funcoes).forEach(function (fn) {
+                (funcoes[fn] || []).forEach(function (nomeE) {
+                    var m = (membros || []).find(function (p) {
+                        return typeof nomeBateEscala === 'function' && nomeBateEscala(p.nome, nomeE);
+                    });
+                    var item = {
+                        dataLabel: linha.dataLabel,
+                        dataIso: linha.dataIso,
+                        funcoes: [fn],
+                        ministerio: min,
+                        observacao: linha.observacao || ''
+                    };
+                    var texto = (typeof textoLembreteEscala === 'function')
+                        ? textoLembreteEscala(m || { nome: nomeE }, item)
+                        : ('Lembrete IBN Diamantino — escala ' + min);
+                    var tel = m ? (m.telefone || '') : '';
+                    var mid = m ? m.id : '';
+                    var nPerm = m ? (m.notifPermission || 'default') : 'default';
+                    out.push({
+                        nome: m ? m.nome : nomeE,
+                        membroId: mid,
+                        telefone: tel,
+                        funcao: fn,
+                        ministerio: min,
+                        dataIso: linha.dataIso,
+                        dataLabel: linha.dataLabel,
+                        horasAte: Math.round(horas * 10) / 10,
+                        confirmou: mid ? membroConfirmouEscala(min, linha.dataIso, mid) : false,
+                        notifPermission: nPerm,
+                        notifLabel: nPerm === 'granted' ? '🔔 Notif. OK' : (nPerm === 'denied' ? '🔕 Bloqueou notif.' : '⏳ Sem permissão'),
+                        linkWa: (typeof linkWhatsAppEscala === 'function') ? linkWhatsAppEscala(tel, texto) : '',
+                        linkTel: tel ? ('tel:' + String(tel).replace(/\D/g, '')) : '',
+                        texto: texto
+                    });
+                });
+            });
+        });
+    });
+    out.sort(function (a, b) {
+        if (a.dataIso !== b.dataIso) return String(a.dataIso).localeCompare(String(b.dataIso));
+        return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+    });
+    return out;
+}
+
+
+// Compat: escala simples antiga (lista manual)
+function lerEscalaMinisterio(nomeMinisterio) {
+    try {
+        var all = JSON.parse(localStorage.getItem('ibn_escala_ministerios') || '{}');
+        return Array.isArray(all[nomeMinisterio]) ? all[nomeMinisterio] : [];
+    } catch (e) { return []; }
+}
+function salvarEscalaMinisterio(nomeMinisterio, itens) {
+    try {
+        var all = JSON.parse(localStorage.getItem('ibn_escala_ministerios') || '{}');
+        all[nomeMinisterio] = itens || [];
+        localStorage.setItem('ibn_escala_ministerios', JSON.stringify(all));
+    } catch (e) {}
+}
+function escalaDoMembroNoMinisterio(membroId, nomeMinisterio) {
+    return lerEscalaMinisterio(nomeMinisterio).filter(function (x) {
+        return String(x.membroId) === String(membroId);
+    });
+}
+
+
+
+
 /** Membros de um ministério (nome como no cadastro, ex.: Atmosfera) */
 
 
@@ -1337,45 +2057,156 @@ function deduplicarMembrosLocais() {
     return nova;
 }
 
-function membrosDoMinisterio(nomeMinisterio) {
-    const alvo = String(nomeMinisterio || '').toLowerCase().trim();
-    if (!alvo) return [];
-    const lista = lerMembros().filter(function (m) {
-        const st = (m.status || 'aprovado').toLowerCase();
-        return st !== 'rejeitado' && st !== 'recusado';
-    });
-    return lista.filter(function (m) {
-        const mins = Array.isArray(m.ministerios) ? m.ministerios : [];
-        return mins.some(function (x) {
-            const s = String(x).toLowerCase();
-            return s === alvo || s.indexOf(alvo) !== -1 || alvo.indexOf(s) !== -1;
+
+/** Lista normalizada dos ministérios que a pessoa LIDER (não só participa) */
+function normalizarNomeMinisterio(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+function nomesMinisterioIguais(a, b) {
+    var x = normalizarNomeMinisterio(a);
+    var y = normalizarNomeMinisterio(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    // abreviações comuns
+    if (x.indexOf(y) !== -1 || y.indexOf(x) !== -1) return true;
+    // "midias" ↔ "midias sociais"
+    if (x.replace(/\s/g,'') === y.replace(/\s/g,'')) return true;
+    return false;
+}
+function ministeriosQueLidera(m) {
+    if (!m) return [];
+    var out = [];
+    function add(s) {
+        s = String(s || '').trim();
+        if (!s) return;
+        // evita duplicar equivalentes
+        if (out.some(function (x) { return nomesMinisterioIguais(x, s); })) return;
+        out.push(s);
+    }
+    if (Array.isArray(m.lideraMinisterios)) {
+        m.lideraMinisterios.forEach(add);
+    }
+    if (m.lideraMinisterio) {
+        String(m.lideraMinisterio).split(/[,;/|]+/).forEach(add);
+    }
+    // Fallback: função específica tipo "Líder de Louvor" / "Líder da Mídia"
+    var fe = String(m.funcaoEspecifica || '');
+    if (/l[ií]der/i.test(fe) && typeof LISTA_MINISTERIOS !== 'undefined') {
+        LISTA_MINISTERIOS.forEach(function (nome) {
+            var n = normalizarNomeMinisterio(nome);
+            var f = normalizarNomeMinisterio(fe);
+            // "lider da midia" → Mídias Sociais
+            if (f.indexOf(n) !== -1) add(nome);
+            if (n.indexOf('midia') !== -1 && (f.indexOf('midia') !== -1 || f.indexOf('media') !== -1)) add(nome);
         });
+    }
+    return out;
+}
+/** True se lidera ESTE ministério específico (cadastro) */
+function lideraEsteMinisterio(m, nomeMinisterio) {
+    if (!m || !nomeMinisterio) return false;
+    return ministeriosQueLidera(m).some(function (x) {
+        return nomesMinisterioIguais(x, nomeMinisterio);
+    });
+}
+/** True se participa (lista ministerios) deste ministério */
+function participaDesteMinisterio(m, nomeMinisterio) {
+    if (!m || !nomeMinisterio) return false;
+    var mins = Array.isArray(m.ministerios) ? m.ministerios : [];
+    if (!mins.length && m.ministerios) mins = String(m.ministerios).split(/[,;/|]+/);
+    // quem lidera também "participa"
+    if (lideraEsteMinisterio(m, nomeMinisterio)) return true;
+    return mins.some(function (x) {
+        return nomesMinisterioIguais(x, nomeMinisterio);
     });
 }
 
-/** Papéis na célula a partir do cargo / funcaoEspecifica */
+function membrosDoMinisterio(nomeMinisterio) {
+    const alvoNome = String(nomeMinisterio || '').trim();
+    const alvo = alvoNome.toLowerCase();
+    if (!alvo) return [];
+    const lista = (typeof membrosReais === 'function' ? membrosReais() : lerMembros()).filter(function (m) {
+        if (typeof isContaSistema === 'function' && isContaSistema(m)) return false;
+        const st = (m.status || 'aprovado').toLowerCase();
+        return st !== 'rejeitado' && st !== 'recusado' && st !== 'excluido';
+    });
+    // Entra se PARTICIPA ou se LIDERA este ministério (pelo cadastro de alocação)
+    return lista.filter(function (m) {
+        return participaDesteMinisterio(m, alvoNome) || lideraEsteMinisterio(m, alvoNome);
+    }).map(function (m) {
+        // Papel só pelo cadastro: lideraMinisterios / lideraMinisterio — NÃO pelo cargo genérico
+        var papel = lideraEsteMinisterio(m, alvoNome) ? 'Líder' : 'Integrante';
+        if (m.status === 'pendente' || m.status === 'aguardando') papel += ' (pendente)';
+        return Object.assign({}, m, { papel: papel });
+    }).sort(function (a, b) {
+        if (String(a.papel).indexOf('Líder') === 0 && String(b.papel).indexOf('Líder') !== 0) return -1;
+        if (String(b.papel).indexOf('Líder') === 0 && String(a.papel).indexOf('Líder') !== 0) return 1;
+        return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    });
+}
+
+/** Papéis na célula — respeita alocação (papeis / lideraCelulaId), não só cargo genérico */
+function papeisNaCelula(m, celulaId) {
+    if (!m || !celulaId) return [];
+    var out = [];
+    var celulas = Array.isArray(m.celulas) ? m.celulas : [];
+    celulas.forEach(function (c) {
+        var id = (typeof idCelulaDe === 'function') ? idCelulaDe(c) : (c && c.id);
+        if (String(id) !== String(celulaId)) return;
+        var pp = Array.isArray(c.papeis) ? c.papeis : String(c.papel || '').split(/[,;/]+/);
+        pp.forEach(function (p) {
+            p = String(p || '').trim().toLowerCase();
+            if (p && out.indexOf(p) === -1) out.push(p);
+        });
+    });
+    if (m.lideraCelulaId && String(m.lideraCelulaId) === String(celulaId)) {
+        if (out.indexOf('lider') === -1) out.push('lider');
+    }
+    if (Array.isArray(m.funcoes)) {
+        if (m.funcoes.indexOf('anfitriao') !== -1 && out.indexOf('anfitriao') === -1) {
+            // só se estiver nesta célula
+            var nesta = celulas.some(function (c) {
+                var id = (typeof idCelulaDe === 'function') ? idCelulaDe(c) : (c && c.id);
+                return String(id) === String(celulaId);
+            });
+            if (nesta) out.push('anfitriao');
+        }
+    }
+    return out;
+}
 function equipeDaCelula(celulaId) {
     const membros = membrosDaCelula(celulaId);
-    const todos = lerMembros().filter(function (m) {
+    const todos = (typeof membrosReais === 'function' ? membrosReais() : lerMembros()).filter(function (m) {
+        if (typeof isContaSistema === 'function' && isContaSistema(m)) return false;
         const st = (m.status || 'aprovado').toLowerCase();
         return st !== 'rejeitado' && st !== 'recusado';
     });
-    const lider = membros.find(m =>
-        m.nivel === 'lider_celula' ||
-        m.cargo === 'Líder de Célula' ||
-        (m.lideraCelulaId && m.lideraCelulaId === celulaId && m.cargo === 'Líder de Célula') ||
-        (m.funcaoEspecifica || '').toLowerCase().includes('líder de célula') ||
-        (m.funcaoEspecifica || '').toLowerCase().includes('lider de celula')
-    ) || todos.find(m => m.lideraCelulaId === celulaId && (m.cargo === 'Líder de Célula' || m.nivel === 'lider_celula')) || null;
-    const anfitriao = membros.find(m =>
-        (m.funcaoEspecifica || '').toLowerCase().includes('anfitri')
-    ) || null;
-    const liderTreino = membros.find(m =>
-        m.cargo === 'Líder em treinamento' ||
-        (m.funcaoEspecifica || '').toLowerCase().includes('treinament') ||
-        (m.funcaoEspecifica || '').toLowerCase().includes('em treinamento')
-    ) || null;
-    return { lider, anfitriao, liderTreino, membros };
+    function temPapel(m, papel) {
+        var pp = papeisNaCelula(m, celulaId);
+        if (pp.indexOf(papel) !== -1) return true;
+        if (papel === 'lider' && m.lideraCelulaId && String(m.lideraCelulaId) === String(celulaId)) return true;
+        return false;
+    }
+    // Líder: prioridade alocação nesta célula
+    var lider = membros.find(function (m) { return temPapel(m, 'lider'); })
+        || todos.find(function (m) { return temPapel(m, 'lider'); })
+        || null;
+    var anfitriao = membros.find(function (m) { return temPapel(m, 'anfitriao'); })
+        || membros.find(function (m) {
+            return (m.funcaoEspecifica || '').toLowerCase().indexOf('anfitri') !== -1
+                && membros.some(function (x) { return x.id === m.id; });
+        }) || null;
+    var liderTreino = membros.find(function (m) { return temPapel(m, 'lider_treino'); })
+        || membros.find(function (m) {
+            return m.cargo === 'Líder em treinamento'
+                || (m.funcaoEspecifica || '').toLowerCase().indexOf('treinament') !== -1;
+        }) || null;
+    return { lider: lider, anfitriao: anfitriao, liderTreino: liderTreino, membros: membros };
 }
 
 
@@ -1467,30 +2298,29 @@ function statusPendenciasCelula(celulaId) {
 function statusPendenciasMinisterio(nomeMinisterio) {
     var nome = String(nomeMinisterio || '').trim();
     if (!nome) return { cor: null, motivos: [] };
-    var lista = (typeof lerMembros === 'function') ? lerMembros() : [];
-    var slug = nome.toLowerCase();
+    var lista = (typeof membrosReais === 'function') ? membrosReais() : ((typeof lerMembros === 'function') ? lerMembros() : []);
+    lista = (lista || []).filter(function (m) {
+        if (typeof isContaSistema === 'function' && isContaSistema(m)) return false;
+        var st = (m.status || 'aprovado').toLowerCase();
+        return st !== 'rejeitado' && st !== 'recusado' && st !== 'excluido';
+    });
     function noMin(m) {
-        if (!m) return false;
-        if (Array.isArray(m.ministerios)) {
-            return m.ministerios.some(function(x){ return String(x).toLowerCase() === slug || String(x).toLowerCase().indexOf(slug) >= 0; });
-        }
-        return String(m.ministerios || '').toLowerCase().indexOf(slug) >= 0;
+        return participaDesteMinisterio(m, nome);
     }
     function ehLiderMin(m) {
-        if (!m || !noMin(m)) return false;
-        if (m.lideraMinisterio && String(m.lideraMinisterio).toLowerCase().indexOf(slug) >= 0) return true;
-        if (m.cargo && /l[ií]der de minist[eé]rio/i.test(m.cargo) && noMin(m)) return true;
-        if (Array.isArray(m.funcoesAprovadas) && m.funcoesAprovadas.some(function(f){ return /l[ií]der/i.test(f) && /minist/i.test(f); })) return true;
-        return false;
+        return lideraEsteMinisterio(m, nome);
     }
     var lideres = lista.filter(ehLiderMin);
     var membrosMin = lista.filter(noMin);
     var motivos = [];
     var nivel = 0;
     if (!lideres.length) {
-        // cargo vago
         nivel = 2;
-        motivos.push('Vermelho: sem membro cadastrado como líder deste ministério');
+        if (membrosMin.length) {
+            motivos.push('Sem líder cadastrado (há ' + membrosMin.length + ' integrante(s) — marque em "Ministérios que lidera")');
+        } else {
+            motivos.push('Vermelho: sem membro cadastrado como líder deste ministério');
+        }
     } else if (lideres.some(_membroPendente)) {
         nivel = Math.max(nivel, 1);
         motivos.push('Líder aguardando aprovação');
@@ -1503,7 +2333,7 @@ function statusPendenciasMinisterio(nomeMinisterio) {
     var cor = null;
     if (nivel >= 2) cor = 'vermelho';
     else if (nivel >= 1) cor = 'laranja';
-    return { cor: cor, motivos: motivos, nivel: nivel };
+    return { cor: cor, motivos: motivos, nivel: nivel, lideres: lideres.map(function(x){ return x.nome; }), qtdMembros: membrosMin.length };
 }
 
 
@@ -1548,6 +2378,79 @@ function resumoPendenciasGestao() {
         nLaranja: nLaranja,
         nAzul: nAzul,
         total: nVermelho + nLaranja + nAzul + (membrosPend.length ? 1 : 0)
+    };
+}
+
+
+/** Pendências na competência de quem está logado (menu Gestão vermelho) */
+function pendenciasDoUsuarioLogado(u) {
+    u = u || (typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null);
+    if (!u) return { total: 0, motivos: [], href: 'index.html' };
+    var motivos = [];
+    var total = 0;
+    var ehGestao = false;
+    try {
+        if (typeof isAdmin === 'function' && isAdmin(u)) ehGestao = true;
+        if (u.nivel === 'admin' || u.nivel === 'gestor') ehGestao = true;
+    } catch (e) {}
+
+    if (ehGestao && typeof resumoPendenciasGestao === 'function') {
+        var r = resumoPendenciasGestao();
+        total = r.total || 0;
+        if (r.nVermelho) motivos.push(r.nVermelho + ' cargo(s) vago(s)');
+        if (r.nLaranja) motivos.push(r.nLaranja + ' aprovação(ões)');
+        if (r.nAzul) motivos.push(r.nAzul + ' relatório(s)');
+        if (r.membrosPendentes) motivos.push(r.membrosPendentes + ' membro(s) pendente(s)');
+        return { total: total, motivos: motivos, href: 'adminpainel.html', gestao: true };
+    }
+
+    // Líder de célula: pendências das células que lidera
+    var celulasLider = [];
+    if (typeof LISTA_CELULAS !== 'undefined' && typeof isLiderCelula === 'function') {
+        LISTA_CELULAS.forEach(function (c) {
+            if (isLiderCelula(u, c.id) || (u.lideraCelulaId && String(u.lideraCelulaId) === String(c.id))) {
+                celulasLider.push(c);
+            }
+        });
+    }
+    celulasLider.forEach(function (c) {
+        if (typeof statusPendenciasCelula !== 'function') return;
+        var st = statusPendenciasCelula(c.id);
+        if (st && st.cor) {
+            total++;
+            motivos.push((c.nome || c.id) + ': ' + (st.motivos || []).join(', '));
+        }
+    });
+
+    // Líder de ministério
+    var mins = [];
+    if (u.lideraMinisterio) mins.push(String(u.lideraMinisterio));
+    if (Array.isArray(u.ministerios) && u.cargo && /l[ií]der/i.test(String(u.cargo))) {
+        u.ministerios.forEach(function (m) { if (mins.indexOf(String(m)) < 0) mins.push(String(m)); });
+    }
+    mins.forEach(function (nome) {
+        if (typeof statusPendenciasMinisterio !== 'function') return;
+        if (typeof isLiderDoMinisterio === 'function' && !isLiderDoMinisterio(u, nome) && !ehGestao) {
+            // se só está na lista de lideraMinisterio ok
+            if (!u.lideraMinisterio || String(u.lideraMinisterio).toLowerCase().indexOf(String(nome).toLowerCase()) < 0) return;
+        }
+        var st = statusPendenciasMinisterio(nome);
+        if (st && st.cor) {
+            total++;
+            motivos.push('Ministério ' + nome + ': ' + (st.motivos || []).join(', '));
+        }
+    });
+
+    var href = 'index.html';
+    if (celulasLider.length) href = 'celulas.html';
+    else if (mins.length) href = 'ministerios.html';
+
+    return {
+        total: total,
+        motivos: motivos,
+        href: href,
+        gestao: false,
+        temAutoridade: celulasLider.length > 0 || mins.length > 0
     };
 }
 

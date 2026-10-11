@@ -156,6 +156,14 @@
 
     
     <!-- Aniversariantes (somente membros logados) -->
+    
+    <!-- Aviso de escala de serviço (dia anterior / no dia) -->
+    <div id="bannerEscalaServico" class="hidden bg-indigo-700 text-white py-2.5 px-4 text-center text-sm font-semibold shadow">
+        <span id="textoBannerEscala"></span>
+        <button type="button" id="btnConfirmarEscalaBanner" class="ml-2 bg-white text-indigo-800 px-2 py-0.5 rounded text-xs font-bold">✓ Confirmei que recebi</button>
+        <button type="button" id="btnDetalheEscala" class="underline ml-2 font-bold">Ver detalhes</button>
+    </div>
+
     <div id="bannerAniversario" class="hidden bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 px-4 text-center text-sm font-semibold shadow cursor-pointer">
         <span id="textoBannerAniv"></span>
         <button type="button" id="btnAbrirAniv" class="underline ml-2 font-bold">Ver e homenagear →</button>
@@ -248,7 +256,7 @@
                     <i class="fa fa-heart text-xs"></i> Oração
                 </a>
                 <a href="#doacao" class="hover:text-secondary transition-colors">Doação</a>
-                <a href="adminlogin.html" id="linkGestao" class="hover:text-secondary transition-colors hidden">Gestão</a>
+                <a href="adminlogin.html" id="linkGestao" class="hover:text-secondary transition-colors hidden font-semibold">Gestão</a>
                 <a href="#mais" class="hover:text-secondary transition-colors">Mais</a>
             </nav>
             <div class="hidden md:flex items-center gap-3">
@@ -282,7 +290,7 @@
                 <a href="ministerios.html" class="menu-link py-3 border-b border-white/15">Ministérios</a>
                 <a href="#devocional" class="menu-link py-3 border-b border-white/15">Devocional</a>
                 <a href="#oracao" class="menu-link py-3 border-b border-white/15">Oração</a>
-                <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 border-b border-white/15 hidden">Gestão</a>
+                <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 border-b border-white/15 hidden font-semibold">Gestão</a>
             </nav>
             <div id="areaVisitanteMobile" class="flex flex-col gap-2 mt-3">
                 <a href="cadastro.html" class="px-4 py-2.5 rounded-lg font-bold text-center" style="background-color:#D4AF37;color:#0A1A3F;">Seja Membro</a>
@@ -733,11 +741,51 @@
                 document.getElementById('areaVisitanteMobile').classList.add('hidden');
                 document.getElementById('areaLogadoMobile').classList.remove('hidden');
 
-                if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
-                    document.getElementById('linkGestao').classList.remove('hidden');
-                    document.getElementById('linkGestaoMobile').classList.remove('hidden');
-                    document.getElementById('linkAdmin').classList.remove('hidden');
+                // Gestão: admin/gestor sempre; líderes se tiverem autoridade
+                var lg = document.getElementById('linkGestao');
+                var lgm = document.getElementById('linkGestaoMobile');
+                var pend = (typeof pendenciasDoUsuarioLogado === 'function')
+                    ? pendenciasDoUsuarioLogado(usuario)
+                    : { total: 0, gestao: false, temAutoridade: false, href: 'adminlogin.html' };
+                var mostraGestao = (usuario.nivel === 'admin' || usuario.nivel === 'gestor' || pend.gestao || pend.temAutoridade || pend.total > 0);
+                if (mostraGestao) {
+                    if (lg) {
+                        lg.classList.remove('hidden');
+                        lg.href = pend.href || (usuario.nivel === 'admin' || usuario.nivel === 'gestor' ? 'adminlogin.html' : 'celulas.html');
+                        if (pend.total > 0) {
+                            lg.classList.add('text-red-500');
+                            lg.classList.remove('text-white');
+                            lg.title = 'Há pendências na sua gestão: ' + (pend.motivos || []).join(' · ');
+                            lg.innerHTML = 'Gestão <span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle"></span>';
+                        } else {
+                            lg.classList.remove('text-red-500');
+                            lg.title = 'Gestão';
+                            lg.textContent = 'Gestão';
+                        }
+                    }
+                    if (lgm) {
+                        lgm.classList.remove('hidden');
+                        lgm.href = pend.href || lg.href;
+                        if (pend.total > 0) {
+                            lgm.classList.add('text-red-400');
+                            lgm.title = 'Há pendências na sua gestão';
+                            lgm.innerHTML = 'Gestão <span class="text-red-400">●</span>';
+                        } else {
+                            lgm.classList.remove('text-red-400');
+                            lgm.textContent = 'Gestão';
+                        }
+                    }
                 }
+                if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
+                    var la = document.getElementById('linkAdmin');
+                    if (la) la.classList.remove('hidden');
+                }
+                // registra status de notificação (não bloqueia)
+                setTimeout(function() {
+                    if (typeof Notification !== 'undefined' && typeof gravarPermissaoNotifMembro === 'function') {
+                        gravarPermissaoNotifMembro(usuario.id, Notification.permission);
+                    }
+                }, 2000);
             } catch (e) {
                 console.warn('verificarSessao:', e);
             }
@@ -2343,6 +2391,86 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trySync);
     else trySync();
+})();
+</script>
+
+
+<script>
+(function(){
+    function mostrarEscala() {
+        var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+        if (!u || typeof escalaAvisosUrgentes !== 'function') return;
+        var avisos = escalaAvisosUrgentes(u);
+        var banner = document.getElementById('bannerEscalaServico');
+        var txt = document.getElementById('textoBannerEscala');
+        if (!banner || !txt) return;
+        if (!avisos.length) {
+            banner.classList.add('hidden');
+            return;
+        }
+        var a = avisos[0];
+        var quando = a.diasAte === 0 ? 'HOJE' : 'AMANHÃ';
+        var funcoes = (a.funcoes || []).join(', ');
+        var urg = a.urgente4h ? ' ⏰ Em breve! ' : '';
+        txt.textContent = urg + '📋 Escala IBN ' + quando + ' (' + a.dataLabel + '): ' + funcoes +
+            (a.ministerio ? ' — ' + a.ministerio : '') +
+            '. Esteja 30 min antes na igreja.' +
+            (a.observacao ? ' · ' + a.observacao : '');
+        banner.classList.remove('hidden');
+        var btnC = document.getElementById('btnConfirmarEscalaBanner');
+        if (btnC) {
+            if (typeof membroConfirmouEscala === 'function' && membroConfirmouEscala(a.ministerio, a.dataIso, u.id)) {
+                btnC.textContent = '✓ Já confirmado';
+                btnC.disabled = true;
+                btnC.classList.add('opacity-70');
+            } else {
+                btnC.textContent = '✓ Confirmei que recebi';
+                btnC.disabled = false;
+                btnC.classList.remove('opacity-70');
+                btnC.onclick = function() {
+                    if (typeof confirmarRecebimentoEscala !== 'function') return;
+                    var r = confirmarRecebimentoEscala(a.ministerio, a.dataIso, u);
+                    alert(r.mensagem || 'Confirmado');
+                    if (r.sucesso) {
+                        btnC.textContent = '✓ Já confirmado';
+                        btnC.disabled = true;
+                    }
+                };
+            }
+        }
+        try {
+            var k = 'ibn_escala_visto_' + a.dataIso + '_' + (u.id || '');
+            if (!sessionStorage.getItem(k) && a.diasAte <= 1) {
+                sessionStorage.setItem(k, '1');
+            }
+        } catch(e) {}
+    }
+    document.getElementById('btnDetalheEscala') && document.getElementById('btnDetalheEscala').addEventListener('click', function(){
+        var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+        if (!u || typeof escalaProximasDoMembro !== 'function') return;
+        var lista = escalaProximasDoMembro(u, 21);
+        if (!lista.length) return alert('Nenhuma escala próxima com o seu nome.');
+        var msg = 'Suas próximas escalas:\n\n';
+        lista.forEach(function(a){
+            msg += '• ' + a.dataLabel + ' (' + (a.diasAte===0?'hoje':a.diasAte===1?'amanhã':'em '+a.diasAte+' dias') + ')\n';
+            msg += '  Função: ' + (a.funcoes||[]).join(', ') + ' — ' + (a.ministerio||'') + '\n';
+            if (a.observacao) msg += '  Obs: ' + a.observacao + '\n';
+            msg += '\n';
+        });
+        alert(msg);
+    });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(mostrarEscala, 500);
+        setTimeout(function(){
+            if (typeof processarNotificacoesEscalaAoAbrir === 'function') {
+                processarNotificacoesEscalaAoAbrir();
+            }
+        }, 1200); });
+    else setTimeout(mostrarEscala, 500);
+        setTimeout(function(){
+            if (typeof processarNotificacoesEscalaAoAbrir === 'function') {
+                processarNotificacoesEscalaAoAbrir();
+            }
+        }, 1200);
 })();
 </script>
 

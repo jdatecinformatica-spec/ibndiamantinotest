@@ -124,6 +124,60 @@
             </section>
 
 
+            
+            
+            <!-- Escala de serviços: formulário + CSV -->
+            <section class="bg-white p-6 rounded-xl shadow border border-indigo-200">
+                <h2 class="text-xl font-bold text-primary mb-1">📋 Escala de serviços</h2>
+                <p class="text-sm text-gray-500 mb-4">
+                    Cada ministério tem suas <strong>funções e quantidades</strong>.
+                    Monte o dia no formulário ou importe um CSV. O membro é avisado no dia anterior e no dia.
+                    Competência: <strong>líder do ministério</strong> e <strong>secretaria (admin/gestor)</strong>.
+                </p>
+
+                <div class="grid md:grid-cols-3 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Ministério</label>
+                        <select id="escalaMinisterioSel" class="w-full border rounded-lg px-3 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Data do culto / evento</label>
+                        <input type="date" id="escalaDataDia" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Rótulo (opcional)</label>
+                        <input type="text" id="escalaLabelDia" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Ex: DOM 12/10/26 ou CEIA">
+                    </div>
+                </div>
+
+                <div class="mb-3 flex flex-wrap gap-2 items-center">
+                    <button type="button" id="btnCarregarModeloEscala" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-bold">Montar formulário do ministério</button>
+                    <button type="button" id="btnExportarEscalaCSV" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold">Baixar CSV deste ministério</button>
+                </div>
+
+                <div id="formEscalaFuncoes" class="space-y-2 mb-3 hidden"></div>
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Observação do dia</label>
+                    <input type="text" id="escalaObsDia" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Ex: CEIA + BATISMO">
+                </div>
+                <button type="button" id="btnSalvarDiaEscala" class="hidden bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold">Salvar escala deste dia</button>
+                <p id="msgEscalaForm" class="text-sm mt-2 hidden"></p>
+
+                <hr class="my-5 border-gray-200">
+                <p class="text-xs font-bold text-gray-600 mb-2">Ou importar CSV pronto</p>
+                <input type="file" id="importEscalaCSV" accept=".csv,text/csv" class="w-full text-sm border rounded-lg px-3 py-2 max-w-md">
+                <p id="msgEscalaImport" class="text-sm hidden mt-2"></p>
+                <p class="text-xs text-gray-400 mt-2">Modelo Atmosfera já vem com as funções. Outros ministérios: edite as linhas do formulário (função e quantas pessoas) e salve o dia.</p>
+
+                <details class="mt-4 text-sm">
+                    <summary class="cursor-pointer font-bold text-primary">Editar modelo de funções deste ministério (qtd sugerida)</summary>
+                    <div id="editorModeloEscala" class="mt-2 space-y-2"></div>
+                    <button type="button" id="btnAddFuncaoModelo" class="text-xs underline text-primary mt-1">+ Função</button>
+                    <button type="button" id="btnSalvarModeloEscala" class="ml-3 bg-secondary text-primary px-3 py-1 rounded text-xs font-bold">Salvar modelo</button>
+                </details>
+            </section>
+
+
             <!-- Quadro de avisos do dia (cabeçalho do site) -->
             <section id="secQuadroAvisos" class="bg-white p-6 rounded-xl shadow border border-amber-200">
                 <h2 class="text-xl font-bold text-primary mb-1">📢 Quadro de avisos</h2>
@@ -360,7 +414,14 @@
             renderizarMembros();
         }
         function renderizarMembros() {
-            let lista = getMembros().slice();
+            let lista = getMembros().slice().filter(function(m) {
+                if (typeof isContaSistema === 'function') return !isContaSistema(m);
+                var em = String(m.email||'').toLowerCase();
+                var nm = String(m.nome||'').toLowerCase();
+                if (em === 'gestor@ibndiamantino.com.br' || em === 'admin@ibndiamantino.com.br') return false;
+                if (nm === 'gestor master' || nm === 'admin master') return false;
+                return true;
+            });
             const buscaEl = document.getElementById('buscaMembroPainel');
             const filtroEl = document.getElementById('filtroPendPainel');
             const q = ((buscaEl && buscaEl.value) || '').toLowerCase().trim();
@@ -810,6 +871,134 @@
             }
             document.getElementById('listaPendenciasGestao').innerHTML = html || '<p class="text-sm text-gray-500">Sem detalhes.</p>';
         }
+
+        
+        
+        // --- Escala formulário ---
+        function preencherSelectMinisteriosEscala() {
+            var sel = document.getElementById('escalaMinisterioSel');
+            if (!sel) return;
+            var lista = (typeof LISTA_MINISTERIOS !== 'undefined') ? LISTA_MINISTERIOS.slice() : ['Atmosfera','Acolhimento','Louvor'];
+            sel.innerHTML = lista.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+            if (lista.indexOf('Atmosfera') >= 0) sel.value = 'Atmosfera';
+        }
+        function montarFormEscalaDia() {
+            var min = (document.getElementById('escalaMinisterioSel') || {}).value || 'Atmosfera';
+            var box = document.getElementById('formEscalaFuncoes');
+            if (!box || typeof lerModeloFuncoesMinisterio !== 'function') return;
+            var modelo = lerModeloFuncoesMinisterio(min);
+            var html = '';
+            modelo.forEach(function(item, idx) {
+                if (/^observa/i.test(item.funcao)) return;
+                var q = item.qtd > 0 ? item.qtd : 1;
+                html += '<div class="border rounded-lg p-2 bg-indigo-50/50">';
+                html += '<p class="text-xs font-bold text-primary mb-1">' + item.funcao + ' <span class="text-gray-500 font-normal">(sugerido: ' + (item.qtd || '—') + ' pessoa(s))</span></p>';
+                html += '<input type="text" class="escala-campo-funcao w-full border rounded px-2 py-1.5 text-sm" data-funcao="' + String(item.funcao).replace(/"/g,'') + '" placeholder="Nomes separados por vírgula">';
+                html += '</div>';
+            });
+            box.innerHTML = html;
+            box.classList.remove('hidden');
+            document.getElementById('btnSalvarDiaEscala').classList.remove('hidden');
+            montarEditorModelo(min);
+        }
+        function montarEditorModelo(min) {
+            var ed = document.getElementById('editorModeloEscala');
+            if (!ed || typeof lerModeloFuncoesMinisterio !== 'function') return;
+            var modelo = lerModeloFuncoesMinisterio(min);
+            ed.innerHTML = modelo.map(function(item, i) {
+                return '<div class="flex gap-2 items-center">' +
+                    '<input type="text" class="mod-fn flex-1 border rounded px-2 py-1 text-xs" value="' + String(item.funcao||'').replace(/"/g,'') + '">' +
+                    '<input type="number" min="0" max="30" class="mod-qtd w-16 border rounded px-2 py-1 text-xs" value="' + (item.qtd||0) + '" title="Qtd sugerida">' +
+                    '</div>';
+            }).join('');
+        }
+        document.getElementById('btnCarregarModeloEscala') && document.getElementById('btnCarregarModeloEscala').addEventListener('click', montarFormEscalaDia);
+        document.getElementById('escalaMinisterioSel') && document.getElementById('escalaMinisterioSel').addEventListener('change', function(){
+            montarEditorModelo(this.value);
+        });
+        document.getElementById('btnSalvarDiaEscala') && document.getElementById('btnSalvarDiaEscala').addEventListener('click', function() {
+            var min = document.getElementById('escalaMinisterioSel').value;
+            var dataIso = document.getElementById('escalaDataDia').value;
+            var label = document.getElementById('escalaLabelDia').value.trim();
+            if (!dataIso && !label) {
+                alert('Informe a data ou o rótulo do dia.');
+                return;
+            }
+            if (!label && dataIso) {
+                var p = dataIso.split('-');
+                var dt = new Date(dataIso + 'T12:00:00');
+                var dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+                label = (dias[dt.getDay()] || '') + ' ' + p[2] + '/' + p[1] + '/' + String(p[0]).slice(2);
+            }
+            var preenchimento = {};
+            document.querySelectorAll('.escala-campo-funcao').forEach(function(inp) {
+                var fn = inp.getAttribute('data-funcao');
+                var nomes = String(inp.value || '').split(/[,;/]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+                if (nomes.length) preenchimento[fn] = nomes;
+            });
+            var r = salvarDiaEscalaFormulario({
+                ministerio: min,
+                dataIso: dataIso,
+                dataLabel: label,
+                preenchimento: preenchimento,
+                observacao: document.getElementById('escalaObsDia').value.trim()
+            });
+            var msg = document.getElementById('msgEscalaForm');
+            msg.classList.remove('hidden');
+            msg.className = 'text-sm mt-2 ' + (r.sucesso ? 'text-green-700 font-semibold' : 'text-red-600');
+            msg.textContent = r.mensagem || (r.sucesso ? 'Salvo' : 'Erro');
+        });
+        document.getElementById('btnExportarEscalaCSV') && document.getElementById('btnExportarEscalaCSV').addEventListener('click', function() {
+            var min = document.getElementById('escalaMinisterioSel').value;
+            if (typeof exportarEscalaCSV === 'function') exportarEscalaCSV(min);
+        });
+        document.getElementById('btnSalvarModeloEscala') && document.getElementById('btnSalvarModeloEscala').addEventListener('click', function() {
+            var min = document.getElementById('escalaMinisterioSel').value;
+            var lista = [];
+            document.querySelectorAll('#editorModeloEscala > div').forEach(function(row) {
+                var fn = (row.querySelector('.mod-fn') || {}).value || '';
+                var q = parseInt((row.querySelector('.mod-qtd') || {}).value || '0', 10);
+                if (fn.trim()) lista.push({ funcao: fn.trim(), qtd: isNaN(q) ? 0 : q });
+            });
+            if (typeof salvarModeloFuncoesMinisterio === 'function') salvarModeloFuncoesMinisterio(min, lista);
+            alert('Modelo de funções salvo para ' + min);
+            montarFormEscalaDia();
+        });
+        document.getElementById('btnAddFuncaoModelo') && document.getElementById('btnAddFuncaoModelo').addEventListener('click', function() {
+            var ed = document.getElementById('editorModeloEscala');
+            var div = document.createElement('div');
+            div.className = 'flex gap-2 items-center';
+            div.innerHTML = '<input type="text" class="mod-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Nova função">' +
+                '<input type="number" min="0" max="30" class="mod-qtd w-16 border rounded px-2 py-1 text-xs" value="1">';
+            ed.appendChild(div);
+        });
+        try { preencherSelectMinisteriosEscala(); } catch(e) {}
+
+        document.getElementById('importEscalaCSV') && document.getElementById('importEscalaCSV').addEventListener('change', function(ev) {
+            var file = ev.target.files && ev.target.files[0];
+            var msg = document.getElementById('msgEscalaImport');
+            if (!file) return;
+            var min = (document.getElementById('escalaMinisterioSel') || {}).value || 'Atmosfera';
+            var reader = new FileReader();
+            reader.onload = function() {
+                if (typeof importarEscalaCSV !== 'function') {
+                    msg.className = 'text-sm text-red-600';
+                    msg.textContent = 'Função de importação indisponível. Atualize conta.js';
+                    msg.classList.remove('hidden');
+                    return;
+                }
+                var r = importarEscalaCSV(reader.result, min);
+                msg.classList.remove('hidden');
+                if (r.sucesso) {
+                    msg.className = 'text-sm text-green-700 font-semibold';
+                    msg.textContent = '✅ ' + r.mensagem;
+                } else {
+                    msg.className = 'text-sm text-red-600 font-semibold';
+                    msg.textContent = '❌ ' + (r.mensagem || 'Falha');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
 
         async function carregarTudo() {
             try { renderPendenciasGestao(); } catch (e) {}

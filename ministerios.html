@@ -643,43 +643,597 @@
     </script>
 
 
+
 <script>
 (function(){
-    function aplicarIndicadoresMinisterios() {
-        if (typeof statusPendenciasMinisterio !== 'function') return;
-        document.querySelectorAll('[data-ministerio-slug]').forEach(function(el) {
-            var slug = el.getAttribute('data-ministerio-slug') || '';
-            // nome amigável a partir do slug
-            var mapa = {
-                atmosfera: 'Atmosfera', acolhimento: 'Acolhimento', mulheres: 'Mulheres', homens: 'Homens',
-                intercessao: 'Intercessão', evangelismo: 'Evangelismo', danca: 'Dança',
-                empreendedorismo: 'Empreendedorismo', batismo: 'Batismo', zeladoria: 'Zeladoria',
-                'projetos-sociais': 'Projetos Sociais', casais: 'Casais', jovens: 'Jovens',
-                adolescentes: 'Adolescentes', louvor: 'Louvor', midias: 'Mídias Sociais',
-                'midias-sociais': 'Mídias Sociais', infantil: 'Infantil', artes: 'Artes',
-                ensino: 'Ensino', cantina: 'Cantina', kids: 'Projeto Kids', 'projeto-kids': 'Projeto Kids'
-            };
-            var nome = mapa[slug] || slug;
-            var st = statusPendenciasMinisterio(nome);
-            if (!st || !st.cor) return;
-            var card = el.closest('.card-ministro') || el.closest('.bg-white') || el.parentElement;
-            if (!card || card.querySelector('.bola-status-min')) return;
-            var h = card.querySelector('h3, h2, .font-bold');
-            var bola = document.createElement('span');
-            bola.className = 'bola-status-min inline-block w-3 h-3 rounded-full ml-2 align-middle ' +
-                (st.cor === 'vermelho' ? 'bg-red-500' : (st.cor === 'azul' ? 'bg-blue-500' : 'bg-amber-500'));
-            bola.title = (st.motivos || []).join(' · ');
-            if (h) {
-                h.appendChild(bola);
-            } else {
-                el.insertBefore(bola, el.firstChild);
-            }
+    var MAPA_SLUG = {
+        atmosfera: 'Atmosfera', acolhimento: 'Acolhimento', mulheres: 'Mulheres', homens: 'Homens',
+        intercessao: 'Intercessão', evangelismo: 'Evangelismo', danca: 'Dança',
+        empreendedorismo: 'Empreendedorismo', batismo: 'Batismo', zeladoria: 'Zeladoria',
+        'projetos-sociais': 'Projetos Sociais', casais: 'Casais', jovens: 'Jovens',
+        adolescentes: 'Adolescentes', louvor: 'Louvor', midias: 'Mídias Sociais',
+        'midias-sociais': 'Mídias Sociais', infantil: 'Infantil', artes: 'Artes',
+        ensino: 'Ensino', cantina: 'Cantina', kids: 'Projeto Kids', 'projeto-kids': 'Projeto Kids'
+    };
+    var minAtualModal = '';
+    var escFormSujo = false;
+
+    function usuario() {
+        return (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+    }
+    function ehGestao(u) {
+        if (!u) return false;
+        if (typeof isAdmin === 'function' && isAdmin(u)) return true;
+        return u.nivel === 'admin' || u.nivel === 'gestor';
+    }
+
+    function abrirModalEscala(nomeMin) {
+        minAtualModal = nomeMin;
+        var modal = document.getElementById('modalEscalaMin');
+        document.getElementById('modalEscalaTitulo').textContent = 'Escala — ' + nomeMin + ' (próximos meses)';
+        renderListaEscalaModal();
+        montarCamposNovoDia(nomeMin);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function fecharModalEscala() {
+        var modal = document.getElementById('modalEscalaMin');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    function renderLista36h() {
+        var bloco = document.getElementById('bloco36hEscala');
+        var box36 = document.getElementById('listaConfirmacao36h');
+        if (!bloco || !box36) return;
+        var lista = (typeof listaEscaladosJanela36h === 'function') ? listaEscaladosJanela36h(minAtualModal) : [];
+        if (!lista.length) {
+            bloco.classList.add('hidden');
+            return;
+        }
+        bloco.classList.remove('hidden');
+        box36.innerHTML = lista.map(function(p) {
+            var st = p.confirmou
+                ? '<span class="text-green-700 font-bold text-xs">✓ Confirmou no site</span>'
+                : '<span class="text-amber-700 font-bold text-xs">⏳ Não confirmou</span>';
+            var nf = p.notifLabel || (p.notifPermission === 'denied' ? '🔕 Bloqueou notif.' : (p.notifPermission === 'granted' ? '🔔 Notif. OK' : '⏳ Sem permissão'));
+            var tel = p.telefone ? String(p.telefone) : 'sem telefone';
+            var btns = '';
+            if (p.linkTel) btns += '<a href="' + p.linkTel + '" class="text-xs font-bold text-primary underline mr-2">Ligar</a>';
+            if (p.linkWa) btns += '<a href="' + p.linkWa + '" target="_blank" rel="noopener" class="text-xs font-bold text-green-700 underline">WhatsApp</a>';
+            return '<div class="bg-white rounded border px-2 py-1.5 text-xs">' +
+                '<div class="flex justify-between gap-2"><span class="font-bold">' + (p.nome||'') + '</span>' + st + '</div>' +
+                '<div class="text-gray-600">' + (p.funcao||'') + ' · ' + (p.dataLabel||'') + ' · ' + tel + '</div>' +
+                '<div class="text-gray-500">' + nf + '</div>' +
+                '<div class="mt-0.5">' + btns + '</div></div>';
+        }).join('');
+    }
+    function renderListaEscalaModal() {
+        renderLista36h();
+        var box = document.getElementById('listaEscalaModal');
+        if (!box) return;
+        var linhas = (typeof escalaCompletaMinisterio === 'function')
+            ? escalaCompletaMinisterio(minAtualModal, 120)
+            : [];
+        if (!linhas.length) {
+            box.innerHTML = '<p class="text-gray-400 text-sm">Nenhum dia cadastrado ainda. Use o formulário abaixo.</p>';
+            return;
+        }
+        box.innerHTML = linhas.map(function(l) {
+            var funcoesHtml = '';
+            var f = l.funcoes || {};
+            Object.keys(f).forEach(function(fn) {
+                funcoesHtml += '<p class="text-xs"><span class="font-semibold">' + fn + ':</span> ' +
+                    (Array.isArray(f[fn]) ? f[fn].join(', ') : f[fn]) + '</p>';
+            });
+            var st = (l.status === 'finalizada') ? 'finalizada' : 'rascunho';
+            var badge = st === 'finalizada'
+                ? '<span class="text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">Finalizada</span>'
+                : '<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">⚠ Incompleta / rascunho</span>';
+            return '<div class="border rounded-lg p-3 bg-indigo-50/40" data-iso="' + (l.dataIso||'') + '">' +
+                '<div class="flex justify-between items-start gap-2">' +
+                '<p class="font-bold text-primary">' + (l.dataLabel || l.dataIso) +
+                (l.observacao ? ' <span class="text-amber-700 font-normal">· ' + l.observacao + '</span>' : '') +
+                ' ' + badge +
+                '</p>' +
+                '<span class="flex gap-2 shrink-0">' +
+                '<button type="button" class="btn-edit-dia-esc text-xs text-primary font-bold" data-iso="' + (l.dataIso||'') + '">Editar</button>' +
+                '<button type="button" class="btn-rem-dia-esc text-xs text-red-600 font-bold" data-iso="' + (l.dataIso||'') + '">Excluir</button>' +
+                '</span></div>' + funcoesHtml +
+                '<button type="button" class="btn-wa-dia-esc mt-2 text-xs text-green-700 font-bold underline" data-iso="' + (l.dataIso||'') + '">WhatsApp deste dia</button>' +
+                '</div>';
+        }).join('');
+        box.querySelectorAll('.btn-rem-dia-esc').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('Excluir este dia da escala?\n\nConfirma a exclusão?')) return;
+                if (typeof removerDiaEscala === 'function') removerDiaEscala(minAtualModal, btn.getAttribute('data-iso'));
+                renderListaEscalaModal();
+            });
+        });
+        box.querySelectorAll('.btn-edit-dia-esc').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('Editar este dia?\n\nAs seleções atuais do formulário serão substituídas pelos dados deste dia.')) return;
+                var iso = btn.getAttribute('data-iso');
+                var linhas = (typeof escalaCompletaMinisterio === 'function') ? escalaCompletaMinisterio(minAtualModal, 120) : [];
+                var l = linhas.find(function(x) { return String(x.dataIso) === String(iso); });
+                if (!l) return;
+                document.getElementById('escNovoData').value = l.dataIso || '';
+                document.getElementById('escNovoLabel').value = l.dataLabel || '';
+                document.getElementById('escNovoObs').value = l.observacao || '';
+                // carrega seleções
+                escSelecoes = {};
+                var modelo = (document.getElementById('escNovoFuncoes') || {})._modeloEscala || [];
+                modelo.forEach(function(it) { escSelecoes[it.funcao] = []; });
+                var funcoes = l.funcoes || {};
+                Object.keys(funcoes).forEach(function(fn) {
+                    escSelecoes[fn] = (funcoes[fn] || []).slice();
+                });
+                escFormSujo = false;
+                if (typeof escRenderLinhas === 'function') escRenderLinhas();
+                alert('Dia carregado no formulário. Altere e use "Salvar rascunho" ou "Finalizar escala".');
+            });
+        });
+        box.querySelectorAll('.btn-wa-dia-esc').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('Abrir lembretes de WhatsApp deste dia?')) return;
+                enviarWhatsDia(minAtualModal, btn.getAttribute('data-iso'));
+            });
         });
     }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(aplicarIndicadoresMinisterios, 400); });
-    else setTimeout(aplicarIndicadoresMinisterios, 400);
+    // Seleção compacta: 1 linha por função; seta abre disponíveis (A-Z); escolhido sai da lista
+    var escSelecoes = {}; // { 'Balcão Inf.': ['Nome1'], ... }
+    var escIntegrantesBase = [];
+
+    function escDataIsoAtual() {
+        var el = document.getElementById('escNovoData');
+        return el && el.value ? el.value : '';
+    }
+    /** Nomes já escalados NESTE formulário (várias funções do mesmo ministério) */
+    function escNomesJaUsadosNoForm() {
+        var usados = {};
+        Object.keys(escSelecoes).forEach(function(fn) {
+            (escSelecoes[fn] || []).forEach(function(n) { usados[n] = true; });
+        });
+        return usados;
+    }
+    /**
+     * Quem já está em QUALQUER ministério no mesmo dia (ex.: Atmosfera pegou primeiro).
+     * Retorna { 'Nome': 'Atmosfera' }
+     */
+    function escOcupadosNoDiaOutrosMinisterios(dataIso, ministerioAtual) {
+        var mapa = {};
+        if (!dataIso || typeof lerTodasEscalasCultos !== 'function') return mapa;
+        var all = lerTodasEscalasCultos() || {};
+        Object.keys(all).forEach(function(min) {
+            // ao editar o mesmo ministério no mesmo dia, a linha antiga será substituída no save —
+            // ainda assim bloqueia outros ministérios; no próprio ministério o form manda
+            if (String(min).toLowerCase() === String(ministerioAtual || '').toLowerCase()) return;
+            (all[min] || []).forEach(function(linha) {
+                if (String(linha.dataIso || '') !== String(dataIso)) return;
+                var funcoes = linha.funcoes || {};
+                Object.keys(funcoes).forEach(function(fn) {
+                    (funcoes[fn] || []).forEach(function(nomeE) {
+                        var nome = String(nomeE || '').trim();
+                        if (!nome) return;
+                        // chave normalizada para bater com cadastro
+                        mapa[nome] = min;
+                        // também tenta casar com integrantes pelo nomeBateEscala
+                        (escIntegrantesBase || []).forEach(function(p) {
+                            if (typeof nomeBateEscala === 'function' && nomeBateEscala(p.nome, nomeE)) {
+                                mapa[p.nome] = min;
+                            }
+                        });
+                    });
+                });
+            });
+        });
+        return mapa;
+    }
+    function escDisponiveis() {
+        var usadosForm = escNomesJaUsadosNoForm();
+        var dataIso = escDataIsoAtual();
+        var ocupados = escOcupadosNoDiaOutrosMinisterios(dataIso, minAtualModal);
+        return escIntegrantesBase
+            .filter(function(p) {
+                if (usadosForm[p.nome]) return false;
+                if (ocupados[p.nome]) return false;
+                return true;
+            })
+            .sort(function(a, b) {
+                return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+            });
+    }
+    /** Integrantes do ministério que já estão em outro no mesmo dia (só info) */
+    function escIndisponiveisInfo() {
+        var dataIso = escDataIsoAtual();
+        var ocupados = escOcupadosNoDiaOutrosMinisterios(dataIso, minAtualModal);
+        return escIntegrantesBase
+            .filter(function(p) { return !!ocupados[p.nome]; })
+            .map(function(p) { return { nome: p.nome, ministerio: ocupados[p.nome] }; })
+            .sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    }
+    function escRenderLinhas() {
+        var box = document.getElementById('escNovoFuncoes');
+        if (!box) return;
+        var modelo = box._modeloEscala || [];
+        var html = '';
+        if (!escIntegrantesBase.length) {
+            html = '<p class="text-xs text-amber-700 mb-2">Nenhum integrante neste ministério. Use texto livre abaixo.</p>';
+        }
+        modelo.forEach(function(it, idx) {
+            if (/^observa/i.test(it.funcao)) return;
+            var fn = String(it.funcao || '');
+            var sel = escSelecoes[fn] || [];
+            var chips = sel.length
+                ? sel.map(function(n) {
+                    return '<span class="inline-flex items-center gap-1 bg-primary/10 text-primary text-[11px] font-semibold px-1.5 py-0.5 rounded mr-1 mb-0.5">' +
+                        n +
+                        ' <button type="button" class="esc-rm-nome text-red-600 font-bold" data-fn="' + fn.replace(/"/g,'&quot;') + '" data-nome="' + n.replace(/"/g,'&quot;') + '" title="Remover">×</button></span>';
+                  }).join('')
+                : '<span class="text-gray-400 text-[11px]">Ninguém — clique na seta</span>';
+            html += '<div class="border rounded-lg mb-1.5 bg-white overflow-hidden" data-fn-row="' + fn.replace(/"/g,'&quot;') + '">' +
+                '<button type="button" class="esc-toggle-fn w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-gray-50" data-fn="' + fn.replace(/"/g,'&quot;') + '">' +
+                '<span class="esc-arrow text-gray-500 text-xs w-3">▶</span>' +
+                '<span class="flex-1 min-w-0">' +
+                '<span class="text-xs font-bold text-gray-800">' + fn +
+                (it.qtd ? ' <span class="font-normal text-gray-500">(até ' + it.qtd + ')</span>' : '') +
+                '</span>' +
+                '<span class="block mt-0.5 leading-tight">' + chips + '</span>' +
+                '</span></button>' +
+                '<div class="esc-drop hidden border-t bg-gray-50 max-h-40 overflow-y-auto px-2 py-1" data-fn-drop="' + fn.replace(/"/g,'&quot;') + '"></div>' +
+                '</div>';
+        });
+        if (!escIntegrantesBase.length) {
+            modelo.forEach(function(it) {
+                if (/^observa/i.test(it.funcao)) return;
+                html += '<input type="text" class="esc-nf w-full border rounded px-2 py-1 text-xs mb-1" data-fn="' +
+                    String(it.funcao).replace(/"/g,'') + '" placeholder="' + String(it.funcao) + ' — nomes separados por vírgula">';
+            });
+        }
+        box.innerHTML = html;
+
+        box.querySelectorAll('.esc-toggle-fn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var fn = btn.getAttribute('data-fn');
+                var drop = box.querySelector('[data-fn-drop="' + fn.replace(/"/g, '\"') + '"]');
+                // query with attribute carefully
+                drop = null;
+                box.querySelectorAll('.esc-drop').forEach(function(d) {
+                    if (d.getAttribute('data-fn-drop') === fn) drop = d;
+                });
+                if (!drop) return;
+                var aberto = !drop.classList.contains('hidden');
+                // fecha outros
+                box.querySelectorAll('.esc-drop').forEach(function(d) { d.classList.add('hidden'); });
+                box.querySelectorAll('.esc-arrow').forEach(function(a) { a.textContent = '▶'; });
+                if (aberto) return;
+                drop.classList.remove('hidden');
+                var arrow = btn.querySelector('.esc-arrow');
+                if (arrow) arrow.textContent = '▼';
+                var disp = escDisponiveis();
+                var indis = escIndisponiveisInfo();
+                var infoHtml = '';
+                if (!escDataIsoAtual()) {
+                    infoHtml = '<p class="text-[11px] text-amber-700 py-1 px-1">Informe a <strong>data</strong> acima para bloquear quem já está em outro ministério no mesmo dia.</p>';
+                }
+                if (indis.length) {
+                    infoHtml += '<p class="text-[11px] text-gray-500 py-1 px-1 border-b mb-1"><strong>Já escalados em outro ministério neste dia:</strong><br>' +
+                        indis.map(function(x) { return x.nome + ' → ' + x.ministerio; }).join('<br>') +
+                        '</p>';
+                }
+                if (!disp.length) {
+                    drop.innerHTML = infoHtml + '<p class="text-[11px] text-gray-500 py-1">Nenhum membro disponível (todos já escalados neste dia ou em outro ministério).</p>';
+                    return;
+                }
+                var qtdMax = 0;
+                (box._modeloEscala || []).forEach(function(m) {
+                    if (m.funcao === fn) qtdMax = m.qtd || 0;
+                });
+                var ja = (escSelecoes[fn] || []).length;
+                drop.innerHTML = infoHtml + disp.map(function(p) {
+                    var nm = String(p.nome || '').replace(/</g, '');
+                    return '<button type="button" class="esc-pick-nome w-full text-left text-xs px-2 py-1.5 rounded hover:bg-indigo-100 border-b border-gray-100" data-fn="' +
+                        fn.replace(/"/g,'&quot;') + '" data-nome="' + nm.replace(/"/g,'&quot;') + '">' + nm +
+                        (p.papel ? ' <span class="text-gray-400">(' + p.papel + ')</span>' : '') + '</button>';
+                }).join('');
+                drop.querySelectorAll('.esc-pick-nome').forEach(function(b) {
+                    b.addEventListener('click', function() {
+                        var f = b.getAttribute('data-fn');
+                        var n = b.getAttribute('data-nome');
+                        if (!escSelecoes[f]) escSelecoes[f] = [];
+                        var max = 0;
+                        (box._modeloEscala || []).forEach(function(m) { if (m.funcao === f) max = m.qtd || 0; });
+                        if (max > 0 && escSelecoes[f].length >= max) {
+                            alert('Limite sugerido para ' + f + ': ' + max + ' pessoa(s). Remova alguém antes ou ignore se precisar passar do limite.');
+                            // ainda permite? user asked for até N - allow with confirm
+                            if (!confirm('Incluir mesmo assim?')) return;
+                        }
+                        if (escSelecoes[f].indexOf(n) === -1) escSelecoes[f].push(n);
+                        escFormSujo = true;
+                        escRenderLinhas();
+                    });
+                });
+            });
+        });
+        box.querySelectorAll('.esc-rm-nome').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var f = btn.getAttribute('data-fn');
+                var n = btn.getAttribute('data-nome');
+                escSelecoes[f] = (escSelecoes[f] || []).filter(function(x) { return x !== n; });
+                escFormSujo = true;
+                escRenderLinhas();
+            });
+        });
+    }
+    function montarCamposNovoDia(nomeMin) {
+        var box = document.getElementById('escNovoFuncoes');
+        if (!box) return;
+        var modelo = (typeof lerModeloFuncoesMinisterio === 'function') ? lerModeloFuncoesMinisterio(nomeMin) : [];
+        box._modeloEscala = modelo.filter(function(it) { return !/^observa/i.test(it.funcao); });
+        escSelecoes = {};
+        box._modeloEscala.forEach(function(it) { escSelecoes[it.funcao] = []; });
+        var integrantes = (typeof membrosDoMinisterio === 'function') ? membrosDoMinisterio(nomeMin) : [];
+        escIntegrantesBase = (integrantes || []).map(function(p) {
+            return { id: p.id, nome: String(p.nome || '').trim(), papel: p.papel || '' };
+        }).filter(function(p) { return p.nome; });
+        escIntegrantesBase.sort(function(a, b) {
+            return String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+        });
+        escRenderLinhas();
+    }
+    function enviarWhatsDia(min, iso) {
+        if (typeof montarLembretesWhatsAppEscala !== 'function') return alert('Função indisponível');
+        var lista = montarLembretesWhatsAppEscala(min, iso);
+        if (!lista.length) return alert('Ninguém neste dia ou escala vazia.');
+        var semTel = lista.filter(function(x){ return !x.link; });
+        var msg = 'Serão abertos lembretes no WhatsApp para quem tem telefone cadastrado.\n' +
+            lista.length + ' pessoa(s). ' + (semTel.length ? semTel.length + ' sem telefone.\n' : '') +
+            'O navegador pode bloquear pop-ups — permita se pedir.\n\nContinuar?';
+        if (!confirm(msg)) return;
+        var i = 0;
+        function next() {
+            if (i >= lista.length) return;
+            var item = lista[i++];
+            if (item.link) window.open(item.link, '_blank');
+            setTimeout(next, 800);
+        }
+        next();
+    }
+
+    ['escNovoLabel','escNovoObs'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function() { escFormSujo = true; });
+    });
+    document.getElementById('escNovoData') && document.getElementById('escNovoData').addEventListener('change', function() {
+        // data mudou: limpa seleções do form para não manter conflito
+        Object.keys(escSelecoes).forEach(function(k) { escSelecoes[k] = []; });
+        if (typeof escRenderLinhas === 'function') escRenderLinhas();
+    });
+    document.getElementById('btnFecharModalEscala') && document.getElementById('btnFecharModalEscala').addEventListener('click', function(){ tentarFecharModalEscala(false); });
+    document.getElementById('btnFecharModalEscala2') && document.getElementById('btnFecharModalEscala2').addEventListener('click', function(){ tentarFecharModalEscala(false); });
+    document.getElementById('modalEscalaMin') && document.getElementById('modalEscalaMin').addEventListener('click', function(e) {
+        if (e.target.id === 'modalEscalaMin') tentarFecharModalEscala(false);
+    });
+    function coletarPreenchimentoEscala() {
+        var preenchimento = {};
+        if (typeof escSelecoes === 'object' && escSelecoes) {
+            Object.keys(escSelecoes).forEach(function(fn) {
+                if (escSelecoes[fn] && escSelecoes[fn].length) preenchimento[fn] = escSelecoes[fn].slice();
+            });
+        }
+        document.querySelectorAll('.esc-nf').forEach(function(inp) {
+            var fn = inp.getAttribute('data-fn');
+            var nomes = String(inp.value || '').split(/[,;/]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+            if (!nomes.length) return;
+            if (!preenchimento[fn]) preenchimento[fn] = [];
+            nomes.forEach(function(n) {
+                if (preenchimento[fn].indexOf(n) === -1) preenchimento[fn].push(n);
+            });
+        });
+        return preenchimento;
+    }
+    function salvarDiaEscalaUI(status) {
+        var dataIso = document.getElementById('escNovoData').value;
+        var label = document.getElementById('escNovoLabel').value.trim();
+        if (!dataIso && !label) return alert('Informe a data.');
+        if (!label && dataIso) {
+            var p = dataIso.split('-');
+            var dt = new Date(dataIso + 'T12:00:00');
+            var dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+            label = (dias[dt.getDay()] || '') + ' ' + p[2] + '/' + p[1] + '/' + String(p[0]).slice(2);
+        }
+        var preenchimento = coletarPreenchimentoEscala();
+        var msgConf = status === 'finalizada'
+            ? 'Finalizar a escala deste dia?\n\nFicará marcada como completa.'
+            : 'Salvar como rascunho (escala incompleta)?\n\nPoderá editar depois.';
+        if (!confirm(msgConf)) return;
+        if (typeof salvarDiaEscalaFormulario !== 'function') return alert('Função indisponível');
+        var r = salvarDiaEscalaFormulario({
+            ministerio: minAtualModal,
+            dataIso: dataIso,
+            dataLabel: label,
+            preenchimento: preenchimento,
+            observacao: document.getElementById('escNovoObs').value.trim(),
+            status: status
+        });
+        if (!r || !r.sucesso) {
+            alert((r && r.mensagem) || 'Não foi possível salvar. Atualize a página (conta.js) e tente de novo.');
+            return;
+        }
+        var msgOk = (status === 'finalizada' ? 'Escala finalizada' : 'Rascunho salvo') +
+            ' para ' + (label || dataIso) + '.';
+        if (r.sucesso) {
+            alert(msgOk);
+            escFormSujo = false;
+            // limpa form para próximo dia
+            try {
+                Object.keys(escSelecoes).forEach(function(k) { escSelecoes[k] = []; });
+                document.getElementById('escNovoObs').value = '';
+                if (typeof escRenderLinhas === 'function') escRenderLinhas();
+            } catch (e) {}
+            renderListaEscalaModal();
+            if (status === 'finalizada' && dataIso) {
+                var hoje = new Date(); hoje.setHours(12,0,0,0);
+                var d = new Date(dataIso + 'T12:00:00');
+                var diff = Math.round((d - hoje) / 86400000);
+                if (diff <= 1 && confirm('Escala próxima. Enviar lembrete WhatsApp agora para os escalados?')) {
+                    enviarWhatsDia(minAtualModal, dataIso);
+                }
+            }
+        }
+    }
+    document.getElementById('btnSalvarNovoDiaEsc') && document.getElementById('btnSalvarNovoDiaEsc').addEventListener('click', function() {
+        salvarDiaEscalaUI('finalizada');
+    });
+    document.getElementById('btnSalvarRascunhoEsc') && document.getElementById('btnSalvarRascunhoEsc').addEventListener('click', function() {
+        salvarDiaEscalaUI('rascunho');
+    });
+    function tentarFecharModalEscala(forcarSemSalvar) {
+        if (forcarSemSalvar) {
+            if (!confirm('Sair sem salvar?\n\nAlterações não salvas neste formulário serão perdidas.')) return;
+            escFormSujo = false;
+            fecharModalEscala();
+            return;
+        }
+        if (escFormSujo) {
+            if (!confirm('Há alterações não salvas.\n\nOK = sair sem salvar\nCancelar = continuar editando')) return;
+            escFormSujo = false;
+        }
+        fecharModalEscala();
+    }
+    document.getElementById('btnSairSemSalvarEsc') && document.getElementById('btnSairSemSalvarEsc').addEventListener('click', function() {
+        tentarFecharModalEscala(true);
+    });
+    document.getElementById('btnWhatsEscalaModal') && document.getElementById('btnWhatsEscalaModal').addEventListener('click', function() {
+        var linhas = (typeof escalaCompletaMinisterio === 'function') ? escalaCompletaMinisterio(minAtualModal, 7) : [];
+        if (!linhas.length) return alert('Nenhum dia próximo.');
+        if (!confirm('Abrir lembretes WhatsApp do próximo dia da escala?')) return;
+        enviarWhatsDia(minAtualModal, linhas[0].dataIso);
+    });
+
+    function aplicarIndicadoresMinisterios() {
+        document.querySelectorAll('[data-ministerio-slug]').forEach(function(el) {
+            var slug = el.getAttribute('data-ministerio-slug') || '';
+            var nome = MAPA_SLUG[slug] || slug;
+            var st = (typeof statusPendenciasMinisterio === 'function') ? statusPendenciasMinisterio(nome) : null;
+            var card = el.closest('.card-ministro') || el.closest('.bg-white') || el.parentElement;
+            if (!card) return;
+
+            if (st && st.cor && !card.querySelector('.bola-status-min')) {
+                var h = card.querySelector('h3, h2');
+                var bola = document.createElement('span');
+                bola.className = 'bola-status-min inline-block w-3 h-3 rounded-full ml-2 align-middle ' +
+                    (st.cor === 'vermelho' ? 'bg-red-500' : (st.cor === 'azul' ? 'bg-blue-500' : 'bg-amber-500'));
+                bola.title = (st.motivos || []).join(' · ');
+                if (h) h.appendChild(bola);
+            }
+
+            if (card.querySelector('.painel-integrantes-min')) return;
+            var u = usuario();
+            var podeVerEquipe = ehGestao(u) || (typeof isLiderDoMinisterio === 'function' && isLiderDoMinisterio(u, nome));
+            var integrantes = (typeof membrosDoMinisterio === 'function') ? membrosDoMinisterio(nome) : [];
+            var eMembro = u && integrantes.some(function(x){ return String(x.id) === String(u.id); });
+
+            if (podeVerEquipe) {
+                var painel = document.createElement('div');
+                painel.className = 'painel-integrantes-min mt-3 border-t pt-3 text-sm';
+                var html = '<p class="font-bold text-primary text-xs mb-1">Integrantes e cargos</p>';
+                if (!integrantes.length) {
+                    html += '<p class="text-xs text-red-600">Nenhum membro cadastrado neste ministério.</p>';
+                } else {
+                    html += '<ul class="space-y-1 max-h-36 overflow-y-auto">';
+                    integrantes.forEach(function(p) {
+                        var nm = String(p.nome || '').replace(/</g,'');
+                        var link = ehGestao(u)
+                            ? '<a class="text-primary font-semibold hover:underline" href="gestao-membros.html#membro-' + p.id + '">' + nm + '</a>'
+                            : '<span class="font-semibold">' + nm + '</span>';
+                        html += '<li class="flex justify-between gap-2 text-xs border-b border-gray-50 py-0.5"><span>' + link + '</span><span class="text-gray-500">' + (p.papel || 'Integrante') + '</span></li>';
+                    });
+                    html += '</ul>';
+                }
+                html += '<p class="font-bold text-primary text-xs mt-2 mb-1">Escala de serviços</p>';
+                var linhas = (typeof escalaCompletaMinisterio === 'function') ? escalaCompletaMinisterio(nome, 45) : [];
+                if (!linhas.length) html += '<p class="text-xs text-gray-400">Nenhuma escala nos próximos 14 dias.</p>';
+                else {
+                    html += '<ul class="text-xs space-y-1 max-h-24 overflow-y-auto">';
+                    linhas.slice(0,5).forEach(function(l) {
+                        html += '<li class="font-semibold">' + (l.dataLabel || l.dataIso) + (l.observacao ? ' · ' + l.observacao : '') + '</li>';
+                    });
+                    html += '</ul>';
+                }
+                html += '<button type="button" class="btn-abrir-escala-full mt-2 text-xs font-bold text-primary underline" data-min="' + String(nome).replace(/"/g,'') + '">Ver / editar escala completa</button>';
+                painel.innerHTML = html;
+                el.appendChild(painel);
+            } else if (eMembro && u) {
+                var minhas = (typeof escalaProximasDoMembro === 'function') ? escalaProximasDoMembro(u, 45).filter(function(x){ return String(x.ministerio).toLowerCase() === String(nome).toLowerCase(); }) : [];
+                var painelM = document.createElement('div');
+                painelM.className = 'painel-integrantes-min mt-3 border-t pt-3 text-sm';
+                var hm = '<p class="font-bold text-primary text-xs mb-1">Minha escala neste ministério</p>';
+                if (!minhas.length) hm += '<p class="text-xs text-gray-400">Sem escala próxima para você.</p>';
+                else {
+                    hm += '<ul class="text-xs space-y-1">';
+                    minhas.forEach(function(e) {
+                        hm += '<li>' + (e.dataLabel||'') + ' — ' + (e.funcoes||[]).join(', ') +
+                            (e.diasAte===0?' (hoje)':e.diasAte===1?' (amanhã)':'') + '</li>';
+                    });
+                    hm += '</ul>';
+                }
+                painelM.innerHTML = hm;
+                el.appendChild(painelM);
+            }
+        });
+
+        document.querySelectorAll('.btn-abrir-escala-full').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                abrirModalEscala(btn.getAttribute('data-min'));
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(aplicarIndicadoresMinisterios, 500); });
+    else setTimeout(aplicarIndicadoresMinisterios, 500);
 })();
 </script>
+
+
+
+<!-- Modal escala completa (líder / admin / gestor) -->
+<div id="modalEscalaMin" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-3">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="bg-primary text-white px-4 py-3 flex justify-between items-center">
+      <h3 id="modalEscalaTitulo" class="font-bold text-lg">Escala completa</h3>
+      <button type="button" id="btnFecharModalEscala" class="text-white text-xl leading-none">&times;</button>
+    </div>
+    <div class="p-4 overflow-y-auto flex-1 text-sm">
+      <p class="text-gray-500 text-xs mb-3">Escala cadastrada. Nas <strong>36h antes</strong> aparece a lista com telefone, WhatsApp e quem já confirmou no site.</p>
+      <div id="bloco36hEscala" class="mb-4 hidden border-2 border-green-500 rounded-lg p-3 bg-green-50">
+        <p class="font-bold text-green-900 text-sm mb-1">📞 Janela de 36h — confirme com a equipe</p>
+        <p class="text-xs text-green-800 mb-2">Ligue ou mande WhatsApp. O membro confirma no site com “Confirmei que recebi”.</p>
+        <div id="listaConfirmacao36h" class="space-y-2 max-h-48 overflow-y-auto"></div>
+      </div>
+      <div id="listaEscalaModal" class="space-y-3"></div>
+      <div class="mt-4 border-t pt-3">
+        <p class="font-bold text-primary text-xs mb-2">Novo dia / evento</p>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <input type="date" id="escNovoData" class="border rounded px-2 py-1.5 text-sm">
+          <input type="text" id="escNovoLabel" class="border rounded px-2 py-1.5 text-sm" placeholder="Ex: DOM 12/10/26">
+        </div>
+        <div id="escNovoFuncoes" class="space-y-1 max-h-56 overflow-y-auto mb-2"></div>
+        <input type="text" id="escNovoObs" class="w-full border rounded px-2 py-1.5 text-sm mb-2" placeholder="Observação (CEIA, evento...)">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="btnSalvarRascunhoEsc" class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-bold">Salvar rascunho (incompleta)</button>
+          <button type="button" id="btnSalvarNovoDiaEsc" class="bg-primary text-white px-3 py-2 rounded-lg text-sm font-bold">Finalizar escala do dia</button>
+        </div>
+        <p class="text-[11px] text-gray-500 mt-1">Rascunho fica marcado como incompleto. Finalizar indica escala pronta.</p>
+      </div>
+    </div>
+    <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">
+      <button type="button" id="btnWhatsEscalaModal" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Lembretes WhatsApp (próximo dia)</button>
+      <button type="button" id="btnSairSemSalvarEsc" class="border border-red-300 text-red-700 px-3 py-2 rounded-lg text-xs font-bold">Sair sem salvar</button>
+      <button type="button" id="btnFecharModalEscala2" class="border px-3 py-2 rounded-lg text-xs font-bold">Sair</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

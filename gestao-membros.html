@@ -421,11 +421,26 @@
             if (!pt.length) document.querySelector('input[name="papelTerca"][value="membro"]').checked = true;
             if (!ps.length) document.querySelector('input[name="papelSabado"][value="membro"]').checked = true;
             document.querySelectorAll('input[name="alocMin"]').forEach(el => {
-                el.checked = (m.ministerios || []).includes(el.value);
+                var mins = m.ministerios || [];
+                el.checked = mins.some(function(x) {
+                    return (typeof nomesMinisterioIguais === 'function')
+                        ? nomesMinisterioIguais(x, el.value)
+                        : String(x).toLowerCase() === String(el.value).toLowerCase();
+                }) || (typeof lideraEsteMinisterio === 'function' && lideraEsteMinisterio(m, el.value));
             });
-            const lidera = Array.isArray(m.lideraMinisterios) ? m.lideraMinisterios : (m.lideraMinisterio ? [m.lideraMinisterio] : []);
+            const lidera = Array.isArray(m.lideraMinisterios) ? m.lideraMinisterios.slice() : (m.lideraMinisterio ? [m.lideraMinisterio] : []);
+            // inclui inferência pela função específica
+            if (typeof ministeriosQueLidera === 'function') {
+                ministeriosQueLidera(m).forEach(function(n) {
+                    if (!lidera.some(function(x){ return String(x).toLowerCase()===String(n).toLowerCase(); })) lidera.push(n);
+                });
+            }
             document.querySelectorAll('input[name="alocMinLidera"]').forEach(el => {
-                el.checked = lidera.indexOf(el.value) !== -1;
+                el.checked = lidera.some(function(x) {
+                    return (typeof nomesMinisterioIguais === 'function')
+                        ? nomesMinisterioIguais(x, el.value)
+                        : String(x).toLowerCase() === String(el.value).toLowerCase();
+                });
             });
             const modal = document.getElementById('modalAprovar');
             modal.classList.remove('hidden');
