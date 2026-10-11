@@ -66,6 +66,31 @@
             </section>
 
 
+            
+            <!-- Pendências de gestão (só aparece se houver algo a resolver) -->
+            <section id="cardPendenciasGestao" class="hidden rounded-xl shadow border-2 p-5 mb-2">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl font-bold flex items-center gap-2">
+                            <span id="iconePendenciasGestao">⚠️</span>
+                            <span id="tituloPendenciasGestao">Pendências na gestão</span>
+                        </h2>
+                        <p id="resumoPendenciasTexto" class="text-sm mt-1 opacity-90"></p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs font-bold">
+                        <span id="badgeVermelho" class="hidden px-3 py-1 rounded-full bg-red-600 text-white">0 cargos vagos</span>
+                        <span id="badgeLaranja" class="hidden px-3 py-1 rounded-full bg-amber-500 text-white">0 aprovações</span>
+                        <span id="badgeAzul" class="hidden px-3 py-1 rounded-full bg-blue-600 text-white">0 relatórios</span>
+                    </div>
+                </div>
+                <div id="listaPendenciasGestao" class="mt-3 grid md:grid-cols-2 gap-2 text-sm"></div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <a href="gestao-membros.html" class="text-sm font-bold underline">Abrir gestão de membros →</a>
+                    <a href="celulas.html" class="text-sm font-bold underline">Ver células →</a>
+                    <a href="ministerios.html" class="text-sm font-bold underline">Ver ministérios →</a>
+                </div>
+            </section>
+
             <!-- Nuvem: exportações centralizadas -->
             <section class="bg-white p-6 rounded-xl shadow border-2 border-secondary/40">
                 <h2 class="text-xl font-bold text-primary mb-2">☁️ Nuvem da igreja</h2>
@@ -729,7 +754,65 @@
             a.href = url; a.download = nome; a.click();
             URL.revokeObjectURL(url);
         }
+        
+        function renderPendenciasGestao() {
+            var card = document.getElementById('cardPendenciasGestao');
+            if (!card || typeof resumoPendenciasGestao !== 'function') return;
+            var r = resumoPendenciasGestao();
+            if (!r || r.total === 0) {
+                card.classList.add('hidden');
+                return;
+            }
+            card.classList.remove('hidden');
+            // Cor da borda/fundo conforme gravidade
+            card.classList.remove('border-red-500', 'bg-red-50', 'border-amber-400', 'bg-amber-50', 'border-blue-400', 'bg-blue-50');
+            if (r.nVermelho > 0) {
+                card.classList.add('border-red-500', 'bg-red-50');
+                document.getElementById('tituloPendenciasGestao').className = 'text-red-800';
+            } else if (r.nLaranja > 0) {
+                card.classList.add('border-amber-400', 'bg-amber-50');
+                document.getElementById('tituloPendenciasGestao').className = 'text-amber-800';
+            } else {
+                card.classList.add('border-blue-400', 'bg-blue-50');
+                document.getElementById('tituloPendenciasGestao').className = 'text-blue-800';
+            }
+            document.getElementById('resumoPendenciasTexto').textContent =
+                'Há itens para resolver em células, ministérios ou aprovações de membros.';
+            var bv = document.getElementById('badgeVermelho');
+            var bl = document.getElementById('badgeLaranja');
+            var ba = document.getElementById('badgeAzul');
+            if (r.nVermelho > 0) {
+                bv.classList.remove('hidden');
+                bv.textContent = r.nVermelho + ' cargo(s) sem membro cadastrado';
+            } else bv.classList.add('hidden');
+            if (r.nLaranja > 0 || r.membrosPendentes > 0) {
+                bl.classList.remove('hidden');
+                bl.textContent = (r.nLaranja + (r.membrosPendentes ? 1 : 0)) + ' pendência(s) de aprovação';
+            } else bl.classList.add('hidden');
+            if (r.nAzul > 0) {
+                ba.classList.remove('hidden');
+                ba.textContent = r.nAzul + ' célula(s) sem relatório recente';
+            } else ba.classList.add('hidden');
+
+            var html = '';
+            (r.celulas || []).forEach(function (c) {
+                var cor = c.cor === 'vermelho' ? 'text-red-700' : (c.cor === 'azul' ? 'text-blue-700' : 'text-amber-700');
+                var bola = c.cor === 'vermelho' ? 'bg-red-500' : (c.cor === 'azul' ? 'bg-blue-500' : 'bg-amber-500');
+                html += '<div class="flex gap-2 items-start bg-white/80 rounded-lg px-3 py-2 border"><span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ' + bola + '"></span><div><p class="font-bold ' + cor + '">' + (c.nome || '') + '</p><p class="text-xs text-gray-600">' + (c.motivos || []).join(' · ') + '</p></div></div>';
+            });
+            (r.ministerios || []).forEach(function (m) {
+                var cor = m.cor === 'vermelho' ? 'text-red-700' : 'text-amber-700';
+                var bola = m.cor === 'vermelho' ? 'bg-red-500' : 'bg-amber-500';
+                html += '<div class="flex gap-2 items-start bg-white/80 rounded-lg px-3 py-2 border"><span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ' + bola + '"></span><div><p class="font-bold ' + cor + '">Ministério: ' + (m.nome || '') + '</p><p class="text-xs text-gray-600">' + (m.motivos || []).join(' · ') + '</p></div></div>';
+            });
+            if (r.membrosPendentes > 0) {
+                html += '<div class="flex gap-2 items-start bg-white/80 rounded-lg px-3 py-2 border"><span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 bg-amber-500"></span><div><p class="font-bold text-amber-700">Membros</p><p class="text-xs text-gray-600">' + r.membrosPendentes + ' cadastro(s) aguardando aprovação</p></div></div>';
+            }
+            document.getElementById('listaPendenciasGestao').innerHTML = html || '<p class="text-sm text-gray-500">Sem detalhes.</p>';
+        }
+
         async function carregarTudo() {
+            try { renderPendenciasGestao(); } catch (e) {}
             try {
                 if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarMembrosParaLocal) {
                     await IBNNuvem.puxarMembrosParaLocal();

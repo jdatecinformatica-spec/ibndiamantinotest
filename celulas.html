@@ -258,11 +258,17 @@
                 const meta = META_CELULAS[c.id] || {};
                 const eq = (typeof equipeDaCelula === 'function') ? equipeDaCelula(c.id) : { membros: [] };
                 const n = (eq.membros || []).length;
+                var st = (typeof statusPendenciasCelula === 'function') ? statusPendenciasCelula(c.id) : { cor: null, motivos: [] };
+                var bola = (typeof htmlBolinhaStatus === 'function') ? htmlBolinhaStatus(st) : '';
+                var dica = (st.motivos && st.motivos.length) ? '<p class="text-xs text-gray-400 mt-1">' + st.motivos.join(' · ') + '</p>' : '';
                 return (
                     '<button type="button" data-id="' + c.id + '" class="btn-celula w-full text-left p-4 bg-white rounded-xl border shadow-sm hover:border-secondary hover:shadow-md transition">' +
-                    '<p class="font-bold text-primary">' + c.nome + '</p>' +
+                    '<div class="flex items-start justify-between gap-2">' +
+                    '<p class="font-bold text-primary">' + c.nome + '</p>' + bola +
+                    '</div>' +
                     '<p class="text-xs text-gray-500 mt-1">' + (meta.dia || '') + ' · ' + textoEnderecoCelula(c.id) + '</p>' +
                     '<p class="text-xs text-secondary mt-1">' + n + ' membro(s) · Líder: ' + nomeOuTraco(eq.lider) + '</p>' +
+                    dica +
                     '</button>'
                 );
             }).join('');

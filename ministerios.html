@@ -642,5 +642,44 @@
     })();
     </script>
 
+
+<script>
+(function(){
+    function aplicarIndicadoresMinisterios() {
+        if (typeof statusPendenciasMinisterio !== 'function') return;
+        document.querySelectorAll('[data-ministerio-slug]').forEach(function(el) {
+            var slug = el.getAttribute('data-ministerio-slug') || '';
+            // nome amigável a partir do slug
+            var mapa = {
+                atmosfera: 'Atmosfera', acolhimento: 'Acolhimento', mulheres: 'Mulheres', homens: 'Homens',
+                intercessao: 'Intercessão', evangelismo: 'Evangelismo', danca: 'Dança',
+                empreendedorismo: 'Empreendedorismo', batismo: 'Batismo', zeladoria: 'Zeladoria',
+                'projetos-sociais': 'Projetos Sociais', casais: 'Casais', jovens: 'Jovens',
+                adolescentes: 'Adolescentes', louvor: 'Louvor', midias: 'Mídias Sociais',
+                'midias-sociais': 'Mídias Sociais', infantil: 'Infantil', artes: 'Artes',
+                ensino: 'Ensino', cantina: 'Cantina', kids: 'Projeto Kids', 'projeto-kids': 'Projeto Kids'
+            };
+            var nome = mapa[slug] || slug;
+            var st = statusPendenciasMinisterio(nome);
+            if (!st || !st.cor) return;
+            var card = el.closest('.card-ministro') || el.closest('.bg-white') || el.parentElement;
+            if (!card || card.querySelector('.bola-status-min')) return;
+            var h = card.querySelector('h3, h2, .font-bold');
+            var bola = document.createElement('span');
+            bola.className = 'bola-status-min inline-block w-3 h-3 rounded-full ml-2 align-middle ' +
+                (st.cor === 'vermelho' ? 'bg-red-500' : (st.cor === 'azul' ? 'bg-blue-500' : 'bg-amber-500'));
+            bola.title = (st.motivos || []).join(' · ');
+            if (h) {
+                h.appendChild(bola);
+            } else {
+                el.insertBefore(bola, el.firstChild);
+            }
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(aplicarIndicadoresMinisterios, 400); });
+    else setTimeout(aplicarIndicadoresMinisterios, 400);
+})();
+</script>
+
 </body>
 </html>

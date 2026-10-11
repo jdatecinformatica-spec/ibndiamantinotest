@@ -40,6 +40,33 @@
     <script src="nuvem.js"></script>
     <script src="conta.js"></script>
     <script>
+        (function preencherUsuarioLogado() {
+            try {
+                var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+                if (!u) return;
+                var el = document.getElementById('usuario');
+                if (!el) return;
+                // Prefere e-mail; se for gestor/admin logado, preenche
+                var id = (u.email || u.usuario || '').trim();
+                if (!id && u.nivel === 'gestor') id = 'gestor@ibndiamantino.com.br';
+                if (!id && u.nivel === 'admin') id = 'admin@ibndiamantino.com.br';
+                if (id) {
+                    el.value = id;
+                    el.setAttribute('title', 'Usuário da sessão atual — pode alterar se quiser');
+                    var dica = document.getElementById('dicaUsuarioLogado');
+                    if (!dica) {
+                        dica = document.createElement('p');
+                        dica.id = 'dicaUsuarioLogado';
+                        dica.className = 'text-xs text-green-700 mt-1';
+                        el.parentNode.appendChild(dica);
+                    }
+                    dica.innerHTML = 'Sessão atual: <strong>' + (u.nome || id) + '</strong> — só digite a senha, ou troque o usuário se preferir.';
+                    var senha = document.getElementById('senha');
+                    if (senha) setTimeout(function(){ senha.focus(); }, 200);
+                }
+            } catch (e) {}
+        })();
+
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const u = document.getElementById('usuario').value.trim();

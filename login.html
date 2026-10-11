@@ -114,8 +114,9 @@
             } else if (u.deveTrocarSenha) {
                 window.location.href = 'area-membro.html?trocarSenha=1';
             } else {
+                // Após login: volta ao site; área do membro é opcional
                 const params = new URLSearchParams(window.location.search);
-                const dest = params.get('destino') || 'area-membro.html';
+                const dest = params.get('destino') || 'index.html';
                 window.location.href = dest;
             }
         });

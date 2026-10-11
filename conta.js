@@ -1380,6 +1380,184 @@ function equipeDaCelula(celulaId) {
 
 
 /** Adiciona membro já cadastrado a uma célula (líder/admin/gestor) */
+
+/** Indicadores de conformidade — células e ministérios */
+function _membroPendente(m) {
+    if (!m) return false;
+    return m.status === 'pendente' || m.status === 'aguardando' || m.statusAprovacao === 'pendente';
+}
+function statusPendenciasCelula(celulaId) {
+    var eq = (typeof equipeDaCelula === 'function') ? equipeDaCelula(celulaId) : { lider: null, anfitriao: null, liderTreino: null, membros: [] };
+    var nivel = 0; // 0 ok, 1 alerta (laranja), 2 critico (vermelho), azul relatório separado
+    var motivos = [];
+    if (!eq.lider) {
+        nivel = Math.max(nivel, 2);
+        motivos.push('Vermelho: sem membro cadastrado como líder de célula');
+    } else if (_membroPendente(eq.lider)) {
+        nivel = Math.max(nivel, 1);
+        motivos.push('Líder aguardando aprovação');
+    }
+    // Anfitrião: se não tem e não é célula de sábado na igreja, sinaliza
+    if (!eq.anfitriao) {
+        // cargo vago — vermelho se também sem líder já é 2; senão vermelho para anfitrião
+        nivel = Math.max(nivel, 2);
+        motivos.push('Vermelho: sem membro cadastrado como anfitrião');
+    } else if (_membroPendente(eq.anfitriao)) {
+        nivel = Math.max(nivel, 1);
+        motivos.push('Anfitrião aguardando aprovação');
+    }
+    // Membros pendentes na célula
+    var pend = (eq.membros || []).filter(_membroPendente);
+    if (pend.length) {
+        nivel = Math.max(nivel, 1);
+        motivos.push(pend.length + ' membro(s) pendente(s)');
+    }
+    // Relatório da última reunião esperada
+    var faltaRelatorio = false;
+    try {
+        var cel = (typeof LISTA_CELULAS !== 'undefined') ? LISTA_CELULAS.find(function(c){ return c.id === celulaId; }) : null;
+        var diaSemana = cel && cel.dia === 'sabado' ? 6 : 2; // 2=terça, 6=sábado
+        var hoje = new Date();
+        // última data desse dia da semana (não futuro)
+        var d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        while (d.getDay() !== diaSemana) d.setDate(d.getDate() - 1);
+        // se ainda é "hoje" e antes do horário típico da célula, usa semana anterior
+        if (d.toDateString() === hoje.toDateString() && hoje.getHours() < 20) {
+            d.setDate(d.getDate() - 7);
+        }
+        var iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        var br = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+        var rels = (typeof lerRelatoriosCelula === 'function') ? lerRelatoriosCelula() : [];
+        var tem = rels.some(function(r) {
+            if (String(r.celulaId) !== String(celulaId)) return false;
+            var rd = String(r.data || '');
+            return rd.indexOf(iso) === 0 || rd.indexOf(br) === 0 || rd === iso || rd === br;
+        });
+        // também aceita relatório nos últimos 10 dias
+        if (!tem) {
+            var limite = new Date(hoje.getTime() - 10 * 24 * 60 * 60 * 1000);
+            tem = rels.some(function(r) {
+                if (String(r.celulaId) !== String(celulaId)) return false;
+                var rd = String(r.data || '');
+                var parsed = null;
+                if (/^\d{4}-\d{2}-\d{2}/.test(rd)) parsed = new Date(rd.slice(0,10) + 'T12:00:00');
+                else if (/^\d{2}\/\d{2}\/\d{4}/.test(rd)) {
+                    var p = rd.slice(0,10).split('/');
+                    parsed = new Date(p[2] + '-' + p[1] + '-' + p[0] + 'T12:00:00');
+                }
+                return parsed && !isNaN(parsed.getTime()) && parsed >= limite;
+            });
+        }
+        if (!tem) {
+            faltaRelatorio = true;
+            motivos.push('Sem relatório recente');
+        }
+    } catch (e) {}
+
+    var cor = null; // null = sem indicador
+    if (nivel >= 2) cor = 'vermelho';
+    else if (nivel >= 1) cor = 'laranja';
+    if (faltaRelatorio && !cor) cor = 'azul';
+    else if (faltaRelatorio && cor === 'laranja') { /* mantém laranja + motivo relatório */ }
+    else if (faltaRelatorio && cor === 'vermelho') { /* mantém */ }
+
+    return { cor: cor, motivos: motivos, faltaRelatorio: faltaRelatorio, nivel: nivel };
+}
+
+function statusPendenciasMinisterio(nomeMinisterio) {
+    var nome = String(nomeMinisterio || '').trim();
+    if (!nome) return { cor: null, motivos: [] };
+    var lista = (typeof lerMembros === 'function') ? lerMembros() : [];
+    var slug = nome.toLowerCase();
+    function noMin(m) {
+        if (!m) return false;
+        if (Array.isArray(m.ministerios)) {
+            return m.ministerios.some(function(x){ return String(x).toLowerCase() === slug || String(x).toLowerCase().indexOf(slug) >= 0; });
+        }
+        return String(m.ministerios || '').toLowerCase().indexOf(slug) >= 0;
+    }
+    function ehLiderMin(m) {
+        if (!m || !noMin(m)) return false;
+        if (m.lideraMinisterio && String(m.lideraMinisterio).toLowerCase().indexOf(slug) >= 0) return true;
+        if (m.cargo && /l[ií]der de minist[eé]rio/i.test(m.cargo) && noMin(m)) return true;
+        if (Array.isArray(m.funcoesAprovadas) && m.funcoesAprovadas.some(function(f){ return /l[ií]der/i.test(f) && /minist/i.test(f); })) return true;
+        return false;
+    }
+    var lideres = lista.filter(ehLiderMin);
+    var membrosMin = lista.filter(noMin);
+    var motivos = [];
+    var nivel = 0;
+    if (!lideres.length) {
+        // cargo vago
+        nivel = 2;
+        motivos.push('Vermelho: sem membro cadastrado como líder deste ministério');
+    } else if (lideres.some(_membroPendente)) {
+        nivel = Math.max(nivel, 1);
+        motivos.push('Líder aguardando aprovação');
+    }
+    var pend = membrosMin.filter(_membroPendente);
+    if (pend.length) {
+        nivel = Math.max(nivel, 1);
+        motivos.push(pend.length + ' membro(s) pendente(s)');
+    }
+    var cor = null;
+    if (nivel >= 2) cor = 'vermelho';
+    else if (nivel >= 1) cor = 'laranja';
+    return { cor: cor, motivos: motivos, nivel: nivel };
+}
+
+
+/** Resumo para painel admin/gestor — indicadores gerais */
+function resumoPendenciasGestao() {
+    var celulas = [];
+    var ministerios = [];
+    var nVermelho = 0, nLaranja = 0, nAzul = 0;
+    if (typeof LISTA_CELULAS !== 'undefined') {
+        LISTA_CELULAS.forEach(function (c) {
+            var st = statusPendenciasCelula(c.id);
+            if (!st || !st.cor) return;
+            celulas.push({ id: c.id, nome: c.nome, cor: st.cor, motivos: st.motivos || [] });
+            if (st.cor === 'vermelho') nVermelho++;
+            else if (st.cor === 'laranja') nLaranja++;
+            else if (st.cor === 'azul') nAzul++;
+        });
+    }
+    if (typeof LISTA_MINISTERIOS !== 'undefined') {
+        LISTA_MINISTERIOS.forEach(function (nome) {
+            var st = statusPendenciasMinisterio(nome);
+            if (!st || !st.cor) return;
+            ministerios.push({ nome: nome, cor: st.cor, motivos: st.motivos || [] });
+            if (st.cor === 'vermelho') nVermelho++;
+            else if (st.cor === 'laranja') nLaranja++;
+        });
+    }
+    // Membros com status pendente (aprovação)
+    var membrosPend = [];
+    try {
+        var lista = (typeof lerMembros === 'function') ? lerMembros() : [];
+        membrosPend = lista.filter(function (m) {
+            return m && (m.status === 'pendente' || m.status === 'aguardando');
+        });
+        if (membrosPend.length) nLaranja += membrosPend.length > 0 ? 1 : 0;
+    } catch (e) {}
+    return {
+        celulas: celulas,
+        ministerios: ministerios,
+        membrosPendentes: membrosPend.length,
+        nVermelho: nVermelho,
+        nLaranja: nLaranja,
+        nAzul: nAzul,
+        total: nVermelho + nLaranja + nAzul + (membrosPend.length ? 1 : 0)
+    };
+}
+
+function htmlBolinhaStatus(st) {
+    if (!st || !st.cor) return '';
+    var corCls = st.cor === 'vermelho' ? 'bg-red-500' : (st.cor === 'azul' ? 'bg-blue-500' : 'bg-amber-500');
+    var titulo = (st.motivos || []).join(' · ') || st.cor;
+    return '<span class="inline-block w-3 h-3 rounded-full ' + corCls + ' flex-shrink-0" title="' + String(titulo).replace(/"/g, '&quot;') + '"></span>';
+}
+
 function adicionarMembroACelula(membroId, celulaId) {
     if (!podeGerenciarPessoasCelula(celulaId)) {
         return { sucesso: false, mensagem: 'Somente o líder ou o anfitrião desta célula podem adicionar pessoas.' };
