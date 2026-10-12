@@ -756,7 +756,11 @@
                             lg.classList.add('text-red-500');
                             lg.classList.remove('text-white');
                             lg.title = 'Há pendências na sua gestão: ' + (pend.motivos || []).join(' · ');
-                            lg.innerHTML = 'Gestão <span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle"></span>';
+                            var bolas = '';
+                            if (pend.nVermelho > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle" title="Cargos vagos"></span>';
+                            if (pend.nAzul > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-blue-500 ml-0.5 align-middle" title="Modelos / relatórios"></span>';
+                            if (!bolas) bolas = '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-0.5 align-middle"></span>';
+                            lg.innerHTML = 'Gestão ' + bolas;
                         } else {
                             lg.classList.remove('text-red-500');
                             lg.title = 'Gestão';
@@ -769,7 +773,11 @@
                         if (pend.total > 0) {
                             lgm.classList.add('text-red-400');
                             lgm.title = 'Há pendências na sua gestão';
-                            lgm.innerHTML = 'Gestão <span class="text-red-400">●</span>';
+                            var bolasM = '';
+                            if (pend.nVermelho > 0) bolasM += '<span class="text-red-400">●</span>';
+                            if (pend.nAzul > 0) bolasM += '<span class="text-blue-400">●</span>';
+                            if (!bolasM) bolasM = '<span class="text-amber-400">●</span>';
+                            lgm.innerHTML = 'Gestão ' + bolasM;
                         } else {
                             lgm.classList.remove('text-red-400');
                             lgm.textContent = 'Gestão';

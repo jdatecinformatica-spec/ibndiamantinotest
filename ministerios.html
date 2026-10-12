@@ -954,10 +954,45 @@
         if (tit) tit.textContent = 'Escala — ' + nomeMin;
         try { renderListaEscalaModal(); } catch (e) { console.warn(e); }
         try { montarCamposNovoDia(nomeMin); } catch (e) { console.warn(e); }
+        try { montarEditorModeloLider(nomeMin); } catch (e) { console.warn(e); }
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
+    }
+
+    function montarEditorModeloLider(nomeMin) {
+        var bloco = document.getElementById('blocoProporModelo');
+        var ed = document.getElementById('editorModeloLider');
+        var stEl = document.getElementById('statusModeloPendente');
+        if (!bloco || !ed) return;
+        var u = usuario();
+        var pode = ehGestao(u) || (typeof isLiderDoMinisterio === 'function' && isLiderDoMinisterio(u, nomeMin));
+        if (!pode) {
+            bloco.classList.add('hidden');
+            return;
+        }
+        bloco.classList.remove('hidden');
+        var modelo = (typeof lerModeloFuncoesMinisterio === 'function') ? lerModeloFuncoesMinisterio(nomeMin) : [];
+        // Se há pendente, mostra o pendente no editor
+        var pend = (typeof lerModeloPendente === 'function') ? lerModeloPendente(nomeMin) : null;
+        if (pend && pend.lista && pend.lista.length) {
+            modelo = pend.lista;
+            if (stEl) {
+                stEl.classList.remove('hidden');
+                stEl.className = 'text-xs mb-2 text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1';
+                stEl.textContent = '⏳ Modelo aguardando aprovação (enviado por ' + (pend.solicitadoPor || 'líder') + '). Você pode ajustar e reenviar.';
+            }
+        } else if (stEl) {
+            stEl.classList.add('hidden');
+            stEl.textContent = '';
+        }
+        ed.innerHTML = (modelo || []).map(function(item) {
+            return '<div class="flex gap-2 items-center">' +
+                '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" value="' + String(item.funcao||'').replace(/"/g,'') + '" placeholder="Função">' +
+                '<input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="' + (item.qtd||0) + '" title="Qtd sugerida">' +
+                '</div>';
+        }).join('') || '<div class="flex gap-2 items-center"><input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Função"><input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="1"></div>';
     }
 
     function coletarPreenchimento() {
@@ -1034,11 +1069,52 @@
         var wa = document.getElementById('btnWhatsEscalaModal');
         var csvBtn = document.getElementById('btnCsvEscalaModal');
         var modal = document.getElementById('modalEscalaMin');
+        var btnAddFn = document.getElementById('btnAddFuncaoLider');
+        var btnSolicitar = document.getElementById('btnSolicitarModeloLider');
         if (x) x.onclick = function() { tentarFecharModalEscala(false); };
         if (sair) sair.onclick = function() { tentarFecharModalEscala(false); };
         if (sairSem) sairSem.onclick = function() { tentarFecharModalEscala(true); };
         if (rasc) rasc.onclick = function() { salvarDiaUI('rascunho'); };
         if (fin) fin.onclick = function() { salvarDiaUI('finalizada'); };
+        if (btnAddFn) btnAddFn.onclick = function() {
+            var ed = document.getElementById('editorModeloLider');
+            if (!ed) return;
+            var row = document.createElement('div');
+            row.className = 'flex gap-2 items-center';
+            row.innerHTML = '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Função">' +
+                '<input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="1">';
+            ed.appendChild(row);
+        };
+        if (btnSolicitar) btnSolicitar.onclick = function() {
+            if (!minAtualModal) return;
+            var lista = [];
+            document.querySelectorAll('#editorModeloLider > div').forEach(function(row) {
+                var fn = (row.querySelector('.mod-lider-fn') || {}).value || '';
+                var qtd = parseInt((row.querySelector('.mod-lider-qtd') || {}).value, 10) || 0;
+                if (String(fn).trim()) lista.push({ funcao: String(fn).trim(), qtd: qtd });
+            });
+            if (!lista.length) {
+                window.alert('Informe ao menos uma função.');
+                return;
+            }
+            if (!window.confirm('Enviar este modelo de funções de ' + minAtualModal + ' para aprovação da secretaria/gestor?')) return;
+            var u = usuario();
+            var nomeSol = (u && u.nome) ? u.nome : 'Líder';
+            if (typeof solicitarAprovacaoModeloEscala !== 'function') {
+                window.alert('Função indisponível. Atualize o conta.js.');
+                return;
+            }
+            var r = solicitarAprovacaoModeloEscala(minAtualModal, lista, nomeSol);
+            var msg = document.getElementById('msgModeloLider');
+            if (msg) {
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs mt-2 ' + (r.sucesso ? 'text-green-700 font-semibold' : 'text-red-600');
+                msg.textContent = r.mensagem || (r.sucesso ? 'Enviado!' : 'Erro');
+            }
+            if (r.sucesso) {
+                try { montarEditorModeloLider(minAtualModal); } catch (e) {}
+            }
+        };
         if (csvBtn) csvBtn.onclick = function() {
             try {
                 if (typeof exportarEscalaCSV !== 'function') {
@@ -1175,6 +1251,21 @@
           <button type="button" id="btnSalvarNovoDiaEsc" class="bg-primary text-white px-3 py-2 rounded-lg text-sm font-bold">Finalizar escala do dia</button>
         </div>
         <p class="text-[11px] text-gray-500 mt-1">Rascunho fica marcado como incompleto. Finalizar indica escala pronta.</p>
+      </div>
+
+      <!-- Líder: propor modelo de funções (precisa aprovação admin/gestor) -->
+      <div id="blocoProporModelo" class="mt-4 border-t pt-3 hidden">
+        <details class="text-sm">
+          <summary class="cursor-pointer font-bold text-primary text-xs">Propor / editar modelo de funções (qtd sugerida)</summary>
+          <p class="text-[11px] text-gray-500 mt-1 mb-2">Monte as funções e quantidades do seu ministério e envie para aprovação da secretaria/gestor. Só depois de aprovado o formulário oficial muda.</p>
+          <div id="statusModeloPendente" class="text-xs mb-2 hidden"></div>
+          <div id="editorModeloLider" class="space-y-2 mb-2"></div>
+          <div class="flex flex-wrap gap-2 items-center">
+            <button type="button" id="btnAddFuncaoLider" class="text-xs underline text-primary">+ Função</button>
+            <button type="button" id="btnSolicitarModeloLider" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold">Solicitar aprovação</button>
+          </div>
+          <p id="msgModeloLider" class="text-xs mt-2 hidden"></p>
+        </details>
       </div>
     </div>
     <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">

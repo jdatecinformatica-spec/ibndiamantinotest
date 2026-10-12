@@ -1408,6 +1408,94 @@ function salvarModeloFuncoesMinisterio(ministerio, lista) {
     } catch (e) {}
 }
 
+/** Modelo de funções pendente de aprovação (líder solicita → admin/gestor aprova) */
+const CHAVE_MODELO_ESCALA_PENDENTE = 'ibn_modelo_escala_pendente';
+
+function lerModelosPendentes() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_MODELO_ESCALA_PENDENTE) || '{}'); }
+    catch (e) { return {}; }
+}
+function salvarTodosModelosPendentes(obj) {
+    try { localStorage.setItem(CHAVE_MODELO_ESCALA_PENDENTE, JSON.stringify(obj || {})); } catch (e) {}
+}
+
+/**
+ * Líder solicita aprovação de um novo modelo de funções.
+ * Não sobrescreve o modelo oficial até aprovação.
+ */
+function solicitarAprovacaoModeloEscala(ministerio, lista, solicitadoPor) {
+    if (!ministerio || !Array.isArray(lista) || !lista.length) {
+        return { sucesso: false, mensagem: 'Informe o ministério e ao menos uma função.' };
+    }
+    var limpa = lista.filter(function (it) {
+        return it && String(it.funcao || '').trim() && !/^observa/i.test(String(it.funcao));
+    }).map(function (it) {
+        return { funcao: String(it.funcao).trim(), qtd: Math.max(0, parseInt(it.qtd, 10) || 0) };
+    });
+    if (!limpa.length) return { sucesso: false, mensagem: 'Nenhuma função válida.' };
+    var all = lerModelosPendentes();
+    all[ministerio] = {
+        lista: limpa,
+        solicitadoPor: solicitadoPor || '',
+        solicitadoEm: new Date().toISOString(),
+        status: 'pendente'
+    };
+    salvarTodosModelosPendentes(all);
+    return { sucesso: true, mensagem: 'Modelo de ' + ministerio + ' enviado para aprovação da secretaria/gestor.' };
+}
+
+function listarModelosPendentes() {
+    var all = lerModelosPendentes();
+    var out = [];
+    Object.keys(all || {}).forEach(function (min) {
+        var p = all[min];
+        if (p && p.status === 'pendente' && Array.isArray(p.lista) && p.lista.length) {
+            out.push({
+                ministerio: min,
+                lista: p.lista,
+                solicitadoPor: p.solicitadoPor || '',
+                solicitadoEm: p.solicitadoEm || ''
+            });
+        }
+    });
+    return out;
+}
+
+function temModeloPendente(ministerio) {
+    var all = lerModelosPendentes();
+    var p = all[ministerio];
+    return !!(p && p.status === 'pendente' && Array.isArray(p.lista) && p.lista.length);
+}
+
+function lerModeloPendente(ministerio) {
+    var all = lerModelosPendentes();
+    return all[ministerio] || null;
+}
+
+/** Admin/gestor aprova → grava no modelo oficial e remove o pendente */
+function aprovarModeloPendente(ministerio) {
+    if (!ministerio) return { sucesso: false, mensagem: 'Ministério inválido.' };
+    var all = lerModelosPendentes();
+    var p = all[ministerio];
+    if (!p || !Array.isArray(p.lista) || !p.lista.length) {
+        return { sucesso: false, mensagem: 'Não há modelo pendente para ' + ministerio + '.' };
+    }
+    salvarModeloFuncoesMinisterio(ministerio, p.lista);
+    delete all[ministerio];
+    salvarTodosModelosPendentes(all);
+    return { sucesso: true, mensagem: 'Modelo de ' + ministerio + ' aprovado e publicado.' };
+}
+
+/** Admin/gestor recusa → remove o pendente sem alterar o oficial */
+function recusarModeloPendente(ministerio) {
+    if (!ministerio) return { sucesso: false, mensagem: 'Ministério inválido.' };
+    var all = lerModelosPendentes();
+    if (!all[ministerio]) return { sucesso: false, mensagem: 'Não há modelo pendente.' };
+    delete all[ministerio];
+    salvarTodosModelosPendentes(all);
+    return { sucesso: true, mensagem: 'Solicitação de modelo de ' + ministerio + ' recusada.' };
+}
+
 /**
  * Monta uma linha de escala a partir do formulário e grava.
  * dados = { ministerio, dataLabel, dataIso, preenchimento: { 'Estacionamento': ['Juarez','Napoleão'], ... }, observacao }
@@ -2395,10 +2483,19 @@ function resumoPendenciasGestao() {
         });
         if (membrosPend.length) nLaranja += membrosPend.length > 0 ? 1 : 0;
     } catch (e) {}
+    // Modelos de escala pendentes de aprovação (líder → admin/gestor) — indicador AZUL
+    var modelosPend = [];
+    try {
+        if (typeof listarModelosPendentes === 'function') {
+            modelosPend = listarModelosPendentes() || [];
+            if (modelosPend.length) nAzul += modelosPend.length;
+        }
+    } catch (e) {}
     return {
         celulas: celulas,
         ministerios: ministerios,
         membrosPendentes: membrosPend.length,
+        modelosPendentes: modelosPend,
         nVermelho: nVermelho,
         nLaranja: nLaranja,
         nAzul: nAzul,
@@ -2424,9 +2521,22 @@ function pendenciasDoUsuarioLogado(u) {
         total = r.total || 0;
         if (r.nVermelho) motivos.push(r.nVermelho + ' cargo(s) vago(s)');
         if (r.nLaranja) motivos.push(r.nLaranja + ' aprovação(ões)');
-        if (r.nAzul) motivos.push(r.nAzul + ' relatório(s)');
+        if (r.nAzul) {
+            var nMod = (r.modelosPendentes && r.modelosPendentes.length) ? r.modelosPendentes.length : 0;
+            var nRel = r.nAzul - nMod;
+            if (nRel > 0) motivos.push(nRel + ' relatório(s)');
+            if (nMod > 0) motivos.push(nMod + ' modelo(s) de escala pendente(s)');
+        }
         if (r.membrosPendentes) motivos.push(r.membrosPendentes + ' membro(s) pendente(s)');
-        return { total: total, motivos: motivos, href: 'adminpainel.html', gestao: true };
+        return {
+            total: total,
+            motivos: motivos,
+            href: 'adminpainel.html',
+            gestao: true,
+            nVermelho: r.nVermelho || 0,
+            nLaranja: r.nLaranja || 0,
+            nAzul: r.nAzul || 0
+        };
     }
 
     // Líder de célula: pendências das células que lidera
