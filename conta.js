@@ -1652,6 +1652,197 @@ function exportarEscalaCSV(ministerio) {
 }
 
 
+/** Cores do cartaz por ministério (estilo app Atmosfera) */
+function corTemaEscalaMinisterio(ministerio) {
+    var n = String(ministerio || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var mapa = {
+        'atmosfera': { header: '#1e504e', aviso: '#ecf2e8', th: '#1e504e', linha: '#f2eee4', fundo: '#faf6ef', borda: '#1e504e' },
+        'acolhimento': { header: '#1a4a6e', aviso: '#e3eef8', th: '#1a4a6e', linha: '#eaf2fa', fundo: '#f5f8fc', borda: '#1a4a6e' },
+        'louvor': { header: '#5a1e3a', aviso: '#f5e6ec', th: '#5a1e3a', linha: '#f8eef2', fundo: '#fcf6f8', borda: '#5a1e3a' },
+        'midias sociais': { header: '#2a3a6e', aviso: '#e4e8f5', th: '#2a3a6e', linha: '#eef0f8', fundo: '#f6f7fc', borda: '#2a3a6e' },
+        'midia': { header: '#2a3a6e', aviso: '#e4e8f5', th: '#2a3a6e', linha: '#eef0f8', fundo: '#f6f7fc', borda: '#2a3a6e' },
+        'infantil': { header: '#c45c1a', aviso: '#fce8d8', th: '#c45c1a', linha: '#fdf0e6', fundo: '#fff8f2', borda: '#c45c1a' },
+        'projeto kids': { header: '#c45c1a', aviso: '#fce8d8', th: '#c45c1a', linha: '#fdf0e6', fundo: '#fff8f2', borda: '#c45c1a' },
+        'ensino': { header: '#3d5a1e', aviso: '#e8f0dc', th: '#3d5a1e', linha: '#f0f5e8', fundo: '#f8faf4', borda: '#3d5a1e' },
+        'intercessao': { header: '#4a2a6e', aviso: '#ede6f5', th: '#4a2a6e', linha: '#f3eef8', fundo: '#f9f6fc', borda: '#4a2a6e' },
+        'homens': { header: '#1e3a5a', aviso: '#e0eaf5', th: '#1e3a5a', linha: '#e8f0f8', fundo: '#f4f8fc', borda: '#1e3a5a' },
+        'mulheres': { header: '#8b3a5c', aviso: '#f8e6ee', th: '#8b3a5c', linha: '#faf0f4', fundo: '#fdf6f9', borda: '#8b3a5c' },
+        'artes': { header: '#6b4a1e', aviso: '#f5ecd8', th: '#6b4a1e', linha: '#f8f2e4', fundo: '#fcf8f0', borda: '#6b4a1e' },
+        'cantina': { header: '#6a3a1a', aviso: '#f5e8d8', th: '#6a3a1a', linha: '#f8f0e6', fundo: '#fcf8f2', borda: '#6a3a1a' }
+    };
+    for (var k in mapa) {
+        if (n.indexOf(k) >= 0) return mapa[k];
+    }
+    return mapa['atmosfera'];
+}
+
+/** Título do cartaz conforme data/obs (mesma lógica do app desktop) */
+function tituloCartazEscala(dataLabel, observacao, ministerio) {
+    var data = String(dataLabel || '');
+    var upper = data.toUpperCase();
+    var obs = String(observacao || '').toUpperCase();
+    var diaSo = data;
+    var md = data.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+    if (md) diaSo = md[1];
+    var linha1 = 'Escala — ' + (ministerio || 'Ministério');
+    var isQuinta = /QUINTA/.test(upper);
+    var isDom = /DOM/.test(upper);
+    var isSab = /SAB|SÁB/.test(upper);
+    var isCeia = /CEIA/.test(upper) || /CEIA/.test(obs);
+    var isManha = /MANHA|MANHÃ/.test(upper) || /MANHA|MANHÃ/.test(obs);
+    var isConf = /CONFER|CONGRESSO/.test(upper) || /CONFER|CONGRESSO/.test(obs);
+    var isFestivo = /FESTIVO|FESTA/.test(upper) || /FESTIVO|FESTA/.test(obs);
+    var linha2 = 'Culto Especial';
+    if (isConf) linha2 = 'Conferência';
+    else if (isFestivo) linha2 = 'Dia Festivo';
+    else if (isQuinta) linha2 = 'Culto Fé';
+    else if (isDom && isManha) linha2 = 'Culto da Manhã';
+    else if (isDom && isCeia) linha2 = 'Culto de Celebração Com Ceia do Senhor';
+    else if (isDom) linha2 = 'Culto de Celebração';
+    else if (isSab) linha2 = 'Encontro de Sábado';
+    return { linha1: linha1, linha2: linha2, linha3: 'Dia ' + diaSo };
+}
+
+/**
+ * Gera PNG do cartaz da escala do dia (para WhatsApp / salvar no celular).
+ * linha = objeto de escala { dataLabel, dataIso, funcoes: {fn:[nomes]}, observacao, status }
+ */
+function gerarCartazEscalaPng(ministerio, linha) {
+    if (!linha) return { sucesso: false, mensagem: 'Dia não informado.' };
+    var funcoes = linha.funcoes || {};
+    var pares = [];
+    Object.keys(funcoes).forEach(function (fn) {
+        if (/^observa/i.test(fn)) return;
+        var nomes = funcoes[fn];
+        var txt = Array.isArray(nomes) ? nomes.filter(Boolean).join(', ') : String(nomes || '');
+        if (!txt.trim()) return;
+        pares.push({ funcao: fn, nomes: txt });
+    });
+    if (!pares.length) return { sucesso: false, mensagem: 'Nenhuma função preenchida neste dia.' };
+
+    var tema = corTemaEscalaMinisterio(ministerio);
+    var tit = tituloCartazEscala(linha.dataLabel || linha.dataIso, linha.observacao, ministerio);
+    var W = 720;
+    var pad = 28;
+    var rowH = 44;
+    var headerH = 130;
+    var avisoH = 40;
+    var thH = 38;
+    var obsH = linha.observacao ? 44 : 0;
+    var footerH = 28;
+    var H = headerH + avisoH + thH + pares.length * rowH + obsH + footerH + 40;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    var ctx = canvas.getContext('2d');
+
+    // fundo
+    ctx.fillStyle = tema.fundo;
+    ctx.fillRect(0, 0, W, H);
+    // borda
+    ctx.strokeStyle = tema.borda;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, W - 16, H - 16);
+
+    // header
+    ctx.fillStyle = tema.header;
+    ctx.fillRect(14, 14, W - 28, headerH - 10);
+    ctx.fillStyle = '#faf6ee';
+    ctx.font = 'bold 28px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(tit.linha1, W / 2, 52);
+    ctx.font = '600 18px Segoe UI, Arial, sans-serif';
+    ctx.fillText(tit.linha2, W / 2, 82);
+    ctx.font = '16px Segoe UI, Arial, sans-serif';
+    ctx.fillText(tit.linha3, W / 2, 108);
+
+    // aviso 30 min
+    var ay = headerH + 4;
+    ctx.fillStyle = tema.aviso;
+    ctx.fillRect(14, ay, W - 28, avisoH);
+    ctx.fillStyle = tema.header;
+    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+    ctx.fillText('ESTAR NO PRÉDIO DA IGREJA 30 MINUTOS ANTES', W / 2, ay + 26);
+
+    // th
+    var ty = ay + avisoH;
+    ctx.fillStyle = tema.th;
+    ctx.fillRect(14, ty, W - 28, thH);
+    ctx.fillStyle = '#faf6ee';
+    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('FUNÇÃO', pad + 10, ty + 25);
+    ctx.fillText('RESPONSÁVEL', pad + 240, ty + 25);
+
+    // linhas
+    pares.forEach(function (p, i) {
+        var y = ty + thH + i * rowH;
+        ctx.fillStyle = (i % 2 === 0) ? tema.fundo : tema.linha;
+        ctx.fillRect(14, y, W - 28, rowH);
+        ctx.fillStyle = tema.header;
+        ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'left';
+        // truncar se preciso
+        var fn = p.funcao;
+        if (ctx.measureText(fn).width > 200) {
+            while (fn.length > 3 && ctx.measureText(fn + '…').width > 200) fn = fn.slice(0, -1);
+            fn += '…';
+        }
+        ctx.fillText(fn, pad + 10, y + 28);
+        ctx.fillStyle = '#333';
+        ctx.font = '14px Segoe UI, Arial, sans-serif';
+        var nomes = p.nomes;
+        var maxW = W - pad - 260;
+        if (ctx.measureText(nomes).width > maxW) {
+            while (nomes.length > 3 && ctx.measureText(nomes + '…').width > maxW) nomes = nomes.slice(0, -1);
+            nomes += '…';
+        }
+        ctx.fillText(nomes, pad + 240, y + 28);
+    });
+
+    // observação
+    if (linha.observacao) {
+        var oy = ty + thH + pares.length * rowH;
+        ctx.fillStyle = '#ece2c8';
+        ctx.fillRect(14, oy, W - 28, obsH);
+        ctx.fillStyle = '#372a19';
+        ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        var obs = String(linha.observacao).toUpperCase();
+        ctx.fillText(obs, W / 2, oy + 28);
+    }
+
+    // footer
+    ctx.fillStyle = tema.header;
+    ctx.fillRect(14, H - footerH - 14, W - 28, footerH);
+    ctx.fillStyle = '#faf6ee';
+    ctx.font = '11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('IBN Diamantino · ' + (ministerio || ''), W / 2, H - footerH + 4);
+
+    try {
+        var nomeArq = 'escala_' + String(ministerio || 'min').replace(/\s+/g, '_').toLowerCase() + '_' +
+            String(linha.dataLabel || linha.dataIso || 'dia').replace(/[^\w\-]/g, '_') + '.png';
+        canvas.toBlob(function (blob) {
+            if (!blob) return;
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = nomeArq;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () {
+                try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {}
+            }, 800);
+        }, 'image/png');
+        return { sucesso: true, mensagem: 'PNG gerado: ' + nomeArq, canvas: canvas };
+    } catch (e) {
+        return { sucesso: false, mensagem: (e && e.message) || String(e) };
+    }
+}
+
+
 // ========== ESCALA DE CULTOS / SERVIÇOS (modelo Atmosfera CSV) ==========
 const CHAVE_ESCALA_CULTOS = 'ibn_escala_cultos';
 /** Funções padrão Atmosfera (colunas do CSV) */
