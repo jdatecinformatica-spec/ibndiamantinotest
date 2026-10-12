@@ -57,6 +57,9 @@ const IBNNuvem = (function () {
     // Resposta de segurança continua só no aparelho por privacidade extra.
     function membroPublico(m) {
         if (!m) return null;
+        try {
+            if (typeof isContaSistema === 'function' && isContaSistema(m)) return null;
+        } catch (e) {}
         const copia = Object.assign({}, m);
         delete copia.respostaSeguranca;
         return copia;
@@ -68,6 +71,7 @@ const IBNNuvem = (function () {
             const col = db.collection('membros');
             const itens = (lista || []).filter(function (m) {
                 if (!m || m.id === undefined || m.id === null || m.id === '') return false;
+                try { if (typeof isContaSistema === 'function' && isContaSistema(m)) return false; } catch (e) {}
                 if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return false;
                 return true;
             });
@@ -78,7 +82,8 @@ const IBNNuvem = (function () {
                 const fatia = itens.slice(i, i + CHUNK);
                 const batch = db.batch();
                 fatia.forEach(function (m) {
-                    batch.set(col.doc(String(m.id)), membroPublico(m), { merge: true });
+                    var pub = membroPublico(m);
+                    if (pub) batch.set(col.doc(String(m.id)), pub, { merge: true });
                 });
                 await batch.commit();
                 enviados += fatia.length;
@@ -98,10 +103,15 @@ const IBNNuvem = (function () {
         }
         if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
+            if (typeof isContaSistema === 'function' && isContaSistema(m)) {
+                return { sucesso: false, mensagem: 'Conta de sistema não vai para a lista de membros' };
+            }
             if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) {
                 return { sucesso: false, mensagem: 'Membro na lista de excluídos' };
             }
-            await db.collection('membros').doc(String(m.id)).set(membroPublico(m), { merge: true });
+            var pub1 = membroPublico(m);
+            if (!pub1) return { sucesso: false, mensagem: 'Dados inválidos' };
+            await db.collection('membros').doc(String(m.id)).set(pub1, { merge: true });
             return { sucesso: true };
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
@@ -151,34 +161,47 @@ const IBNNuvem = (function () {
         const r = await buscarMembros();
         if (!r.sucesso) return r;
         try {
-            // Carrega lista de removidos para não ressuscitar
+            // Carrega lista de removidos ANTES de mesclar (não ressuscita)
             try { await puxarExcluidosParaLocal(); } catch (e) {}
+            function ehSistema(m) {
+                try { return typeof isContaSistema === 'function' && isContaSistema(m); } catch (e) { return false; }
+            }
+            function foiExcl(m) {
+                try { return typeof membroFoiExcluido === 'function' && membroFoiExcluido(m); } catch (e) { return false; }
+            }
+            function ts(m) {
+                var t = Date.parse((m && (m.atualizadoEm || m.criadoEm)) || '') || 0;
+                return t;
+            }
             const local = (typeof lerMembros === 'function') ? lerMembros() : [];
             const porId = {};
             local.forEach(function (m) {
                 if (!m || m.id === undefined) return;
-                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
+                if (ehSistema(m) || foiExcl(m)) return;
                 porId[String(m.id)] = m;
             });
             (r.lista || []).forEach(function (m) {
                 if (!m || m.id === undefined) return;
-                if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return;
+                if (ehSistema(m) || foiExcl(m)) return;
                 const id = String(m.id);
                 if (!porId[id]) {
                     porId[id] = m;
-                } else {
-                    const senhaLocal = porId[id].senha;
-                    const respLocal = porId[id].respostaSeguranca;
-                    porId[id] = Object.assign({}, porId[id], m);
-                    if (!m.senha && senhaLocal) porId[id].senha = senhaLocal;
-                    if (!m.respostaSeguranca && respLocal) porId[id].respostaSeguranca = respLocal;
+                    return;
                 }
+                // Mantém o registro mais recente; não deixa a nuvem antiga apagar alteração do gestor
+                const loc = porId[id];
+                const senhaLocal = loc.senha;
+                const respLocal = loc.respostaSeguranca;
+                if (ts(m) > ts(loc)) {
+                    porId[id] = Object.assign({}, loc, m);
+                } else {
+                    porId[id] = Object.assign({}, m, loc);
+                }
+                if (!porId[id].senha && senhaLocal) porId[id].senha = senhaLocal;
+                if (!porId[id].respostaSeguranca && respLocal) porId[id].respostaSeguranca = respLocal;
             });
-            // Remove do local qualquer um que esteja na lista de excluídos
             let mesclada = Object.keys(porId).map(function (k) { return porId[k]; });
-            if (typeof membroFoiExcluido === 'function') {
-                mesclada = mesclada.filter(function (m) { return !membroFoiExcluido(m); });
-            }
+            mesclada = mesclada.filter(function (m) { return !ehSistema(m) && !foiExcl(m); });
             localStorage.setItem('ibn_membros', JSON.stringify(mesclada));
             if (typeof deduplicarMembrosLocais === 'function') {
                 mesclada = deduplicarMembrosLocais();

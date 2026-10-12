@@ -177,11 +177,17 @@ const CONTAS_MESTRAS = [
 ];
 
 function salvarMembros(lista) {
-    localStorage.setItem(CHAVE_MEMBROS, JSON.stringify(lista));
+    var limpa = (lista || []).filter(function (m) {
+        if (!m) return false;
+        try { if (isContaSistema(m)) return false; } catch (e) {}
+        try { if (typeof membroFoiExcluido === 'function' && membroFoiExcluido(m)) return false; } catch (e) {}
+        return true;
+    });
+    localStorage.setItem(CHAVE_MEMBROS, JSON.stringify(limpa));
     // Cópia na nuvem (se configurada) — não bloqueia o uso local
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
-            IBNNuvem.sincronizarMembros(lista).then(function (r) {
+            IBNNuvem.sincronizarMembros(limpa).then(function (r) {
                 if (r && !r.sucesso) console.warn('Nuvem (membros):', r.mensagem || r);
             }).catch(function (e) { console.warn('Nuvem (membros):', e); });
         }
@@ -326,12 +332,20 @@ function excluirMembroDefinitivo(membroId) {
     const lista = lerMembros();
     const m = lista.find(x => String(x.id) === String(membroId));
     if (!m) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    // 1) marca exclusão local + nuvem (antes de qualquer sync de membros)
     registrarExclusaoMembro(m);
     const nova = lista.filter(x => String(x.id) !== String(membroId));
     salvarMembros(nova);
     try {
         if (typeof IBNNuvem !== 'undefined') {
-            if (IBNNuvem.removerMembroNuvem) IBNNuvem.removerMembroNuvem(membroId);
+            // apaga documento na nuvem
+            if (IBNNuvem.removerMembroNuvem) {
+                IBNNuvem.removerMembroNuvem(membroId).catch(function () {});
+            }
+            // reenvia lista de excluídos para a nuvem (evita "ressuscitar" em outro aparelho)
+            if (IBNNuvem.sincronizarExcluidos) {
+                IBNNuvem.sincronizarExcluidos(lerExcluidos()).catch(function () {});
+            }
             if (IBNNuvem.registrarAtividade) {
                 IBNNuvem.registrarAtividade('excluir_membro', 'Removeu definitivamente: ' + (m.nome || membroId), u);
             }
@@ -453,7 +467,20 @@ function progressoVisitante(v) {
 function lerMembros() {
     try {
         const dados = localStorage.getItem(CHAVE_MEMBROS);
-        return dados ? JSON.parse(dados) : [];
+        let lista = dados ? JSON.parse(dados) : [];
+        if (!Array.isArray(lista)) lista = [];
+        // Contas de sistema nunca devem aparecer como membros da igreja
+        const limpa = lista.filter(function (m) {
+            try { return !isContaSistema(m); } catch (e) { return true; }
+        });
+        // Também remove quem já foi excluído de forma definitiva
+        const semExcluidos = limpa.filter(function (m) {
+            try { return typeof membroFoiExcluido !== 'function' || !membroFoiExcluido(m); } catch (e) { return true; }
+        });
+        if (semExcluidos.length !== lista.length) {
+            try { localStorage.setItem(CHAVE_MEMBROS, JSON.stringify(semExcluidos)); } catch (e) {}
+        }
+        return semExcluidos;
     } catch {
         return [];
     }
@@ -1309,18 +1336,27 @@ function membrosDaCelula(celulaId) {
 /** Contas mestras de sistema — não entram na lista de membros da igreja */
 function isContaSistema(m) {
     if (!m) return false;
-    var id = String(m.id || '');
-    var email = String(m.email || '').toLowerCase();
-    var nome = String(m.nome || '').toLowerCase().trim();
+    var id = String(m.id || '').toLowerCase();
+    var email = String(m.email || '').toLowerCase().trim();
+    var nome = String(m.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
     var nivel = String(m.nivel || '').toLowerCase();
-    if (id === 'gestor-master' || id.indexOf('legado-') === 0) return true;
+    var funcoes = Array.isArray(m.funcoes) ? m.funcoes.map(function (f) { return String(f).toLowerCase(); }) : [];
+    // IDs fixos / legado
+    if (id === 'gestor-master' || id === 'admin-master' || id.indexOf('legado-') === 0) return true;
+    if (id === 'gestor' || id === 'admin') return true;
+    // E-mails oficiais do sistema
     if (email === 'gestor@ibndiamantino.com.br' || email === 'admin@ibndiamantino.com.br') return true;
-    if ((nome === 'gestor master' || nome === 'admin master') && (nivel === 'gestor' || nivel === 'admin' || !nivel)) return true;
+    // Nome típico das contas mestras (com ou sem nível)
+    if (nome === 'gestor master' || nome === 'admin master' || nome === 'gestor máster' || nome === 'admin máster') return true;
+    if (nome === 'gestor' && (nivel === 'gestor' || funcoes.indexOf('master') >= 0)) return true;
+    if (nome === 'admin master' || (nome.indexOf('admin master') === 0)) return true;
+    if (funcoes.indexOf('master') >= 0 && (nivel === 'gestor' || nivel === 'admin')) return true;
     if (typeof CONTAS_MESTRAS !== 'undefined' && Array.isArray(CONTAS_MESTRAS)) {
         for (var i = 0; i < CONTAS_MESTRAS.length; i++) {
             var c = CONTAS_MESTRAS[i];
-            if (String(c.id) === id) return true;
-            if (c.email && String(c.email).toLowerCase() === email) return true;
+            if (String(c.id).toLowerCase() === id) return true;
+            if (c.email && String(c.email).toLowerCase().trim() === email) return true;
+            if (c.nome && String(c.nome).toLowerCase().trim() === String(m.nome || '').toLowerCase().trim()) return true;
         }
     }
     return false;
