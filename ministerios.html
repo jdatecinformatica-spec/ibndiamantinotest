@@ -946,6 +946,58 @@
         });
     }
 
+    function podeEditarModeloMinisterio(nomeMin) {
+        var u = usuario();
+        if (!u) return false;
+        if (ehGestao(u)) return true;
+        try {
+            if (typeof isLiderDoMinisterio === 'function' && isLiderDoMinisterio(u, nomeMin)) return true;
+        } catch (e) {}
+        return false;
+    }
+    function renderEditorModeloLider() {
+        var box = document.getElementById('listaModeloLider');
+        if (!box) return;
+        var modelo = [];
+        try {
+            if (typeof lerModeloFuncoesMinisterio === 'function') {
+                modelo = lerModeloFuncoesMinisterio(minAtualModal) || [];
+            }
+        } catch (e) {}
+        if (!modelo.length) {
+            modelo = [
+                { funcao: 'Função 1', qtd: 1 },
+                { funcao: 'Função 2', qtd: 2 }
+            ];
+        }
+        box.innerHTML = modelo.map(function(it, i) {
+            return '<div class="flex gap-2 items-center mod-lider-row">' +
+                '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" value="' +
+                String(it.funcao || '').replace(/"/g, '&quot;') + '" placeholder="Nome da função">' +
+                '<input type="number" min="0" max="50" class="mod-lider-qtd w-16 border rounded px-2 py-1 text-xs" value="' +
+                (it.qtd != null ? it.qtd : 1) + '" title="Qtd sugerida">' +
+                '<button type="button" class="mod-lider-rm text-red-600 font-bold text-sm px-1" title="Remover">×</button>' +
+                '</div>';
+        }).join('');
+        box.querySelectorAll('.mod-lider-rm').forEach(function(btn) {
+            btn.onclick = function() {
+                var row = btn.closest('.mod-lider-row');
+                if (row) row.remove();
+            };
+        });
+    }
+    function atualizarBlocoModeloLider() {
+        var bloco = document.getElementById('blocoModeloFuncoesLider');
+        var painel = document.getElementById('painelModeloLider');
+        if (!bloco) return;
+        if (podeEditarModeloMinisterio(minAtualModal)) {
+            bloco.classList.remove('hidden');
+            renderEditorModeloLider();
+        } else {
+            bloco.classList.add('hidden');
+            if (painel) painel.classList.add('hidden');
+        }
+    }
     function abrirModalEscala(nomeMin) {
         minAtualModal = nomeMin;
         escFormSujo = false;
@@ -954,45 +1006,12 @@
         if (tit) tit.textContent = 'Escala — ' + nomeMin;
         try { renderListaEscalaModal(); } catch (e) { console.warn(e); }
         try { montarCamposNovoDia(nomeMin); } catch (e) { console.warn(e); }
-        try { montarEditorModeloLider(nomeMin); } catch (e) { console.warn(e); }
+        try { atualizarBlocoModeloLider(); } catch (e) { console.warn(e); }
+        try { if (typeof atualizarAvisoPendenteLider === 'function') atualizarAvisoPendenteLider(); } catch (e) {}
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
-    }
-
-    function montarEditorModeloLider(nomeMin) {
-        var bloco = document.getElementById('blocoProporModelo');
-        var ed = document.getElementById('editorModeloLider');
-        var stEl = document.getElementById('statusModeloPendente');
-        if (!bloco || !ed) return;
-        var u = usuario();
-        var pode = ehGestao(u) || (typeof isLiderDoMinisterio === 'function' && isLiderDoMinisterio(u, nomeMin));
-        if (!pode) {
-            bloco.classList.add('hidden');
-            return;
-        }
-        bloco.classList.remove('hidden');
-        var modelo = (typeof lerModeloFuncoesMinisterio === 'function') ? lerModeloFuncoesMinisterio(nomeMin) : [];
-        // Se há pendente, mostra o pendente no editor
-        var pend = (typeof lerModeloPendente === 'function') ? lerModeloPendente(nomeMin) : null;
-        if (pend && pend.lista && pend.lista.length) {
-            modelo = pend.lista;
-            if (stEl) {
-                stEl.classList.remove('hidden');
-                stEl.className = 'text-xs mb-2 text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1';
-                stEl.textContent = '⏳ Modelo aguardando aprovação (enviado por ' + (pend.solicitadoPor || 'líder') + '). Você pode ajustar e reenviar.';
-            }
-        } else if (stEl) {
-            stEl.classList.add('hidden');
-            stEl.textContent = '';
-        }
-        ed.innerHTML = (modelo || []).map(function(item) {
-            return '<div class="flex gap-2 items-center">' +
-                '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" value="' + String(item.funcao||'').replace(/"/g,'') + '" placeholder="Função">' +
-                '<input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="' + (item.qtd||0) + '" title="Qtd sugerida">' +
-                '</div>';
-        }).join('') || '<div class="flex gap-2 items-center"><input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Função"><input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="1"></div>';
     }
 
     function coletarPreenchimento() {
@@ -1069,52 +1088,11 @@
         var wa = document.getElementById('btnWhatsEscalaModal');
         var csvBtn = document.getElementById('btnCsvEscalaModal');
         var modal = document.getElementById('modalEscalaMin');
-        var btnAddFn = document.getElementById('btnAddFuncaoLider');
-        var btnSolicitar = document.getElementById('btnSolicitarModeloLider');
         if (x) x.onclick = function() { tentarFecharModalEscala(false); };
         if (sair) sair.onclick = function() { tentarFecharModalEscala(false); };
         if (sairSem) sairSem.onclick = function() { tentarFecharModalEscala(true); };
         if (rasc) rasc.onclick = function() { salvarDiaUI('rascunho'); };
         if (fin) fin.onclick = function() { salvarDiaUI('finalizada'); };
-        if (btnAddFn) btnAddFn.onclick = function() {
-            var ed = document.getElementById('editorModeloLider');
-            if (!ed) return;
-            var row = document.createElement('div');
-            row.className = 'flex gap-2 items-center';
-            row.innerHTML = '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Função">' +
-                '<input type="number" min="0" max="30" class="mod-lider-qtd w-14 border rounded px-2 py-1 text-xs" value="1">';
-            ed.appendChild(row);
-        };
-        if (btnSolicitar) btnSolicitar.onclick = function() {
-            if (!minAtualModal) return;
-            var lista = [];
-            document.querySelectorAll('#editorModeloLider > div').forEach(function(row) {
-                var fn = (row.querySelector('.mod-lider-fn') || {}).value || '';
-                var qtd = parseInt((row.querySelector('.mod-lider-qtd') || {}).value, 10) || 0;
-                if (String(fn).trim()) lista.push({ funcao: String(fn).trim(), qtd: qtd });
-            });
-            if (!lista.length) {
-                window.alert('Informe ao menos uma função.');
-                return;
-            }
-            if (!window.confirm('Enviar este modelo de funções de ' + minAtualModal + ' para aprovação da secretaria/gestor?')) return;
-            var u = usuario();
-            var nomeSol = (u && u.nome) ? u.nome : 'Líder';
-            if (typeof solicitarAprovacaoModeloEscala !== 'function') {
-                window.alert('Função indisponível. Atualize o conta.js.');
-                return;
-            }
-            var r = solicitarAprovacaoModeloEscala(minAtualModal, lista, nomeSol);
-            var msg = document.getElementById('msgModeloLider');
-            if (msg) {
-                msg.classList.remove('hidden');
-                msg.className = 'text-xs mt-2 ' + (r.sucesso ? 'text-green-700 font-semibold' : 'text-red-600');
-                msg.textContent = r.mensagem || (r.sucesso ? 'Enviado!' : 'Erro');
-            }
-            if (r.sucesso) {
-                try { montarEditorModeloLider(minAtualModal); } catch (e) {}
-            }
-        };
         if (csvBtn) csvBtn.onclick = function() {
             try {
                 if (typeof exportarEscalaCSV !== 'function') {
@@ -1152,6 +1130,134 @@
                 escFormSujo = true;
                 renderLinhasFuncoes();
             });
+        }
+        var tog = document.getElementById('btnToggleModeloLider');
+        if (tog) {
+            tog.onclick = function() {
+                var p = document.getElementById('painelModeloLider');
+                if (!p) return;
+                var aberto = !p.classList.contains('hidden');
+                if (aberto) {
+                    p.classList.add('hidden');
+                    tog.textContent = '▶ Montar / editar funções deste ministério (formulário da escala)';
+                } else {
+                    p.classList.remove('hidden');
+                    tog.textContent = '▼ Ocultar edição do formulário';
+                    renderEditorModeloLider();
+                    if (typeof atualizarAvisoPendenteLider === 'function') atualizarAvisoPendenteLider();
+                }
+            };
+        }
+        var addF = document.getElementById('btnAddFuncaoLider');
+        if (addF) {
+            addF.onclick = function() {
+                var box = document.getElementById('listaModeloLider');
+                if (!box) return;
+                var div = document.createElement('div');
+                div.className = 'flex gap-2 items-center mod-lider-row';
+                div.innerHTML = '<input type="text" class="mod-lider-fn flex-1 border rounded px-2 py-1 text-xs" placeholder="Nova função">' +
+                    '<input type="number" min="0" max="50" class="mod-lider-qtd w-16 border rounded px-2 py-1 text-xs" value="1">' +
+                    '<button type="button" class="mod-lider-rm text-red-600 font-bold text-sm px-1">×</button>';
+                box.appendChild(div);
+                div.querySelector('.mod-lider-rm').onclick = function() { div.remove(); };
+            };
+        }
+        function coletarListaModeloLider() {
+            var lista = [];
+            document.querySelectorAll('#listaModeloLider .mod-lider-row').forEach(function(row) {
+                var fn = ((row.querySelector('.mod-lider-fn') || {}).value || '').trim();
+                var q = parseInt((row.querySelector('.mod-lider-qtd') || {}).value || '0', 10);
+                if (fn) lista.push({ funcao: fn, qtd: isNaN(q) ? 0 : q });
+            });
+            return lista;
+        }
+        function atualizarAvisoPendenteLider() {
+            var av = document.getElementById('avisoModeloPendenteLider');
+            var pub = document.getElementById('btnPublicarModeloLider');
+            if (!av) return;
+            var u = usuario();
+            var gestao = ehGestao(u);
+            if (pub) {
+                if (gestao) pub.classList.remove('hidden');
+                else pub.classList.add('hidden');
+            }
+            try {
+                if (typeof temModeloPendente === 'function' && temModeloPendente(minAtualModal)) {
+                    var p = obterModeloPendente(minAtualModal);
+                    av.classList.remove('hidden');
+                    av.textContent = '⏳ Há um formulário aguardando aprovação' +
+                        (p && p.solicitadoPor ? ' (por ' + p.solicitadoPor + ')' : '') +
+                        '. Admin/gestor precisa aprovar no Painel Administrativo.';
+                } else {
+                    av.classList.add('hidden');
+                    av.textContent = '';
+                }
+            } catch (e) { av.classList.add('hidden'); }
+        }
+        var salM = document.getElementById('btnSalvarModeloLider');
+        if (salM) {
+            salM.onclick = function() {
+                if (!podeEditarModeloMinisterio(minAtualModal)) {
+                    window.alert('Sem permissão. Apenas o líder deste ministério, admin ou gestor.');
+                    return;
+                }
+                var lista = coletarListaModeloLider();
+                if (!lista.length) {
+                    window.alert('Inclua pelo menos uma função.');
+                    return;
+                }
+                var u = usuario();
+                // Líder → solicita aprovação; admin/gestor também pode só enviar se quiser
+                if (!window.confirm('Enviar o formulário de ' + minAtualModal + ' para aprovação da secretaria/gestor?\n\nEle só vale na escala depois de aprovado.')) return;
+                if (typeof solicitarAprovacaoModeloEscala !== 'function') {
+                    window.alert('Função indisponível. Atualize o conta.js.');
+                    return;
+                }
+                var r = solicitarAprovacaoModeloEscala(minAtualModal, lista, (u && u.nome) || '');
+                var msg = document.getElementById('msgModeloLider');
+                if (msg) {
+                    msg.classList.remove('hidden');
+                    msg.className = 'text-xs mt-2 ' + (r.sucesso ? 'text-green-700' : 'text-red-600') + ' font-semibold';
+                    msg.textContent = r.mensagem || (r.sucesso ? 'Enviado.' : 'Erro');
+                }
+                atualizarAvisoPendenteLider();
+            };
+        }
+        var pubM = document.getElementById('btnPublicarModeloLider');
+        if (pubM) {
+            pubM.onclick = function() {
+                if (!ehGestao(usuario())) {
+                    window.alert('Só admin/gestor publica direto.');
+                    return;
+                }
+                var lista = coletarListaModeloLider();
+                if (!lista.length) return window.alert('Inclua pelo menos uma função.');
+                if (!window.confirm('Publicar agora o formulário oficial de ' + minAtualModal + ' (sem fila de aprovação)?')) return;
+                if (typeof salvarModeloFuncoesMinisterio !== 'function') return window.alert('conta.js desatualizado');
+                salvarModeloFuncoesMinisterio(minAtualModal, lista);
+                // limpa pendente se houver
+                try {
+                    if (typeof recusarModeloPendente === 'function' && temModeloPendente(minAtualModal)) {
+                        // remove pendente sem “recusar” semanticamente — usa recusar ou aprovar
+                        var all = lerModelosPendentes();
+                        delete all[minAtualModal];
+                        salvarTodosModelosPendentes(all);
+                    }
+                } catch (e) {}
+                try {
+                    if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+                        IBNNuvem.registrarAtividade('modelo_escala', 'Publicou formulário de escala: ' + minAtualModal, usuario());
+                    }
+                } catch (e) {}
+                var msg = document.getElementById('msgModeloLider');
+                if (msg) {
+                    msg.classList.remove('hidden');
+                    msg.className = 'text-xs mt-2 text-green-700 font-semibold';
+                    msg.textContent = 'Formulário publicado. A escala abaixo já usa estas funções.';
+                }
+                try { montarCamposNovoDia(minAtualModal); } catch (e) {}
+                atualizarAvisoPendenteLider();
+            };
         }
     }
 
@@ -1238,6 +1344,29 @@
         <div id="listaConfirmacao36h" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
       <div id="listaEscalaModal" class="space-y-3"></div>
+
+      <!-- Líder / admin / gestor: montar funções do ministério -->
+      <div id="blocoModeloFuncoesLider" class="mt-4 border-t pt-3 hidden">
+        <button type="button" id="btnToggleModeloLider" class="text-xs font-bold text-primary underline mb-2">
+          ▶ Montar / editar funções deste ministério (formulário da escala)
+        </button>
+        <div id="painelModeloLider" class="hidden border rounded-lg p-3 bg-slate-50 mb-2">
+          <p class="text-[11px] text-gray-600 mb-2">
+            Defina as <strong>funções</strong> e quantas pessoas cada uma precisa.
+            Ex.: Câmera (2), Transmissão (1). Depois use abaixo para escalar os membros por data.
+            <span class="block mt-1 text-amber-800">Hierarquia: <strong>Atmosfera</strong> escala primeiro no dia; nos outros ministérios só entram quem ainda estiver livre.</span>
+          </p>
+          <div id="listaModeloLider" class="space-y-1.5 mb-2"></div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="btnAddFuncaoLider" class="text-xs border px-2 py-1 rounded font-bold">+ Função</button>
+            <button type="button" id="btnSalvarModeloLider" class="text-xs bg-primary text-white px-3 py-1 rounded font-bold">Enviar para aprovação (líder)</button>
+            <button type="button" id="btnPublicarModeloLider" class="text-xs bg-emerald-700 text-white px-3 py-1 rounded font-bold hidden">Publicar agora (admin/gestor)</button>
+            <p id="avisoModeloPendenteLider" class="text-[11px] text-amber-800 mt-1 hidden"></p>
+          </div>
+          <p id="msgModeloLider" class="text-xs mt-2 hidden"></p>
+        </div>
+      </div>
+
       <div class="mt-4 border-t pt-3">
         <p class="font-bold text-primary text-xs mb-2">Novo dia / evento</p>
         <div class="grid grid-cols-2 gap-2 mb-2">
@@ -1251,21 +1380,6 @@
           <button type="button" id="btnSalvarNovoDiaEsc" class="bg-primary text-white px-3 py-2 rounded-lg text-sm font-bold">Finalizar escala do dia</button>
         </div>
         <p class="text-[11px] text-gray-500 mt-1">Rascunho fica marcado como incompleto. Finalizar indica escala pronta.</p>
-      </div>
-
-      <!-- Líder: propor modelo de funções (precisa aprovação admin/gestor) -->
-      <div id="blocoProporModelo" class="mt-4 border-t pt-3 hidden">
-        <details class="text-sm">
-          <summary class="cursor-pointer font-bold text-primary text-xs">Propor / editar modelo de funções (qtd sugerida)</summary>
-          <p class="text-[11px] text-gray-500 mt-1 mb-2">Monte as funções e quantidades do seu ministério e envie para aprovação da secretaria/gestor. Só depois de aprovado o formulário oficial muda.</p>
-          <div id="statusModeloPendente" class="text-xs mb-2 hidden"></div>
-          <div id="editorModeloLider" class="space-y-2 mb-2"></div>
-          <div class="flex flex-wrap gap-2 items-center">
-            <button type="button" id="btnAddFuncaoLider" class="text-xs underline text-primary">+ Função</button>
-            <button type="button" id="btnSolicitarModeloLider" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold">Solicitar aprovação</button>
-          </div>
-          <p id="msgModeloLider" class="text-xs mt-2 hidden"></p>
-        </details>
       </div>
     </div>
     <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">

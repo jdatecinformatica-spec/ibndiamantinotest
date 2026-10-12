@@ -1421,7 +1421,7 @@ function salvarTodosModelosPendentes(obj) {
 
 /**
  * Líder solicita aprovação de um novo modelo de funções.
- * Não sobrescreve o modelo oficial até aprovação.
+ * Não sobrescreve o modelo oficial até a secretaria/gestor aprovar.
  */
 function solicitarAprovacaoModeloEscala(ministerio, lista, solicitadoPor) {
     if (!ministerio || !Array.isArray(lista) || !lista.length) {
@@ -1441,6 +1441,15 @@ function solicitarAprovacaoModeloEscala(ministerio, lista, solicitadoPor) {
         status: 'pendente'
     };
     salvarTodosModelosPendentes(all);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade(
+                'modelo_escala_pendente',
+                'Solicitou aprovação do formulário de escala: ' + ministerio + ' (' + limpa.length + ' funções)',
+                typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null
+            );
+        }
+    } catch (e) {}
     return { sucesso: true, mensagem: 'Modelo de ' + ministerio + ' enviado para aprovação da secretaria/gestor.' };
 }
 
@@ -1467,7 +1476,7 @@ function temModeloPendente(ministerio) {
     return !!(p && p.status === 'pendente' && Array.isArray(p.lista) && p.lista.length);
 }
 
-function lerModeloPendente(ministerio) {
+function obterModeloPendente(ministerio) {
     var all = lerModelosPendentes();
     return all[ministerio] || null;
 }
@@ -1483,6 +1492,15 @@ function aprovarModeloPendente(ministerio) {
     salvarModeloFuncoesMinisterio(ministerio, p.lista);
     delete all[ministerio];
     salvarTodosModelosPendentes(all);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade(
+                'modelo_escala_aprovado',
+                'Aprovou formulário de escala: ' + ministerio,
+                typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null
+            );
+        }
+    } catch (e) {}
     return { sucesso: true, mensagem: 'Modelo de ' + ministerio + ' aprovado e publicado.' };
 }
 
@@ -1493,6 +1511,15 @@ function recusarModeloPendente(ministerio) {
     if (!all[ministerio]) return { sucesso: false, mensagem: 'Não há modelo pendente.' };
     delete all[ministerio];
     salvarTodosModelosPendentes(all);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade(
+                'modelo_escala_recusado',
+                'Recusou formulário de escala: ' + ministerio,
+                typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null
+            );
+        }
+    } catch (e) {}
     return { sucesso: true, mensagem: 'Solicitação de modelo de ' + ministerio + ' recusada.' };
 }
 
@@ -2483,14 +2510,14 @@ function resumoPendenciasGestao() {
         });
         if (membrosPend.length) nLaranja += membrosPend.length > 0 ? 1 : 0;
     } catch (e) {}
-    // Modelos de escala pendentes de aprovação (líder → admin/gestor) — indicador AZUL
     var modelosPend = [];
     try {
         if (typeof listarModelosPendentes === 'function') {
             modelosPend = listarModelosPendentes() || [];
-            if (modelosPend.length) nAzul += modelosPend.length;
         }
     } catch (e) {}
+    var nMod = modelosPend.length;
+    if (nMod) nAzul += nMod; // modelos de escala = azul (aprovar formulário)
     return {
         celulas: celulas,
         ministerios: ministerios,
@@ -2521,13 +2548,11 @@ function pendenciasDoUsuarioLogado(u) {
         total = r.total || 0;
         if (r.nVermelho) motivos.push(r.nVermelho + ' cargo(s) vago(s)');
         if (r.nLaranja) motivos.push(r.nLaranja + ' aprovação(ões)');
-        if (r.nAzul) {
-            var nMod = (r.modelosPendentes && r.modelosPendentes.length) ? r.modelosPendentes.length : 0;
-            var nRel = r.nAzul - nMod;
-            if (nRel > 0) motivos.push(nRel + ' relatório(s)');
-            if (nMod > 0) motivos.push(nMod + ' modelo(s) de escala pendente(s)');
-        }
+        if (r.nAzul) motivos.push(r.nAzul + ' relatório(s)/modelo(s)');
         if (r.membrosPendentes) motivos.push(r.membrosPendentes + ' membro(s) pendente(s)');
+        if (r.modelosPendentes && r.modelosPendentes.length) {
+            motivos.push(r.modelosPendentes.length + ' formulário(s) de escala');
+        }
         return {
             total: total,
             motivos: motivos,

@@ -759,6 +759,7 @@
                             var bolas = '';
                             if (pend.nVermelho > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle" title="Cargos vagos"></span>';
                             if (pend.nAzul > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-blue-500 ml-0.5 align-middle" title="Modelos / relatórios"></span>';
+                            if (pend.nLaranja > 0 && !bolas) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-0.5 align-middle" title="Aprovações"></span>';
                             if (!bolas) bolas = '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-0.5 align-middle"></span>';
                             lg.innerHTML = 'Gestão ' + bolas;
                         } else {
@@ -774,8 +775,9 @@
                             lgm.classList.add('text-red-400');
                             lgm.title = 'Há pendências na sua gestão';
                             var bolasM = '';
-                            if (pend.nVermelho > 0) bolasM += '<span class="text-red-400">●</span>';
-                            if (pend.nAzul > 0) bolasM += '<span class="text-blue-400">●</span>';
+                            if (pend.nVermelho > 0) bolasM += '<span class="text-red-400">●</span> ';
+                            if (pend.nAzul > 0) bolasM += '<span class="text-blue-400">●</span> ';
+                            if (pend.nLaranja > 0 && !bolasM) bolasM += '<span class="text-amber-400">●</span> ';
                             if (!bolasM) bolasM = '<span class="text-amber-400">●</span>';
                             lgm.innerHTML = 'Gestão ' + bolasM;
                         } else {

@@ -132,7 +132,7 @@
                 <p class="text-sm text-gray-500 mb-4">
                     Cada ministério tem suas <strong>funções e quantidades</strong>.
                     Monte o dia no formulário ou importe um CSV. O membro é avisado no dia anterior e no dia.
-                    Competência: <strong>líder do ministério</strong> e <strong>secretaria (admin/gestor)</strong>.
+                    Competência: <strong>líder do ministério</strong> (em Ministérios → escala → montar funções) e <strong>secretaria/gestor</strong> aqui.
                 </p>
 
                 <div class="grid md:grid-cols-3 gap-3 mb-4">
@@ -838,7 +838,7 @@
                 document.getElementById('tituloPendenciasGestao').className = 'text-blue-800';
             }
             document.getElementById('resumoPendenciasTexto').textContent =
-                'Há itens para resolver em células, ministérios ou aprovações de membros.';
+                'Há itens para resolver: células, ministérios, membros ou formulários de escala.';
             var bv = document.getElementById('badgeVermelho');
             var bl = document.getElementById('badgeLaranja');
             var ba = document.getElementById('badgeAzul');
@@ -853,11 +853,11 @@
             if (r.nAzul > 0) {
                 ba.classList.remove('hidden');
                 var nMod = (r.modelosPendentes && r.modelosPendentes.length) ? r.modelosPendentes.length : 0;
-                var nRel = r.nAzul - nMod;
                 var txtAzul = [];
-                if (nRel > 0) txtAzul.push(nRel + ' relatório(s)');
                 if (nMod > 0) txtAzul.push(nMod + ' modelo(s) de escala');
-                ba.textContent = txtAzul.join(' · ') || (r.nAzul + ' item(ns) azul');
+                var nAzulCel = r.nAzul - nMod;
+                if (nAzulCel > 0) txtAzul.push(nAzulCel + ' célula(s) sem relatório');
+                ba.textContent = txtAzul.join(' · ') || (r.nAzul + ' pendência(s) azuis');
             } else ba.classList.add('hidden');
 
             var html = '';
@@ -874,30 +874,31 @@
             if (r.membrosPendentes > 0) {
                 html += '<div class="flex gap-2 items-start bg-white/80 rounded-lg px-3 py-2 border"><span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 bg-amber-500"></span><div><p class="font-bold text-amber-700">Membros</p><p class="text-xs text-gray-600">' + r.membrosPendentes + ' cadastro(s) aguardando aprovação</p></div></div>';
             }
-            // Modelos de escala pendentes (aprovação do líder)
+            // Modelos de escala pendentes (líder enviou formulário)
             (r.modelosPendentes || []).forEach(function (mp) {
-                var funcoesTxt = (mp.lista || []).map(function(it){ return (it.funcao||'') + ' (' + (it.qtd||0) + ')'; }).join(', ');
-                html += '<div class="flex gap-2 items-start bg-white/80 rounded-lg px-3 py-2 border border-blue-200">' +
-                    '<span class="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 bg-blue-500"></span>' +
-                    '<div class="flex-1">' +
-                    '<p class="font-bold text-blue-800">Modelo de escala: ' + (mp.ministerio || '') + '</p>' +
-                    '<p class="text-xs text-gray-600">Solicitado por: ' + (mp.solicitadoPor || 'líder') + '</p>' +
-                    '<p class="text-xs text-gray-500 mt-0.5">' + funcoesTxt + '</p>' +
-                    '<div class="flex gap-2 mt-2">' +
+                var funcoes = (mp.lista || []).map(function (it) {
+                    return (it.funcao || '') + (it.qtd ? ' (' + it.qtd + ')' : '');
+                }).join(', ');
+                html += '<div class="flex flex-wrap gap-2 items-start justify-between bg-white/80 rounded-lg px-3 py-2 border border-blue-200">' +
+                    '<div class="min-w-0 flex-1"><p class="font-bold text-blue-800">Formulário de escala: ' + (mp.ministerio || '') + '</p>' +
+                    '<p class="text-xs text-gray-600">Funções: ' + (funcoes || '—') + '</p>' +
+                    '<p class="text-xs text-gray-400">Solicitado por ' + (mp.solicitadoPor || 'líder') +
+                    (mp.solicitadoEm ? ' em ' + String(mp.solicitadoEm).slice(0, 16).replace('T', ' ') : '') + '</p></div>' +
+                    '<div class="flex gap-1 shrink-0">' +
                     '<button type="button" class="btn-aprovar-modelo text-xs font-bold bg-blue-600 text-white px-2 py-1 rounded" data-min="' + String(mp.ministerio||'').replace(/"/g,'') + '">Aprovar</button>' +
                     '<button type="button" class="btn-recusar-modelo text-xs font-bold border border-red-300 text-red-700 px-2 py-1 rounded" data-min="' + String(mp.ministerio||'').replace(/"/g,'') + '">Recusar</button>' +
-                    '</div></div></div>';
+                    '</div></div>';
             });
             document.getElementById('listaPendenciasGestao').innerHTML = html || '<p class="text-sm text-gray-500">Sem detalhes.</p>';
-            // Bind botões aprovar/recusar modelo
             document.querySelectorAll('.btn-aprovar-modelo').forEach(function(btn) {
                 btn.onclick = function() {
                     var min = btn.getAttribute('data-min');
                     if (!min || typeof aprovarModeloPendente !== 'function') return;
-                    if (!confirm('Aprovar o modelo de funções de ' + min + '?\nO formulário oficial será atualizado.')) return;
+                    if (!confirm('Aprovar o modelo de funções de ' + min + '?\nO formulário oficial da escala será atualizado.')) return;
                     var res = aprovarModeloPendente(min);
                     alert(res.mensagem || (res.sucesso ? 'Aprovado' : 'Erro'));
                     renderPendenciasGestao();
+                    try { if (typeof montarEditorModelo === 'function') montarEditorModelo(min); } catch(e) {}
                 };
             });
             document.querySelectorAll('.btn-recusar-modelo').forEach(function(btn) {
