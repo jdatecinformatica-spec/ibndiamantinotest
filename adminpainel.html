@@ -949,8 +949,13 @@
             msg.textContent = r.mensagem || (r.sucesso ? 'Salvo' : 'Erro');
         });
         document.getElementById('btnExportarEscalaCSV') && document.getElementById('btnExportarEscalaCSV').addEventListener('click', function() {
-            var min = document.getElementById('escalaMinisterioSel').value;
-            if (typeof exportarEscalaCSV === 'function') exportarEscalaCSV(min);
+            var min = (document.getElementById('escalaMinisterioSel') || {}).value || 'Atmosfera';
+            if (typeof exportarEscalaCSV !== 'function') {
+                alert('Função CSV indisponível. Atualize o conta.js.');
+                return;
+            }
+            var r = exportarEscalaCSV(min);
+            if (r && r.sucesso) alert('CSV de ' + min + ': ' + r.mensagem);
         });
         document.getElementById('btnSalvarModeloEscala') && document.getElementById('btnSalvarModeloEscala').addEventListener('click', function() {
             var min = document.getElementById('escalaMinisterioSel').value;

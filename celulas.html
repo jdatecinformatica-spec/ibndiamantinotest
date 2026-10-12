@@ -150,8 +150,12 @@
                 <h3 class="font-bold text-primary mb-3"><i class="fa fa-file-text-o"></i> Relatório de presença e ofertas</h3>
                 <p class="text-xs text-gray-500 mb-3">Somente o <strong>líder da célula</strong> preenche (presença + ofertas PIX/espécie) para envio à <strong>secretaria</strong> e à <strong>tesouraria</strong>. Gestores/admin também acessam.</p>
 
+                <div id="relModoBanner" class="hidden mb-2 text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    ✏️ Editando relatório — altere e salve, ou <button type="button" id="btnCancelarEdicaoRel" class="underline">cancelar edição</button>
+                </div>
                 <form id="formRelatorio" class="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border">
                     <input type="hidden" id="relCelulaId">
+                    <input type="hidden" id="relId" value="">
                     <div class="grid sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">Data do encontro</label>
@@ -180,8 +184,8 @@
                         <label class="block text-xs font-bold text-gray-600 mb-1">Observações</label>
                         <textarea id="relObs" rows="2" class="w-full p-2 border rounded-lg" placeholder="Opcional"></textarea>
                     </div>
-                    <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-accent">
-                        <i class="fa fa-save"></i> Salvar relatório
+                    <button type="submit" id="btnSubmitRel" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-accent">
+                        <i class="fa fa-save"></i> <span id="txtBtnRel">Salvar relatório</span>
                     </button>
                     <p id="relMsg" class="text-sm text-center hidden"></p>
                 </form>
@@ -394,6 +398,44 @@
             }
         }
 
+        function limparFormRelatorio(manterData) {
+            document.getElementById('relId').value = '';
+            if (!manterData) {
+                try { document.getElementById('relData').value = new Date().toISOString().slice(0, 10); } catch (e) {}
+            }
+            document.getElementById('relPix').value = 0;
+            document.getElementById('relEspecie').value = 0;
+            document.getElementById('relObs').value = '';
+            document.getElementById('relQtd').value = '';
+            document.querySelectorAll('.rel-presente').forEach(function(cb) { cb.checked = false; });
+            var ban = document.getElementById('relModoBanner');
+            if (ban) ban.classList.add('hidden');
+            var txt = document.getElementById('txtBtnRel');
+            if (txt) txt.textContent = 'Salvar relatório';
+        }
+        function carregarRelatorioNoForm(r) {
+            if (!r) return;
+            document.getElementById('relId').value = r.id || '';
+            document.getElementById('relData').value = r.data || '';
+            document.getElementById('relQtd').value = r.qtdPresentes || '';
+            document.getElementById('relPix').value = r.ofertaPix != null ? r.ofertaPix : 0;
+            document.getElementById('relEspecie').value = r.ofertaEspecie != null ? r.ofertaEspecie : 0;
+            document.getElementById('relObs').value = r.observacoes || '';
+            var ids = {};
+            (r.presentes || []).forEach(function(p) {
+                if (p && p.id) ids[String(p.id)] = true;
+                if (p && p.nome) ids['nome:' + String(p.nome).toLowerCase()] = true;
+            });
+            document.querySelectorAll('.rel-presente').forEach(function(cb) {
+                var ok = ids[String(cb.value)] || ids['nome:' + String(cb.getAttribute('data-nome') || '').toLowerCase()];
+                cb.checked = !!ok;
+            });
+            var ban = document.getElementById('relModoBanner');
+            if (ban) ban.classList.remove('hidden');
+            var txt = document.getElementById('txtBtnRel');
+            if (txt) txt.textContent = 'Salvar alterações';
+            try { document.getElementById('formRelatorio').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+        }
         function renderRelatorios(celulaId) {
             var lista = relatoriosDaCelula(celulaId);
             var el = document.getElementById('listaRelatorios');
@@ -401,16 +443,33 @@
                 el.innerHTML = '<p class="text-gray-400">Nenhum relatório registrado ainda.</p>';
                 return;
             }
-            el.innerHTML = lista.map(function(r) {
+            el.innerHTML = '<p class="text-xs font-bold text-gray-600 mb-2">Relatórios salvos — revisar ou editar:</p>' + lista.map(function(r) {
+                var nomes = (r.presentes || []).map(function(p) { return p.nome || ''; }).filter(Boolean).join(', ');
                 return '<div class="border rounded-lg p-3 bg-white">' +
+                    '<div class="flex flex-wrap justify-between gap-2 items-start">' +
+                    '<div class="min-w-0 flex-1">' +
                     '<p class="font-bold text-primary">' + (r.data || '') + ' · ' + (r.qtdPresentes || 0) + ' presentes</p>' +
-                    '<p class="text-xs text-gray-600">PIX: R$ ' + (r.ofertaPix || 0).toFixed(2).replace('.', ',') +
-                    ' · Espécie: R$ ' + (r.ofertaEspecie || 0).toFixed(2).replace('.', ',') +
-                    ' · <strong>Total: R$ ' + (r.totalOfertas || 0).toFixed(2).replace('.', ',') + '</strong></p>' +
+                    '<p class="text-xs text-gray-600">PIX: R$ ' + (Number(r.ofertaPix) || 0).toFixed(2).replace('.', ',') +
+                    ' · Espécie: R$ ' + (Number(r.ofertaEspecie) || 0).toFixed(2).replace('.', ',') +
+                    ' · <strong>Total: R$ ' + (Number(r.totalOfertas) || 0).toFixed(2).replace('.', ',') + '</strong></p>' +
+                    (nomes ? '<p class="text-xs text-gray-500 mt-1">Presentes: ' + nomes + '</p>' : '') +
                     (r.observacoes ? '<p class="text-xs text-gray-500 mt-1">' + r.observacoes + '</p>' : '') +
-                    '<p class="text-xs text-gray-400 mt-1">Por ' + (r.autorNome || '—') + '</p>' +
-                    '</div>';
+                    '<p class="text-xs text-gray-400 mt-1">Por ' + (r.autorNome || '—') +
+                    (r.atualizadoEm ? ' · atualizado ' + String(r.atualizadoEm).slice(0, 16).replace('T', ' ') : '') +
+                    '</p></div>' +
+                    '<div class="flex flex-col gap-1 shrink-0">' +
+                    '<button type="button" class="btn-revisar-rel text-xs border border-primary text-primary px-2 py-1 rounded font-bold hover:bg-primary hover:text-white" data-id="' + (r.id || '') + '">Revisar / Editar</button>' +
+                    '</div></div></div>';
             }).join('');
+            el.querySelectorAll('.btn-revisar-rel').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = btn.getAttribute('data-id');
+                    var rel = lista.find(function(x) { return String(x.id) === String(id); });
+                    if (!rel) return alert('Relatório não encontrado.');
+                    if (!confirm('Carregar este relatório no formulário para revisar/editar?')) return;
+                    carregarRelatorioNoForm(rel);
+                });
+            });
         }
 
         document.getElementById('btnFecharPainel').addEventListener('click', function() {
@@ -418,31 +477,36 @@
             celulaAberta = null;
         });
 
+        document.getElementById('btnCancelarEdicaoRel') && document.getElementById('btnCancelarEdicaoRel').addEventListener('click', function() {
+            if (!confirm('Cancelar edição e limpar o formulário?')) return;
+            limparFormRelatorio(false);
+        });
         document.getElementById('formRelatorio').addEventListener('submit', function(e) {
             e.preventDefault();
             var presentes = [];
             document.querySelectorAll('.rel-presente:checked').forEach(function(cb) {
                 presentes.push({ id: cb.value, nome: cb.getAttribute('data-nome') || '' });
             });
+            var relId = (document.getElementById('relId') || {}).value || '';
+            var listaAnt = (typeof relatoriosDaCelula === 'function') ? relatoriosDaCelula(document.getElementById('relCelulaId').value) : [];
+            var antigo = listaAnt.find(function(x) { return String(x.id) === String(relId); });
             var r = salvarRelatorioCelula({
+                id: relId || undefined,
                 celulaId: document.getElementById('relCelulaId').value,
                 data: document.getElementById('relData').value,
                 presentes: presentes,
                 qtdPresentes: document.getElementById('relQtd').value || presentes.length,
                 ofertaPix: document.getElementById('relPix').value,
                 ofertaEspecie: document.getElementById('relEspecie').value,
-                observacoes: document.getElementById('relObs').value
+                observacoes: document.getElementById('relObs').value,
+                criadoEm: antigo ? antigo.criadoEm : undefined
             });
             var msg = document.getElementById('relMsg');
             msg.classList.remove('hidden');
             if (r.sucesso) {
                 msg.className = 'text-sm text-center text-green-600 font-bold';
-                msg.textContent = '✅ Relatório salvo!';
-                document.getElementById('relPix').value = 0;
-                document.getElementById('relEspecie').value = 0;
-                document.getElementById('relObs').value = '';
-                document.getElementById('relQtd').value = '';
-                document.querySelectorAll('.rel-presente').forEach(function(cb) { cb.checked = false; });
+                msg.textContent = relId ? '✅ Relatório atualizado!' : '✅ Relatório salvo!';
+                limparFormRelatorio(false);
                 renderRelatorios(celulaAberta);
             } else {
                 msg.className = 'text-sm text-center text-red-500 font-bold';

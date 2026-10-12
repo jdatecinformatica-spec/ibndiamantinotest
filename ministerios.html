@@ -1032,12 +1032,25 @@
         var rasc = document.getElementById('btnSalvarRascunhoEsc');
         var fin = document.getElementById('btnSalvarNovoDiaEsc');
         var wa = document.getElementById('btnWhatsEscalaModal');
+        var csvBtn = document.getElementById('btnCsvEscalaModal');
         var modal = document.getElementById('modalEscalaMin');
         if (x) x.onclick = function() { tentarFecharModalEscala(false); };
         if (sair) sair.onclick = function() { tentarFecharModalEscala(false); };
         if (sairSem) sairSem.onclick = function() { tentarFecharModalEscala(true); };
         if (rasc) rasc.onclick = function() { salvarDiaUI('rascunho'); };
         if (fin) fin.onclick = function() { salvarDiaUI('finalizada'); };
+        if (csvBtn) csvBtn.onclick = function() {
+            try {
+                if (typeof exportarEscalaCSV !== 'function') {
+                    window.alert('Função CSV indisponível. Atualize o conta.js.');
+                    return;
+                }
+                var r = exportarEscalaCSV(minAtualModal);
+                if (r && r.sucesso) window.alert('CSV baixado: ' + (r.mensagem || 'ok') + '\nInclui dias em rascunho e finalizados.');
+            } catch (e) {
+                window.alert('Erro ao gerar CSV: ' + (e.message || e));
+            }
+        };
         if (wa) wa.onclick = function() {
             try {
                 var linhas = (typeof escalaCompletaMinisterio === 'function') ? escalaCompletaMinisterio(minAtualModal, 14) : [];
@@ -1165,6 +1178,7 @@
       </div>
     </div>
     <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">
+      <button type="button" id="btnCsvEscalaModal" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">Baixar CSV (todos os dias)</button>
       <button type="button" id="btnWhatsEscalaModal" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Lembretes WhatsApp (próximo dia)</button>
       <button type="button" id="btnSairSemSalvarEsc" class="border border-red-300 text-red-700 px-3 py-2 rounded-lg text-xs font-bold">Sair sem salvar</button>
       <button type="button" id="btnFecharModalEscala2" class="border px-3 py-2 rounded-lg text-xs font-bold">Sair</button>

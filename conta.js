@@ -1442,21 +1442,44 @@ function salvarDiaEscalaFormulario(dados) {
     return { sucesso: true, mensagem: 'Escala do dia salva para ' + min, linhas: linhas };
 }
 
-/** Gera CSV do ministério (mesmo formato Atmosfera) */
+/** Gera CSV do ministério (mesmo formato Atmosfera). Inclui rascunhos e finalizadas. */
 function exportarEscalaCSV(ministerio) {
-    var linhas = lerEscalaCultosMinisterio(ministerio);
+    var linhas = lerEscalaCultosMinisterio(ministerio) || [];
+    if (!linhas.length) {
+        try { alert('Nenhuma escala salva para ' + (ministerio || '') + '.\nSalve um rascunho ou finalize um dia antes de baixar.'); } catch (e) {}
+        return { sucesso: false, mensagem: 'Vazio' };
+    }
     var modelo = lerModeloFuncoesMinisterio(ministerio);
-    var cols = ['Data'].concat(modelo.map(function (m) { return m.funcao; }).filter(function (f) {
-        return !/^observa/i.test(f);
-    }));
-    if (cols.indexOf('Observação') === -1) cols.push('Observação');
+    // Colunas a partir do modelo + qualquer função que já exista nas linhas salvas
+    var colsSet = {};
+    (modelo || []).forEach(function (m) {
+        if (m && m.funcao && !/^observa/i.test(m.funcao)) colsSet[m.funcao] = true;
+    });
+    linhas.forEach(function (l) {
+        Object.keys(l.funcoes || {}).forEach(function (fn) { colsSet[fn] = true; });
+    });
+    var cols = ['Data'].concat(Object.keys(colsSet));
+    cols.push('Observação');
     var sep = ';';
     var out = [cols.join(sep)];
+    // ordena por data
+    linhas = linhas.slice().sort(function (a, b) {
+        return String(a.dataIso || a.dataLabel || '').localeCompare(String(b.dataIso || b.dataLabel || ''));
+    });
     linhas.forEach(function (l) {
-        var row = [l.dataLabel || l.dataIso || ''];
+        // Data: rótulo; se rascunho, indica no texto da data para o líder ver no Excel
+        var dataCell = l.dataLabel || l.dataIso || '';
+        if (l.status && l.status !== 'finalizada') {
+            dataCell = dataCell + ' (rascunho)';
+        }
+        var row = [dataCell];
         cols.slice(1).forEach(function (c) {
             if (/^observa/i.test(c)) {
-                row.push(l.observacao || '');
+                var obs = l.observacao || '';
+                if (l.status && l.status !== 'finalizada' && obs.indexOf('rascunho') === -1) {
+                    obs = (obs ? obs + ' | ' : '') + 'status: rascunho';
+                }
+                row.push(obs);
                 return;
             }
             var nomes = (l.funcoes && l.funcoes[c]) ? l.funcoes[c] : [];
@@ -1471,8 +1494,10 @@ function exportarEscalaCSV(ministerio) {
     var d = new Date();
     var ds = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
     a.download = 'escala_' + String(ministerio || 'ministerio').replace(/\s+/g, '_').toLowerCase() + '_' + ds + '.csv';
+    document.body.appendChild(a);
     a.click();
-    return { sucesso: true, mensagem: 'CSV gerado' };
+    setTimeout(function () { try { document.body.removeChild(a); } catch (e) {} }, 500);
+    return { sucesso: true, mensagem: linhas.length + ' dia(s) no CSV (inclui rascunhos)', quantidade: linhas.length };
 }
 
 
@@ -2740,16 +2765,36 @@ function salvarRelatorioCelula(dados) {
     const idx = lista.findIndex(r => r.id === rel.id);
     if (idx >= 0) lista[idx] = rel;
     else lista.push(rel);
+    var eraEdicao = idx >= 0;
     salvarRelatoriosCelula(lista);
-    // Cópia na nuvem (se configurada)
+    // Cópia na nuvem (se configurada) + log na movimentação do gestor
     try {
         if (typeof IBNNuvem !== 'undefined') {
             if (IBNNuvem.sincronizarRelatorio) IBNNuvem.sincronizarRelatorio(rel);
             if (IBNNuvem.registrarAtividade) {
-                IBNNuvem.registrarAtividade('relatorio_celula', 'Relatório célula ' + rel.celulaId + ' em ' + rel.data, u);
+                var nomeCel = rel.celulaId;
+                try {
+                    if (typeof LISTA_CELULAS !== 'undefined') {
+                        var c = LISTA_CELULAS.find(function (x) { return x.id === rel.celulaId; });
+                        if (c && c.nome) nomeCel = c.nome;
+                    }
+                } catch (e2) {}
+                var acao = eraEdicao ? 'Editou relatório' : 'Registrou relatório';
+                var det = acao + ' da célula ' + nomeCel +
+                    ' em ' + rel.data +
+                    ' · ' + (rel.qtdPresentes || 0) + ' presentes' +
+                    ' · PIX R$ ' + (Number(rel.ofertaPix) || 0).toFixed(2).replace('.', ',') +
+                    ' · Espécie R$ ' + (Number(rel.ofertaEspecie) || 0).toFixed(2).replace('.', ',') +
+                    ' · Total R$ ' + (Number(rel.totalOfertas) || 0).toFixed(2).replace('.', ',');
+                if (rel.observacoes) det += ' · Obs: ' + String(rel.observacoes).slice(0, 80);
+                IBNNuvem.registrarAtividade(
+                    eraEdicao ? 'relatorio_celula_editar' : 'relatorio_celula',
+                    det,
+                    u
+                );
             }
         }
-    } catch (e) { /* silencioso */ }
+    } catch (e) { console.warn('log relatório célula', e); }
     return { sucesso: true, relatorio: rel };
 }
 
