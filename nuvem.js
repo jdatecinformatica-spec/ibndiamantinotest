@@ -859,15 +859,50 @@ const IBNNuvem = (function () {
     }
 
 
+    function normalizarChaveMinisterio(nome) {
+        return String(nome || '').trim();
+    }
+    function mesclarLinhasEscala(localLinhas, nuvemLinhas) {
+        var por = {};
+        (localLinhas || []).concat(nuvemLinhas || []).forEach(function (l) {
+            if (!l) return;
+            var k = String(l.dataIso || '') || String(l.dataLabel || '');
+            if (!k) return;
+            var prev = por[k];
+            if (!prev) { por[k] = l; return; }
+            var t1 = Date.parse(prev.atualizadoEm || '') || 0;
+            var t2 = Date.parse(l.atualizadoEm || '') || 0;
+            // se empate de data, prefere quem tem mais funções preenchidas
+            if (t2 > t1) por[k] = l;
+            else if (t2 === t1) {
+                var n1 = Object.keys(prev.funcoes || {}).length;
+                var n2 = Object.keys(l.funcoes || {}).length;
+                por[k] = n2 >= n1 ? l : prev;
+            }
+        });
+        return Object.keys(por).map(function (k) { return por[k]; });
+    }
     async function sincronizarEscalaMinisterio(ministerio, linhas) {
         if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
-            var id = String(ministerio || 'geral').toLowerCase().replace(/\s+/g, '_');
-            await db.collection('escalas_ministerio').doc(id).set({
-                ministerio: ministerio || '',
+            var min = normalizarChaveMinisterio(ministerio) || 'Atmosfera';
+            var id = min.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+            var payload = {
+                ministerio: min,
                 linhas: linhas || [],
                 atualizadoEm: new Date().toISOString()
-            }, { merge: true });
+            };
+            await db.collection('escalas_ministerio').doc(id).set(payload, { merge: false });
+            // backup: mapa completo no aparelho também sobe (ajuda outros aparelhos)
+            try {
+                var all = {};
+                try { all = JSON.parse(localStorage.getItem('ibn_escala_cultos') || '{}'); } catch (e2) { all = {}; }
+                all[min] = linhas || [];
+                await db.collection('config').doc('escalas_todas').set({
+                    mapa: all,
+                    atualizadoEm: new Date().toISOString()
+                }, { merge: true });
+            } catch (e3) { console.warn('backup escalas_todas', e3); }
             return { sucesso: true };
         } catch (e) {
             ultimoErro = (e && e.message) || String(e);
@@ -875,34 +910,40 @@ const IBNNuvem = (function () {
         }
     }
     async function puxarEscalasParaLocal() {
-        if (!iniciar() || !db) return { sucesso: false };
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem offline' };
         try {
-            var snap = await db.collection('escalas_ministerio').get();
             var all = {};
             try { all = JSON.parse(localStorage.getItem('ibn_escala_cultos') || '{}'); } catch (e) { all = {}; }
+            // 1) backup completo
+            try {
+                var snapAll = await db.collection('config').doc('escalas_todas').get();
+                if (snapAll.exists) {
+                    var mapa = (snapAll.data() || {}).mapa || {};
+                    Object.keys(mapa).forEach(function (min) {
+                        var nome = normalizarChaveMinisterio(min);
+                        all[nome] = mesclarLinhasEscala(all[nome], mapa[min]);
+                    });
+                }
+            } catch (eB) { console.warn('puxar escalas_todas', eB); }
+            // 2) por ministério
+            var snap = await db.collection('escalas_ministerio').get();
             snap.forEach(function (doc) {
                 var d = doc.data() || {};
-                var min = d.ministerio || doc.id;
-                var nuvemLinhas = Array.isArray(d.linhas) ? d.linhas : [];
-                var localLinhas = Array.isArray(all[min]) ? all[min] : [];
-                // mescla por dataIso: prevalece o mais recente
-                var por = {};
-                localLinhas.concat(nuvemLinhas).forEach(function (l) {
-                    if (!l) return;
-                    var k = String(l.dataIso || l.dataLabel || '');
-                    if (!k) return;
-                    var prev = por[k];
-                    if (!prev) { por[k] = l; return; }
-                    var t1 = Date.parse(prev.atualizadoEm || '') || 0;
-                    var t2 = Date.parse(l.atualizadoEm || '') || 0;
-                    por[k] = t2 >= t1 ? l : prev;
+                var min = normalizarChaveMinisterio(d.ministerio || doc.id);
+                // tenta casar chave existente (Atmosfera vs atmosfera)
+                var chaveLocal = min;
+                Object.keys(all).forEach(function (k) {
+                    if (k.toLowerCase() === min.toLowerCase()) chaveLocal = k;
                 });
-                all[min] = Object.keys(por).map(function (k) { return por[k]; });
+                all[chaveLocal] = mesclarLinhasEscala(all[chaveLocal], d.linhas || []);
             });
             localStorage.setItem('ibn_escala_cultos', JSON.stringify(all));
-            return { sucesso: true };
+            var total = 0;
+            Object.keys(all).forEach(function (k) { total += (all[k] || []).length; });
+            return { sucesso: true, totalDias: total };
         } catch (e) {
-            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
         }
     }
 
