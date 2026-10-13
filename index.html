@@ -748,44 +748,79 @@
                     ? pendenciasDoUsuarioLogado(usuario)
                     : { total: 0, gestao: false, temAutoridade: false, href: 'adminlogin.html' };
                 var mostraGestao = (usuario.nivel === 'admin' || usuario.nivel === 'gestor' || pend.gestao || pend.temAutoridade || pend.total > 0);
+                // Cores de pendência: vermelho cargos, âmbar membros, azul relatórios/modelos; verde = ok
+                var corPend = 'ok';
+                if (pend.total > 0) {
+                    if (pend.nVermelho > 0) corPend = 'vermelho';
+                    else if (pend.nLaranja > 0 || pend.membrosPendentes > 0) corPend = 'laranja';
+                    else if (pend.nAzul > 0) corPend = 'azul';
+                    else corPend = 'laranja';
+                }
                 if (mostraGestao) {
                     if (lg) {
-                        lg.classList.remove('hidden');
+                        lg.classList.remove('hidden', 'text-red-500', 'text-amber-400', 'text-blue-400', 'text-emerald-400');
                         lg.href = pend.href || (usuario.nivel === 'admin' || usuario.nivel === 'gestor' ? 'adminlogin.html' : 'celulas.html');
-                        if (pend.total > 0) {
-                            lg.classList.add('text-red-500');
-                            lg.classList.remove('text-white');
-                            lg.title = 'Há pendências na sua gestão: ' + (pend.motivos || []).join(' · ');
-                            var bolas = '';
-                            if (pend.nVermelho > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle" title="Cargos vagos"></span>';
-                            if (pend.nAzul > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-blue-500 ml-0.5 align-middle" title="Modelos / relatórios"></span>';
-                            if (pend.nLaranja > 0 && !bolas) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-0.5 align-middle" title="Aprovações"></span>';
-                            if (!bolas) bolas = '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 ml-0.5 align-middle"></span>';
-                            lg.innerHTML = 'Gestão ' + bolas;
+                        var bolas = '';
+                        if (corPend === 'ok') {
+                            lg.classList.add('text-emerald-400');
+                            lg.title = 'Gestão — sem pendências';
+                            lg.innerHTML = 'Gestão <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 ml-0.5 align-middle" title="Tudo ok"></span>';
                         } else {
-                            lg.classList.remove('text-red-500');
-                            lg.title = 'Gestão';
-                            lg.textContent = 'Gestão';
+                            lg.title = 'Há pendências na sua gestão: ' + (pend.motivos || []).join(' · ');
+                            if (pend.nVermelho > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-red-500 ml-0.5 align-middle" title="Cargos vagos / ministérios"></span>';
+                            if (pend.nLaranja > 0 || (pend.membrosPendentes > 0)) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-amber-400 ml-0.5 align-middle" title="Membros / aprovações"></span>';
+                            if (pend.nAzul > 0) bolas += '<span class="inline-block w-2 h-2 rounded-full bg-blue-400 ml-0.5 align-middle" title="Relatórios / formulários"></span>';
+                            if (!bolas) bolas = '<span class="inline-block w-2 h-2 rounded-full bg-amber-400 ml-0.5 align-middle"></span>';
+                            if (corPend === 'vermelho') lg.classList.add('text-red-500');
+                            else if (corPend === 'azul') lg.classList.add('text-blue-400');
+                            else lg.classList.add('text-amber-400');
+                            lg.innerHTML = 'Gestão ' + bolas;
                         }
                     }
                     if (lgm) {
-                        lgm.classList.remove('hidden');
-                        lgm.href = pend.href || lg.href;
-                        if (pend.total > 0) {
-                            lgm.classList.add('text-red-400');
+                        lgm.classList.remove('hidden', 'text-red-400', 'text-amber-300', 'text-blue-300', 'text-emerald-300');
+                        lgm.href = pend.href || (lg && lg.href) || 'adminlogin.html';
+                        if (corPend === 'ok') {
+                            lgm.classList.add('text-emerald-300');
+                            lgm.title = 'Gestão — sem pendências';
+                            lgm.innerHTML = 'Gestão <span class="text-emerald-300">●</span>';
+                        } else {
                             lgm.title = 'Há pendências na sua gestão';
                             var bolasM = '';
                             if (pend.nVermelho > 0) bolasM += '<span class="text-red-400">●</span> ';
-                            if (pend.nAzul > 0) bolasM += '<span class="text-blue-400">●</span> ';
-                            if (pend.nLaranja > 0 && !bolasM) bolasM += '<span class="text-amber-400">●</span> ';
-                            if (!bolasM) bolasM = '<span class="text-amber-400">●</span>';
+                            if (pend.nLaranja > 0 || pend.membrosPendentes > 0) bolasM += '<span class="text-amber-300">●</span> ';
+                            if (pend.nAzul > 0) bolasM += '<span class="text-blue-300">●</span> ';
+                            if (!bolasM) bolasM = '<span class="text-amber-300">●</span>';
+                            if (corPend === 'vermelho') lgm.classList.add('text-red-400');
+                            else if (corPend === 'azul') lgm.classList.add('text-blue-300');
+                            else lgm.classList.add('text-amber-300');
                             lgm.innerHTML = 'Gestão ' + bolasM;
-                        } else {
-                            lgm.classList.remove('text-red-400');
-                            lgm.textContent = 'Gestão';
                         }
                     }
                 }
+                // Botão Menu (celular): mesma cor — visível sem abrir o menu
+                try {
+                    var btnMenu = document.getElementById('btnMenu');
+                    if (btnMenu && (mostraGestao || pend.total > 0 || usuario.nivel === 'admin' || usuario.nivel === 'gestor')) {
+                        btnMenu.classList.remove('bg-secondary', 'bg-red-500', 'bg-amber-400', 'bg-blue-500', 'bg-emerald-500', 'text-primary', 'text-white');
+                        if (corPend === 'vermelho') {
+                            btnMenu.classList.add('bg-red-500', 'text-white');
+                            btnMenu.title = 'Menu — há pendências (vermelho)';
+                        } else if (corPend === 'laranja') {
+                            btnMenu.classList.add('bg-amber-400', 'text-primary');
+                            btnMenu.title = 'Menu — aprovações / membros';
+                        } else if (corPend === 'azul') {
+                            btnMenu.classList.add('bg-blue-500', 'text-white');
+                            btnMenu.title = 'Menu — relatórios / formulários';
+                        } else {
+                            btnMenu.classList.add('bg-emerald-500', 'text-white');
+                            btnMenu.title = 'Menu — tudo ok';
+                        }
+                    } else if (btnMenu) {
+                        btnMenu.classList.remove('bg-red-500', 'bg-amber-400', 'bg-blue-500', 'bg-emerald-500');
+                        btnMenu.classList.add('bg-secondary', 'text-primary');
+                    }
+                } catch (eMenu) {}
                 if (usuario.nivel === 'admin' || usuario.nivel === 'gestor') {
                     var la = document.getElementById('linkAdmin');
                     if (la) la.classList.remove('hidden');
@@ -2394,9 +2429,18 @@
     // Ao abrir o site logado: envia dados/fotos do membro para a nuvem (automático)
     function trySync() {
         try {
-            if (typeof IBNNuvem === 'undefined' || !IBNNuvem.agendarSyncSessao) return;
-            var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
-            if (u && u.id) IBNNuvem.agendarSyncSessao(u, 1500);
+            if (typeof IBNNuvem === 'undefined') return;
+            // 1) Baixa membros da nuvem (cargos/lideranças atualizados no outro aparelho)
+            if (IBNNuvem.puxarMembrosParaLocal) {
+                IBNNuvem.puxarMembrosParaLocal().then(function () {
+                    try { if (typeof atualizarSessaoDoCadastro === 'function') atualizarSessaoDoCadastro(); } catch (e2) {}
+                }).catch(function () {});
+            }
+            // 2) Sobe dados/fotos da sessão atual
+            if (IBNNuvem.agendarSyncSessao) {
+                var u = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
+                if (u && u.id) IBNNuvem.agendarSyncSessao(u, 1500);
+            }
         } catch (e) {}
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trySync);

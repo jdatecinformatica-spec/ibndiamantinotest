@@ -184,12 +184,23 @@ function salvarMembros(lista) {
         return true;
     });
     localStorage.setItem(CHAVE_MEMBROS, JSON.stringify(limpa));
+    try { if (typeof atualizarSessaoDoCadastro === 'function') atualizarSessaoDoCadastro(); } catch (e) {}
     // Cópia na nuvem (se configurada) — não bloqueia o uso local
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
             IBNNuvem.sincronizarMembros(limpa).then(function (r) {
-                if (r && !r.sucesso) console.warn('Nuvem (membros):', r.mensagem || r);
-            }).catch(function (e) { console.warn('Nuvem (membros):', e); });
+                if (r && !r.sucesso) {
+                    console.warn('Nuvem (membros):', r.mensagem || r);
+                    if (typeof avisarFalhaNuvem === 'function') {
+                        avisarFalhaNuvem('Cadastro de membros', r.mensagem || 'Falha ao sincronizar');
+                    }
+                }
+            }).catch(function (e) {
+                console.warn('Nuvem (membros):', e);
+                if (typeof avisarFalhaNuvem === 'function') {
+                    avisarFalhaNuvem('Cadastro de membros', (e && e.message) || String(e));
+                }
+            });
         }
     } catch (e) { /* silencioso */ }
 }
@@ -198,9 +209,20 @@ function salvarMembros(lista) {
 function enviarMembroParaNuvem(membro) {
     try {
         if (typeof IBNNuvem === 'undefined' || !IBNNuvem.sincronizarUmMembro || !membro) return;
+        if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(membro);
         IBNNuvem.sincronizarUmMembro(membro).then(function (r) {
-            if (r && !r.sucesso) console.warn('Nuvem (1 membro):', r.mensagem || r);
-        }).catch(function (e) { console.warn('Nuvem (1 membro):', e); });
+            if (r && !r.sucesso) {
+                console.warn('Nuvem (1 membro):', r.mensagem || r);
+                if (typeof avisarFalhaNuvem === 'function') {
+                    avisarFalhaNuvem('Cadastro do membro', r.mensagem || 'Não sincronizou');
+                }
+            }
+        }).catch(function (e) {
+            console.warn('Nuvem (1 membro):', e);
+            if (typeof avisarFalhaNuvem === 'function') {
+                avisarFalhaNuvem('Cadastro do membro', (e && e.message) || String(e));
+            }
+        });
     } catch (e) {}
 }
 
@@ -633,6 +655,50 @@ function getUsuarioLogado() {
     }
 }
 
+/** Atualiza a sessão logada com o cadastro mais recente (após nuvem / gestão). */
+function atualizarSessaoDoCadastro() {
+    try {
+        var sess = getUsuarioLogado();
+        if (!sess || !sess.id) return null;
+        // Contas mestras não vêm da lista de membros
+        if (typeof isContaSistema === 'function' && isContaSistema(sess)) return sess;
+        var lista = lerMembros();
+        var m = lista.find(function (x) { return String(x.id) === String(sess.id); });
+        if (!m) return sess;
+        var { senha, respostaSeguranca, ...pub } = m;
+        // Mantém campos de sessão que não estão no cadastro
+        var misturado = Object.assign({}, sess, pub);
+        delete misturado.senha;
+        delete misturado.respostaSeguranca;
+        var json = JSON.stringify(misturado);
+        localStorage.setItem(CHAVE_SESSAO, json);
+        localStorage.setItem('usuarioLogado', json);
+        return misturado;
+    } catch (e) {
+        return null;
+    }
+}
+
+function marcarMembroAtualizado(m) {
+    if (!m) return m;
+    m.atualizadoEm = new Date().toISOString();
+    return m;
+}
+
+/** Alerta amigável quando algo não sobe para a nuvem */
+function avisarFalhaNuvem(tipo, detalhe) {
+    var msg = String(tipo || 'Dados') + ' não carregou na nuvem.';
+    if (detalhe) msg += '\n' + detalhe;
+    msg += '\n\nNo celular/outro aparelho pode continuar a versão antiga.\nContate a secretaria se repetir.';
+    try {
+        localStorage.setItem('ibn_ultima_falha_nuvem', JSON.stringify({
+            tipo: tipo, detalhe: detalhe || '', quando: new Date().toISOString()
+        }));
+    } catch (e) {}
+    try { alert(msg); } catch (e) { console.warn(msg); }
+}
+
+
 function normalizarTelefoneBR(tel) {
     let d = String(tel || '').replace(/\D/g, '');
     if (d.indexOf('55') === 0 && d.length >= 12) d = d.slice(2);
@@ -1048,7 +1114,9 @@ function rejeitarMembro(membroId) {
     const idx = lista.findIndex(m => m.id === membroId);
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
     lista[idx].status = 'rejeitado';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idx]);
     salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[idx]); } catch (e) {}
     return { sucesso: true };
 }
 
@@ -1869,6 +1937,20 @@ function salvarEscalaCultosMinisterio(ministerio, linhas) {
     var all = lerTodasEscalasCultos();
     all[ministerio || 'Atmosfera'] = linhas || [];
     salvarTodasEscalasCultos(all);
+    // Nuvem: líderes/gestores no outro aparelho veem a escala
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarEscalaMinisterio) {
+            IBNNuvem.sincronizarEscalaMinisterio(ministerio || 'Atmosfera', linhas || []).then(function (r) {
+                if (r && !r.sucesso && typeof avisarFalhaNuvem === 'function') {
+                    avisarFalhaNuvem('Escala de ' + (ministerio || ''), r.mensagem || 'Não subiu para a nuvem');
+                }
+            }).catch(function (e) {
+                if (typeof avisarFalhaNuvem === 'function') {
+                    avisarFalhaNuvem('Escala de ' + (ministerio || ''), (e && e.message) || String(e));
+                }
+            });
+        }
+    } catch (e) {}
 }
 
 /** Converte "DOM 13/09/26" ou "QUINTA 17/09/26" em Date / ISO */
@@ -2787,7 +2869,8 @@ function pendenciasDoUsuarioLogado(u) {
             gestao: true,
             nVermelho: r.nVermelho || 0,
             nLaranja: r.nLaranja || 0,
-            nAzul: r.nAzul || 0
+            nAzul: r.nAzul || 0,
+            membrosPendentes: r.membrosPendentes || 0
         };
     }
 
@@ -3132,7 +3215,17 @@ function salvarRelatorioCelula(dados) {
     // Cópia na nuvem (se configurada) + log na movimentação do gestor
     try {
         if (typeof IBNNuvem !== 'undefined') {
-            if (IBNNuvem.sincronizarRelatorio) IBNNuvem.sincronizarRelatorio(rel);
+            if (IBNNuvem.sincronizarRelatorio) {
+                IBNNuvem.sincronizarRelatorio(rel).then(function (rr) {
+                    if (rr && !rr.sucesso && typeof avisarFalhaNuvem === 'function') {
+                        avisarFalhaNuvem('Relatório de célula', rr.mensagem || 'Não subiu para a nuvem');
+                    }
+                }).catch(function (e) {
+                    if (typeof avisarFalhaNuvem === 'function') {
+                        avisarFalhaNuvem('Relatório de célula', (e && e.message) || String(e));
+                    }
+                });
+            }
             if (IBNNuvem.registrarAtividade) {
                 var nomeCel = rel.celulaId;
                 try {

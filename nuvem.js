@@ -206,6 +206,10 @@ const IBNNuvem = (function () {
             if (typeof deduplicarMembrosLocais === 'function') {
                 mesclada = deduplicarMembrosLocais();
             }
+            // Atualiza sessão logada (cargos/lideranças vindas da nuvem)
+            try {
+                if (typeof atualizarSessaoDoCadastro === 'function') atualizarSessaoDoCadastro();
+            } catch (eSess) {}
             return { sucesso: true, lista: mesclada };
         } catch (e) {
             return { sucesso: false, mensagem: String(e) };
@@ -786,6 +790,7 @@ const IBNNuvem = (function () {
         try {
             await puxarFotosParaLocal();
             await puxarFotosCelulasParaLocal();
+            try { await puxarEscalasParaLocal(); } catch (eEsc) {}
             resultados.fotosPuxadas = true;
         } catch (e) {
             console.warn('sync sessão puxar fotos:', e);
@@ -854,6 +859,54 @@ const IBNNuvem = (function () {
     }
 
 
+    async function sincronizarEscalaMinisterio(ministerio, linhas) {
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
+        try {
+            var id = String(ministerio || 'geral').toLowerCase().replace(/\s+/g, '_');
+            await db.collection('escalas_ministerio').doc(id).set({
+                ministerio: ministerio || '',
+                linhas: linhas || [],
+                atualizadoEm: new Date().toISOString()
+            }, { merge: true });
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+    async function puxarEscalasParaLocal() {
+        if (!iniciar() || !db) return { sucesso: false };
+        try {
+            var snap = await db.collection('escalas_ministerio').get();
+            var all = {};
+            try { all = JSON.parse(localStorage.getItem('ibn_escala_cultos') || '{}'); } catch (e) { all = {}; }
+            snap.forEach(function (doc) {
+                var d = doc.data() || {};
+                var min = d.ministerio || doc.id;
+                var nuvemLinhas = Array.isArray(d.linhas) ? d.linhas : [];
+                var localLinhas = Array.isArray(all[min]) ? all[min] : [];
+                // mescla por dataIso: prevalece o mais recente
+                var por = {};
+                localLinhas.concat(nuvemLinhas).forEach(function (l) {
+                    if (!l) return;
+                    var k = String(l.dataIso || l.dataLabel || '');
+                    if (!k) return;
+                    var prev = por[k];
+                    if (!prev) { por[k] = l; return; }
+                    var t1 = Date.parse(prev.atualizadoEm || '') || 0;
+                    var t2 = Date.parse(l.atualizadoEm || '') || 0;
+                    por[k] = t2 >= t1 ? l : prev;
+                });
+                all[min] = Object.keys(por).map(function (k) { return por[k]; });
+            });
+            localStorage.setItem('ibn_escala_cultos', JSON.stringify(all));
+            return { sucesso: true };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
+
+
     return {
         iniciar: iniciar,
         status: status,
@@ -863,6 +916,9 @@ const IBNNuvem = (function () {
         puxarMembrosParaLocal: puxarMembrosParaLocal,
         puxarExcluidosParaLocal: puxarExcluidosParaLocal,
         sincronizarExcluidos: sincronizarExcluidos,
+
+        sincronizarEscalaMinisterio: sincronizarEscalaMinisterio,
+        puxarEscalasParaLocal: puxarEscalasParaLocal,
         sincronizarRelatorio: sincronizarRelatorio,
         buscarRelatorios: buscarRelatorios,
         exportarMembrosCSV: exportarMembrosCSV,

@@ -637,7 +637,6 @@
                         const r = await IBNNuvem.salvarFotoNuvem(novaFoto);
                         if (r && r.sucesso) {
                             msgNuvem = ' A foto já está na nuvem para todos os membros.';
-                            // Atualiza local com URL/imagem que a nuvem gravou
                             if (r.foto) {
                                 var listaUp = carregarFotos();
                                 var ix = listaUp.findIndex(function(f) { return String(f.id) === String(novaFoto.id); });
@@ -649,12 +648,20 @@
                                 }
                             }
                         } else {
-                            msgNuvem = ' (Salva neste aparelho; nuvem: ' + ((r && r.mensagem) || 'verifique o Firebase') + ')';
+                            msgNuvem = ' (Só neste aparelho — nuvem falhou)';
+                            if (typeof avisarFalhaNuvem === 'function') {
+                                avisarFalhaNuvem('Foto', (r && r.mensagem) || 'Foto não carregada na nuvem');
+                            } else {
+                                alert('Foto não carregada na nuvem. Contate a secretaria.\n' + ((r && r.mensagem) || ''));
+                            }
                         }
                     }
                 } catch (err) {
                     console.warn(err);
-                    msgNuvem = ' (Salva neste aparelho; falha ao enviar nuvem.)';
+                    msgNuvem = ' (Só neste aparelho — falha ao enviar nuvem)';
+                    if (typeof avisarFalhaNuvem === 'function') {
+                        avisarFalhaNuvem('Foto', (err && err.message) || String(err));
+                    }
                 }
 
                 document.getElementById('modalEnviar').classList.remove('aberto');

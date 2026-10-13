@@ -412,12 +412,27 @@
             catch { return []; }
         }
         function salvarMembrosPainel(lista) {
-            localStorage.setItem('ibn_membros', JSON.stringify(lista));
-            // espelho legado
-            try { localStorage.setItem('membrosCadastro', JSON.stringify(lista)); } catch(e) {}
-            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
-                try { IBNNuvem.sincronizarMembros(lista); } catch(e) {}
+            // Carimba atualizadoEm nos itens tocados e usa salvarMembros (nuvem + sessão)
+            var agora = new Date().toISOString();
+            (lista || []).forEach(function (m) {
+                if (m && !m._skipStamp) m.atualizadoEm = agora;
+            });
+            if (typeof salvarMembros === 'function') {
+                salvarMembros(lista);
+            } else {
+                localStorage.setItem('ibn_membros', JSON.stringify(lista || []));
+                try { localStorage.setItem('membrosCadastro', JSON.stringify(lista || [])); } catch (e) {}
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarMembros) {
+                    try {
+                        IBNNuvem.sincronizarMembros(lista).then(function (r) {
+                            if (r && !r.sucesso && typeof avisarFalhaNuvem === 'function') {
+                                avisarFalhaNuvem('Cadastro de membros', r.mensagem || '');
+                            }
+                        });
+                    } catch (e) {}
+                }
             }
+            try { if (typeof atualizarSessaoDoCadastro === 'function') atualizarSessaoDoCadastro(); } catch (e) {}
             renderizarMembros();
         }
         function renderizarMembros() {

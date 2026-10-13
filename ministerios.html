@@ -899,26 +899,65 @@
             box.innerHTML = '<p class="text-gray-400 text-sm">Nenhum dia cadastrado ainda. Use o formulário abaixo.</p>';
             return;
         }
-        box.innerHTML = linhas.map(function(l) {
+        var incompletas = linhas.filter(function(l) { return l.status !== 'finalizada'; });
+        var completas = linhas.filter(function(l) { return l.status === 'finalizada'; });
+        function cardDia(l, aberta) {
             var funcoesHtml = '';
             var f = l.funcoes || {};
+            var nFun = 0;
             Object.keys(f).forEach(function(fn) {
-                funcoesHtml += '<p class="text-xs"><span class="font-semibold">' + fn + ':</span> ' +
-                    (Array.isArray(f[fn]) ? f[fn].join(', ') : f[fn]) + '</p>';
+                var nomes = Array.isArray(f[fn]) ? f[fn].join(', ') : f[fn];
+                if (nomes) nFun++;
+                funcoesHtml += '<p class="text-xs"><span class="font-semibold">' + fn + ':</span> ' + (nomes || '—') + '</p>';
             });
-            var badge = (l.status === 'finalizada')
-                ? '<span class="text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">Finalizada</span>'
-                : '<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">⚠ Rascunho</span>';
-            return '<div class="border rounded-lg p-3 bg-indigo-50/40 mb-2">' +
-                '<div class="flex justify-between gap-2"><p class="font-bold text-primary text-sm">' +
-                (l.dataLabel || l.dataIso) + ' ' + badge + '</p>' +
-                '<span class="shrink-0 flex flex-wrap gap-1 justify-end">' +
-                '<button type="button" class="btn-png-dia text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded" data-iso="' + (l.dataIso||'') + '" title="Salvar cartaz PNG para WhatsApp">PNG</button>' +
-                '<button type="button" class="btn-edit-dia text-xs text-primary font-bold" data-iso="' + (l.dataIso||'') + '">Editar</button>' +
-                '<button type="button" class="btn-rem-dia text-xs text-red-600 font-bold" data-iso="' + (l.dataIso||'') + '">Excluir</button>' +
-                '</span></div>' + funcoesHtml +
-                '<p class="text-[10px] text-gray-500 mt-1">PNG = cartaz com a cor do ministério para enviar no WhatsApp</p></div>';
-        }).join('');
+            var isFin = l.status === 'finalizada';
+            var badge = isFin
+                ? '<span class="text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">Completa</span>'
+                : '<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">⚠ Incompleta</span>';
+            var iso = l.dataIso || '';
+            return '<div class="border rounded-lg mb-2 overflow-hidden ' + (isFin ? 'border-green-200' : 'border-amber-300') + '">' +
+                '<button type="button" class="btn-toggle-dia w-full text-left px-3 py-2 flex justify-between items-center gap-2 ' +
+                (isFin ? 'bg-green-50' : 'bg-amber-50') + '" data-iso="' + iso + '">' +
+                '<span class="font-bold text-primary text-sm">▶ ' + (l.dataLabel || iso) + ' ' + badge +
+                ' <span class="text-gray-500 font-normal text-xs">(' + nFun + ' função(ões))</span></span>' +
+                '<span class="text-[10px] text-primary font-bold shrink-0">ver escala</span></button>' +
+                '<div class="detalhe-dia px-3 pb-3 pt-1 ' + (aberta ? '' : 'hidden') + '" data-iso="' + iso + '">' +
+                funcoesHtml +
+                (l.observacao ? '<p class="text-xs text-amber-800 mt-1"><b>Obs:</b> ' + l.observacao + '</p>' : '') +
+                '<div class="flex flex-wrap gap-2 mt-2">' +
+                '<button type="button" class="btn-png-dia text-xs font-bold bg-emerald-600 text-white px-2 py-1 rounded" data-iso="' + iso + '">PNG WhatsApp</button>' +
+                '<button type="button" class="btn-edit-dia text-xs font-bold bg-primary text-white px-2 py-1 rounded" data-iso="' + iso + '">Editar</button>' +
+                '<button type="button" class="btn-rem-dia text-xs font-bold border border-red-400 text-red-600 px-2 py-1 rounded" data-iso="' + iso + '">Excluir</button>' +
+                '</div></div></div>';
+        }
+        var html = '';
+        html += '<div class="mb-3"><p class="text-xs font-bold text-amber-800 mb-1">⚠ Incompletas / rascunhos (' + incompletas.length + ')</p>';
+        if (!incompletas.length) html += '<p class="text-xs text-gray-400 mb-2">Nenhuma incompleta.</p>';
+        else incompletas.forEach(function(l) { html += cardDia(l, false); });
+        html += '</div>';
+        html += '<div class="mb-2"><p class="text-xs font-bold text-green-800 mb-1">✓ Completas / finalizadas (' + completas.length + ')</p>';
+        if (!completas.length) html += '<p class="text-xs text-gray-400">Nenhuma finalizada ainda.</p>';
+        else completas.forEach(function(l) { html += cardDia(l, false); });
+        html += '</div>';
+        html += '<p class="text-[10px] text-gray-500">Toque no dia para ver a escala. Use <b>Editar</b> para alterar.</p>';
+        box.innerHTML = html;
+        box.querySelectorAll('.btn-toggle-dia').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var iso = btn.getAttribute('data-iso');
+                var det = box.querySelector('.detalhe-dia[data-iso="' + iso + '"]');
+                if (!det) return;
+                var aberto = !det.classList.contains('hidden');
+                // fecha outros
+                box.querySelectorAll('.detalhe-dia').forEach(function(d) { d.classList.add('hidden'); });
+                box.querySelectorAll('.btn-toggle-dia').forEach(function(b) {
+                    b.innerHTML = b.innerHTML.replace(/^▼/, '▶').replace('▲', '▶');
+                });
+                if (!aberto) {
+                    det.classList.remove('hidden');
+                    btn.innerHTML = btn.innerHTML.replace('▶', '▼');
+                }
+            });
+        });
 
         box.querySelectorAll('.btn-png-dia').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -1019,14 +1058,33 @@
         var modal = document.getElementById('modalEscalaMin');
         var tit = document.getElementById('modalEscalaTitulo');
         if (tit) tit.textContent = 'Escala — ' + nomeMin;
-        try { renderListaEscalaModal(); } catch (e) { console.warn(e); }
-        try { montarCamposNovoDia(nomeMin); } catch (e) { console.warn(e); }
-        try { atualizarBlocoModeloLider(); } catch (e) { console.warn(e); }
-        try { if (typeof atualizarAvisoPendenteLider === 'function') atualizarAvisoPendenteLider(); } catch (e) {}
+        function preencher() {
+            try { renderListaEscalaModal(); } catch (e) { console.warn(e); }
+            try { montarCamposNovoDia(nomeMin); } catch (e) { console.warn(e); }
+            try { atualizarBlocoModeloLider(); } catch (e) { console.warn(e); }
+            try { if (typeof atualizarAvisoPendenteLider === 'function') atualizarAvisoPendenteLider(); } catch (e) {}
+        }
+        preencher();
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
+        // Puxa membros da nuvem e atualiza lista de nomes (celular/PC)
+        try {
+            var promessas = [];
+            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarMembrosParaLocal) {
+                promessas.push(IBNNuvem.puxarMembrosParaLocal());
+            }
+            if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarEscalasParaLocal) {
+                promessas.push(IBNNuvem.puxarEscalasParaLocal());
+            }
+            if (promessas.length) {
+                Promise.all(promessas).then(function () {
+                    try { if (typeof atualizarSessaoDoCadastro === 'function') atualizarSessaoDoCadastro(); } catch (e) {}
+                    preencher();
+                }).catch(function () { preencher(); });
+            }
+        } catch (e) {}
     }
 
     function coletarPreenchimento() {
