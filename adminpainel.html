@@ -375,7 +375,7 @@
             }).join('');
             container.querySelectorAll('.btn-rem-admin').forEach(function (btn) {
                 btn.onclick = function () {
-                    if (!confirm('Remover este administrador? Voltará a ser membro comum.')) return;
+                    if (!confirm('REMOVER este administrador?\n\nVolta a ser apenas MEMBRO (ex.: saiu da igreja ou não é mais secretaria).\nNão apaga o cadastro.')) return;
                     var r = removerNivelAdmin(btn.getAttribute('data-id'));
                     alert((r && r.mensagem) || (r && r.sucesso ? 'Removido' : 'Erro'));
                     renderizarAdmins();
@@ -405,17 +405,33 @@
                 return;
             }
             box.innerHTML = lista.map(function (g) {
-                return '<div class="flex justify-between items-center p-3 bg-amber-50 rounded border border-amber-200">' +
+                return '<div class="flex justify-between items-center gap-2 p-3 bg-amber-50 rounded border border-amber-200">' +
                     '<div><p class="font-bold">' + (g.nome || '') + '</p>' +
                     '<p class="text-sm text-gray-500">' + (g.email || '') + '</p></div>' +
-                    (ehGestorMaster ? '<button type="button" class="btn-reb-gestor text-xs font-bold text-amber-800 border border-amber-400 px-2 py-1 rounded" data-id="' + g.id + '">Rebaixar p/ admin</button>' : '') +
+                    (ehGestorMaster ? (
+                        '<div class="flex flex-wrap gap-2">' +
+                        '<button type="button" class="btn-reb-gestor text-xs font-bold text-amber-800 border border-amber-400 px-2 py-1 rounded" data-id="' + g.id + '">Rebaixar p/ admin</button>' +
+                        '<button type="button" class="btn-rem-gestor text-xs font-bold text-red-600 border border-red-300 px-2 py-1 rounded" data-id="' + g.id + '">Remover</button>' +
+                        '</div>'
+                    ) : '') +
                     '</div>';
             }).join('');
             box.querySelectorAll('.btn-reb-gestor').forEach(function (btn) {
                 btn.onclick = function () {
-                    if (!confirm('Rebaixar este gestor para administrador?')) return;
+                    if (!confirm('Rebaixar este gestor para administrador (secretaria)?')) return;
                     var r = rebaixarGestorParaAdmin(btn.getAttribute('data-id'));
                     alert((r && r.mensagem) || (r && r.sucesso ? 'Ok' : 'Erro'));
+                    renderizarGestoresMembros();
+                    renderizarAdmins();
+                    preencherSelectGestor();
+                    preencherSelectAdmin();
+                };
+            });
+            box.querySelectorAll('.btn-rem-gestor').forEach(function (btn) {
+                btn.onclick = function () {
+                    if (!confirm('REMOVER este gestor?\n\nEle volta a ser apenas MEMBRO (ex.: saiu da igreja ou não é mais liderança).\nNão apaga o cadastro de membro.')) return;
+                    var r = removerNivelGestor(btn.getAttribute('data-id'));
+                    alert((r && r.mensagem) || (r && r.sucesso ? 'Removido' : 'Erro'));
                     renderizarGestoresMembros();
                     renderizarAdmins();
                     preencherSelectGestor();

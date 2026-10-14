@@ -974,6 +974,28 @@ function rebaixarGestorParaAdmin(membroId) {
 }
 
 
+/** Remove nível gestor (volta a membro) — só Gestor Master. Para quem saiu da igreja. */
+function removerNivelGestor(membroId) {
+    if (!isGestorMaster()) return { sucesso: false, mensagem: 'Somente o Gestor Master pode remover gestores.' };
+    const lista = lerMembros();
+    const ix = lista.findIndex(m => String(m.id) === String(membroId));
+    if (ix === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (ehContaMasterSistema(lista[ix])) return { sucesso: false, mensagem: 'Gestor Master não pode ser removido.' };
+    if (lista[ix].nivel !== 'gestor') return { sucesso: false, mensagem: 'Esta pessoa não é gestor.' };
+    lista[ix].nivel = 'membro';
+    if (lista[ix].cargo === 'Pastor / Gestor' || lista[ix].cargo === 'Gestor') lista[ix].cargo = 'Membro';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[ix]);
+    salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[ix]); } catch (e) {}
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('remover_gestor', 'Removeu gestor (voltou a membro): ' + lista[ix].nome);
+        }
+    } catch (e) {}
+    return { sucesso: true, mensagem: (lista[ix].nome || 'Pessoa') + ' removida do cargo de gestor — voltou a ser membro.' };
+}
+
+
 function isLiderMinisterio(u, nomeMinisterio) {
     u = u || getUsuarioLogado();
     if (!u) return false;
