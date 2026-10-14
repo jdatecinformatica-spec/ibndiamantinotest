@@ -803,6 +803,31 @@ function isGestor(u) {
     return !!(u && u.nivel === 'gestor');
 }
 
+/** Só a conta Gestor Master (sistema) — nomeia/transfere gestores */
+function isGestorMaster(u) {
+    u = u || getUsuarioLogado();
+    if (!u) return false;
+    var id = String(u.id || '').toLowerCase();
+    var em = String(u.email || '').toLowerCase().trim();
+    var nome = String(u.nome || '').toLowerCase().trim();
+    if (id === 'gestor-master' || id === 'gestor') return true;
+    if (em === 'gestor@ibndiamantino.com.br') return true;
+    if (nome === 'gestor master' || nome === 'gestor máster') return true;
+    // login legado só com usuário "gestor"
+    if (String(u.usuario || '').toLowerCase() === 'gestor' && u.nivel === 'gestor') return true;
+    try {
+        if (typeof CONTAS_MESTRAS !== 'undefined' && Array.isArray(CONTAS_MESTRAS)) {
+            for (var i = 0; i < CONTAS_MESTRAS.length; i++) {
+                var c = CONTAS_MESTRAS[i];
+                if (c.nivel === 'gestor' && (String(c.id) === String(u.id) || (c.email && String(c.email).toLowerCase() === em))) {
+                    return true;
+                }
+            }
+        }
+    } catch (e) {}
+    return false;
+}
+
 /** Secretaria OU gestor (quem “manda no escritório”) */
 function isAdmin(u) {
     u = u || getUsuarioLogado();
@@ -908,7 +933,7 @@ function removerNivelAdmin(membroId) {
 
 /** Nomeia segundo gestor (máx. 2 membros-gestores). Gestor master continua acima. */
 function nomearComoGestor(membroId) {
-    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode nomear outro gestor.' };
+    if (!isGestorMaster()) return { sucesso: false, mensagem: 'Somente o Gestor Master pode nomear gestores.' };
     const lista = lerMembros();
     const idx = lista.findIndex(m => String(m.id) === String(membroId));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
@@ -933,7 +958,7 @@ function nomearComoGestor(membroId) {
 
 /** Rebaixa gestor membro para admin (não mexe no master) */
 function rebaixarGestorParaAdmin(membroId) {
-    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode rebaixar.' };
+    if (!isGestorMaster()) return { sucesso: false, mensagem: 'Somente o Gestor Master pode rebaixar gestores.' };
     const lista = lerMembros();
     const idx = lista.findIndex(m => String(m.id) === String(membroId));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
@@ -3713,8 +3738,8 @@ function atualizarStatusPedidoOracao(id, status) {
  */
 function transferirTitularidadeGestor(novoGestorMembroId) {
     const atual = getUsuarioLogado();
-    if (!isGestor(atual)) {
-        return { sucesso: false, mensagem: 'Somente o gestor pode transferir a titularidade.' };
+    if (!isGestorMaster(atual)) {
+        return { sucesso: false, mensagem: 'Somente o Gestor Master pode transferir a titularidade.' };
     }
     const lista = lerMembros();
     const idxNovo = lista.findIndex(function (m) { return String(m.id) === String(novoGestorMembroId); });

@@ -274,6 +274,7 @@
         // === VERIFICAÇÃO DE SESSÃO (gestor = mandachuva; admin = secretaria) ===
         const usuarioLogado = (typeof getUsuarioLogado === 'function') ? getUsuarioLogado() : null;
         const ehGestor = typeof isGestor === 'function' ? isGestor(usuarioLogado) : (usuarioLogado && usuarioLogado.nivel === 'gestor');
+        const ehGestorMaster = typeof isGestorMaster === 'function' ? isGestorMaster(usuarioLogado) : false;
         const ehAdmin = typeof isAdmin === 'function' ? isAdmin(usuarioLogado) : (usuarioLogado && (usuarioLogado.nivel === 'admin' || usuarioLogado.nivel === 'gestor'));
         
         if (!usuarioLogado || !ehAdmin) {
@@ -281,9 +282,9 @@
             document.getElementById('conteudo').classList.add('hidden');
         } else {
             document.getElementById('nomeUsuario').textContent = 
-                (ehGestor ? '👑 Gestor' : '🛡️ Secretaria') + ': ' + (usuarioLogado.nome || '');
+                (ehGestorMaster ? '👑 Gestor Master' : (ehGestor ? '👑 Gestor' : '🛡️ Secretaria')) + ': ' + (usuarioLogado.nome || '');
             
-            // Só o gestor nomeia secretaria/admin
+            // Qualquer gestor nomeia admin; só Master vê nomear/transferir gestores
             if (!ehGestor) {
                 var sec = document.getElementById('secNomearAdmins');
                 if (sec) sec.style.display = 'none';
@@ -293,7 +294,7 @@
         (function(){
             var sec = document.getElementById('secTransferirGestor');
             if (!sec) return;
-            if (!ehGestor) { sec.style.display = 'none'; return; }
+            if (!ehGestorMaster) { sec.style.display = 'none'; return; }
             var btnT = document.getElementById('btnTransferirGestor');
             if (btnT) btnT.addEventListener('click', function(){
                 var sel = document.getElementById('selNovoGestor');
@@ -407,7 +408,7 @@
                 return '<div class="flex justify-between items-center p-3 bg-amber-50 rounded border border-amber-200">' +
                     '<div><p class="font-bold">' + (g.nome || '') + '</p>' +
                     '<p class="text-sm text-gray-500">' + (g.email || '') + '</p></div>' +
-                    (ehGestor ? '<button type="button" class="btn-reb-gestor text-xs font-bold text-amber-800 border border-amber-400 px-2 py-1 rounded" data-id="' + g.id + '">Rebaixar p/ admin</button>' : '') +
+                    (ehGestorMaster ? '<button type="button" class="btn-reb-gestor text-xs font-bold text-amber-800 border border-amber-400 px-2 py-1 rounded" data-id="' + g.id + '">Rebaixar p/ admin</button>' : '') +
                     '</div>';
             }).join('');
             box.querySelectorAll('.btn-reb-gestor').forEach(function (btn) {
@@ -433,8 +434,11 @@
             if (!ehGestor) return;
             preencherSelectAdmin();
             renderizarAdmins();
-            preencherSelectGestor();
-            renderizarGestoresMembros();
+            // Gestores: só Master
+            if (ehGestorMaster) {
+                preencherSelectGestor();
+                renderizarGestoresMembros();
+            }
             var btnA = document.getElementById('btnNomearAdmin');
             if (btnA) btnA.addEventListener('click', function () {
                 var sel = document.getElementById('selNovoAdmin');
@@ -447,7 +451,7 @@
                 preencherSelectAdmin();
             });
             var btnG = document.getElementById('btnNomearGestor');
-            if (btnG) btnG.addEventListener('click', function () {
+            if (btnG && ehGestorMaster) btnG.addEventListener('click', function () {
                 var sel = document.getElementById('selNovoGestor');
                 var id = sel && sel.value;
                 if (!id) { alert('Selecione um membro.'); return; }
