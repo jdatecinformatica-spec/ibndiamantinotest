@@ -830,22 +830,65 @@ function podeNomearAdmin(u) {
     return isGestor(u);
 }
 
-/** Define nivel admin em um membro cadastrado (só gestor) */
+/** Contas master do sistema — nunca entram nos limites de vaga */
+function ehContaMasterSistema(m) {
+    if (!m) return false;
+    try { if (typeof isContaSistema === 'function' && isContaSistema(m)) return true; } catch (e) {}
+    var id = String(m.id || '').toLowerCase();
+    var em = String(m.email || '').toLowerCase();
+    if (id === 'gestor-master' || id === 'admin-master') return true;
+    if (em === 'gestor@ibndiamantino.com.br' || em === 'admin@ibndiamantino.com.br') return true;
+    return false;
+}
+
+const LIMITE_ADMINS = 3;
+const LIMITE_GESTORES = 2;
+
+function contarAdminsMembros() {
+    return lerMembros().filter(function (m) {
+        return m && m.nivel === 'admin' && !ehContaMasterSistema(m);
+    }).length;
+}
+function contarGestoresMembros() {
+    return lerMembros().filter(function (m) {
+        return m && m.nivel === 'gestor' && !ehContaMasterSistema(m);
+    }).length;
+}
+function listarAdminsMembros() {
+    return lerMembros().filter(function (m) {
+        return m && m.nivel === 'admin' && !ehContaMasterSistema(m);
+    }).sort(function (a, b) { return String(a.nome||'').localeCompare(String(b.nome||'')); });
+}
+function listarGestoresMembros() {
+    return lerMembros().filter(function (m) {
+        return m && m.nivel === 'gestor' && !ehContaMasterSistema(m);
+    }).sort(function (a, b) { return String(a.nome||'').localeCompare(String(b.nome||'')); });
+}
+
+/** Define nivel admin em um membro cadastrado (só gestor). Máx. 3 admins. */
 function nomearComoAdmin(membroId) {
     if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode nomear a secretaria (admin).' };
     const lista = lerMembros();
     const idx = lista.findIndex(m => String(m.id) === String(membroId));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
-    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Não é possível alterar o gestor.' };
+    if (ehContaMasterSistema(lista[idx])) return { sucesso: false, mensagem: 'Conta de sistema não pode ser alterada.' };
+    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Esta pessoa já é gestor. Rebaixe antes se quiser torná-la só admin.' };
+    if (lista[idx].nivel === 'admin') return { sucesso: false, mensagem: 'Já é administrador.' };
+    if (contarAdminsMembros() >= LIMITE_ADMINS) {
+        return { sucesso: false, mensagem: 'Limite de ' + LIMITE_ADMINS + ' administradores atingido. Remova um antes de nomear outro.' };
+    }
     lista[idx].nivel = 'admin';
     lista[idx].cargo = lista[idx].cargo || 'Secretaria';
+    lista[idx].status = 'aprovado';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idx]);
     salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[idx]); } catch (e) {}
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
             IBNNuvem.registrarAtividade('nomear_admin', 'Nomeou admin/secretaria: ' + lista[idx].nome);
         }
     } catch (e) {}
-    return { sucesso: true, membro: lista[idx] };
+    return { sucesso: true, membro: lista[idx], mensagem: lista[idx].nome + ' agora é administrador (' + contarAdminsMembros() + '/' + LIMITE_ADMINS + ').' };
 }
 
 /** Remove nível admin (volta a membro) — só gestor */
@@ -854,11 +897,57 @@ function removerNivelAdmin(membroId) {
     const lista = lerMembros();
     const idx = lista.findIndex(m => String(m.id) === String(membroId));
     if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
-    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Não é possível alterar o gestor.' };
+    if (ehContaMasterSistema(lista[idx])) return { sucesso: false, mensagem: 'Conta master não pode ser removida aqui.' };
+    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Use a seção de gestores para rebaixar um gestor.' };
     lista[idx].nivel = 'membro';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idx]);
     salvarMembros(lista);
-    return { sucesso: true };
+    try { enviarMembroParaNuvem(lista[idx]); } catch (e) {}
+    return { sucesso: true, mensagem: 'Admin removido — voltou a ser membro.' };
 }
+
+/** Nomeia segundo gestor (máx. 2 membros-gestores). Gestor master continua acima. */
+function nomearComoGestor(membroId) {
+    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode nomear outro gestor.' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (ehContaMasterSistema(lista[idx])) return { sucesso: false, mensagem: 'Conta de sistema.' };
+    if (lista[idx].nivel === 'gestor') return { sucesso: false, mensagem: 'Já é gestor.' };
+    if (contarGestoresMembros() >= LIMITE_GESTORES) {
+        return { sucesso: false, mensagem: 'Limite de ' + LIMITE_GESTORES + ' gestores atingido. Rebaixe um antes de nomear outro.' };
+    }
+    lista[idx].nivel = 'gestor';
+    lista[idx].cargo = 'Pastor / Gestor';
+    lista[idx].status = 'aprovado';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idx]);
+    salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[idx]); } catch (e) {}
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('nomear_gestor', 'Nomeou gestor: ' + lista[idx].nome);
+        }
+    } catch (e) {}
+    return { sucesso: true, membro: lista[idx], mensagem: lista[idx].nome + ' agora é gestor (' + contarGestoresMembros() + '/' + LIMITE_GESTORES + '). O Gestor Master continua acima de todos.' };
+}
+
+/** Rebaixa gestor membro para admin (não mexe no master) */
+function rebaixarGestorParaAdmin(membroId) {
+    if (!podeNomearAdmin()) return { sucesso: false, mensagem: 'Somente o gestor pode rebaixar.' };
+    const lista = lerMembros();
+    const idx = lista.findIndex(m => String(m.id) === String(membroId));
+    if (idx === -1) return { sucesso: false, mensagem: 'Membro não encontrado.' };
+    if (ehContaMasterSistema(lista[idx])) return { sucesso: false, mensagem: 'Gestor Master não pode ser rebaixado.' };
+    if (lista[idx].nivel !== 'gestor') return { sucesso: false, mensagem: 'Esta pessoa não é gestor.' };
+    // se for o único gestor e quem está logado for master, ok; se for o próprio único gestor-membro, permitir
+    lista[idx].nivel = 'admin';
+    lista[idx].cargo = 'Secretaria';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idx]);
+    salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[idx]); } catch (e) {}
+    return { sucesso: true, mensagem: 'Gestor rebaixado para administrador.' };
+}
+
 
 function isLiderMinisterio(u, nomeMinisterio) {
     u = u || getUsuarioLogado();
@@ -3634,18 +3723,30 @@ function transferirTitularidadeGestor(novoGestorMembroId) {
         return { sucesso: false, mensagem: 'Esta pessoa já é gestor.' };
     }
 
-    // Rebaixa outros gestores "de membro" (não remove a conta master de login)
-    lista.forEach(function (m, i) {
-        if (m.nivel === 'gestor' && String(m.id) !== String(lista[idxNovo].id)) {
-            lista[i].nivel = 'admin';
-            lista[i].cargo = lista[i].cargo || 'Ex-gestor / Secretaria';
-        }
+    // Máx. 2 gestores membros: se já houver 2, rebaixa os outros; se houver 1, só promove o novo (fica 2)
+    var outrosGestores = lista.filter(function (m) {
+        return m.nivel === 'gestor' && !ehContaMasterSistema(m) && String(m.id) !== String(lista[idxNovo].id);
     });
+    if (outrosGestores.length >= LIMITE_GESTORES) {
+        // já no limite — rebaixa todos os outros para abrir vaga
+        lista.forEach(function (m, i) {
+            if (m.nivel === 'gestor' && !ehContaMasterSistema(m) && String(m.id) !== String(lista[idxNovo].id)) {
+                lista[i].nivel = 'admin';
+                lista[i].cargo = lista[i].cargo || 'Ex-gestor / Secretaria';
+            }
+        });
+    } else if (outrosGestores.length === LIMITE_GESTORES - 1) {
+        // 1 já existe: promover o novo atinge o limite 2 — ok, não rebaixa
+    } else {
+        // 0 gestores: só promove
+    }
 
     lista[idxNovo].nivel = 'gestor';
     lista[idxNovo].cargo = 'Pastor / Gestor';
     lista[idxNovo].status = 'aprovado';
+    if (typeof marcarMembroAtualizado === 'function') marcarMembroAtualizado(lista[idxNovo]);
     salvarMembros(lista);
+    try { enviarMembroParaNuvem(lista[idxNovo]); } catch (e) {}
 
     try {
         if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {

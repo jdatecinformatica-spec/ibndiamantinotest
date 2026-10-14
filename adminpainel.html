@@ -39,30 +39,37 @@
         <!-- Conteúdo autorizado -->
         <div id="conteudo" class="space-y-8">
             
-            <!-- GESTOR APENAS: Nomear Administradores -->
+            <!-- GESTOR APENAS: Nomear Administradores (máx. 3) — busca entre membros -->
             <section id="secNomearAdmins" data-only-gestor="1" class="bg-white p-6 rounded-xl shadow">
-                <h2 class="text-xl font-bold text-primary mb-4">👑 Nomear Administradores</h2>
-                <p class="text-sm text-gray-500 mb-4">Gestor nomeia Admins; Admins gerenciam membros/eventos mas não nomeiam outros.</p>
-                
-                <form id="formNovoAdmin" class="flex flex-col md:flex-row gap-3 mb-6">
-                    <input type="text" id="nomeNovoAdmin" placeholder="Nome completo" required class="flex-1 p-3 border rounded-lg">
-                    <input type="email" id="emailNovoAdmin" placeholder="E-mail" required class="flex-1 p-3 border rounded-lg">
-                    <input type="text" id="senhaNovoAdmin" placeholder="Senha" required class="flex-1 p-3 border rounded-lg">
-                    <button type="submit" class="bg-secondary text-primary px-4 py-3 rounded-lg font-bold whitespace-nowrap">
-                        <i class="fa fa-plus"></i> Adicionar
-                    </button>
-                </form>
+                <h2 class="text-xl font-bold text-primary mb-2">👑 Nomear Administradores</h2>
+                <p class="text-sm text-gray-500 mb-1">Escolha um <strong>membro já cadastrado</strong> (como no gestor). Máximo <strong>3 administradores</strong>.</p>
+                <p class="text-xs text-gray-400 mb-4">Admins gerenciam membros/eventos, mas não nomeiam outros. O <strong>Gestor Master</strong> continua acima de todos.</p>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <select id="selNovoAdmin" class="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]">
+                        <option value="">Buscar / selecionar membro para admin...</option>
+                    </select>
+                    <button type="button" id="btnNomearAdmin" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm">+ Nomear admin</button>
+                </div>
+                <p id="msgNomearAdmin" class="text-sm mb-2 hidden"></p>
+                <p class="text-xs font-bold text-gray-600 mb-1">Administradores atuais <span id="cntAdmins">0/3</span></p>
                 <div id="listaAdmins" class="space-y-2"></div>
             </section>
 
+            <!-- GESTOR: até 2 gestores membros + transferir -->
             <section id="secTransferirGestor" class="bg-white rounded-xl shadow p-5 border border-secondary/30 mb-6">
-                <h2 class="font-bold text-primary mb-2">👑 Transferir titularidade de Gestor</h2>
-                <p class="text-xs text-gray-500 mb-3">Só o gestor master/atual. Se o pastor mudar de igreja, escolha outro membro cadastrado. A conta gestor@ continua como acesso de emergência.</p>
-                <div class="flex flex-wrap gap-2">
+                <h2 class="font-bold text-primary mb-2">👑 Gestores (máx. 2) + Transferir</h2>
+                <p class="text-xs text-gray-500 mb-3">
+                    Até <strong>2 gestores</strong> entre os membros cadastrados. O <strong>Gestor Master</strong> (conta sistema) continua com controle total e não conta nesse limite.
+                    Use “Nomear gestor” para um segundo gestor, ou “Transferir” se o pastor mudar de igreja.
+                </p>
+                <div class="flex flex-wrap gap-2 mb-2">
                     <select id="selNovoGestor" class="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"></select>
-                    <button type="button" id="btnTransferirGestor" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm">Transferir</button>
+                    <button type="button" id="btnNomearGestor" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Nomear gestor</button>
+                    <button type="button" id="btnTransferirGestor" class="bg-secondary text-primary px-4 py-2 rounded-lg font-bold text-sm">Transferir titularidade</button>
                 </div>
                 <p id="msgTransferGestor" class="text-sm mt-2 hidden"></p>
+                <p class="text-xs font-bold text-gray-600 mt-3 mb-1">Gestores atuais (membros) <span id="cntGestores">0/2</span></p>
+                <div id="listaGestoresMembros" class="space-y-2"></div>
             </section>
 
 
@@ -287,30 +294,25 @@
             var sec = document.getElementById('secTransferirGestor');
             if (!sec) return;
             if (!ehGestor) { sec.style.display = 'none'; return; }
-            var sel = document.getElementById('selNovoGestor');
-            function preencher() {
-                var membros = getMembros();
-                sel.innerHTML = '<option value="">Selecione o novo gestor (pastor)...</option>';
-                membros.filter(function(m){ return m.nivel !== 'gestor'; }).forEach(function(m){
-                    sel.innerHTML += '<option value="'+m.id+'">'+(m.nome||'')+' — '+(m.email||'')+'</option>';
-                });
-            }
-            preencher();
-            document.getElementById('btnTransferirGestor').addEventListener('click', function(){
-                var id = sel.value;
+            var btnT = document.getElementById('btnTransferirGestor');
+            if (btnT) btnT.addEventListener('click', function(){
+                var sel = document.getElementById('selNovoGestor');
+                var id = sel && sel.value;
                 if (!id) { alert('Selecione um membro.'); return; }
-                if (!confirm('Transferir a titularidade de GESTOR para esta pessoa?')) return;
+                if (!confirm('Transferir a titularidade de GESTOR para esta pessoa?\n(Se já houver 2 gestores, os outros serão rebaixados para admin.)')) return;
                 var r = transferirTitularidadeGestor(id);
                 var msg = document.getElementById('msgTransferGestor');
-                msg.classList.remove('hidden');
-                if (r && r.sucesso) {
-                    msg.className = 'text-sm mt-2 text-green-600';
-                    msg.textContent = r.mensagem || 'Transferido.';
-                    preencher();
-                } else {
-                    msg.className = 'text-sm mt-2 text-red-600';
-                    msg.textContent = (r && r.mensagem) || 'Erro';
+                if (msg) {
+                    msg.classList.remove('hidden');
+                    if (r && r.sucesso) {
+                        msg.className = 'text-sm mt-2 text-green-600';
+                        msg.textContent = r.mensagem || 'Transferido.';
+                    } else {
+                        msg.className = 'text-sm mt-2 text-red-600';
+                        msg.textContent = (r && r.mensagem) || 'Erro';
+                    }
                 }
+                try { preencherSelectGestor(); renderizarGestoresMembros(); renderizarAdmins(); preencherSelectAdmin(); } catch (e) {}
             });
         })();
 
@@ -325,85 +327,138 @@
             }
         });
 
-        // === ADMINISTRADORES NOMEADOS (Gestor apenas) ===
-        function getAdminsNomeados() {
-            try { return JSON.parse(localStorage.getItem('adminsNomeados') || '[]'); }
-            catch { return []; }
+        // === ADMINISTRADORES / GESTORES (busca entre membros cadastrados) ===
+        function membrosParaSelectCargos() {
+            var membros = getMembros().slice();
+            membros = membros.filter(function (m) {
+                if (!m || !m.id) return false;
+                if (typeof isContaSistema === 'function' && isContaSistema(m)) return false;
+                if (typeof ehContaMasterSistema === 'function' && ehContaMasterSistema(m)) return false;
+                return true;
+            });
+            membros.sort(function (a, b) { return String(a.nome||'').localeCompare(String(b.nome||''), 'pt-BR'); });
+            return membros;
         }
-        function salvarAdminsNomeados(lista) {
-            localStorage.setItem('adminsNomeados', JSON.stringify(lista));
-            renderizarAdmins();
+        function preencherSelectAdmin() {
+            var sel = document.getElementById('selNovoAdmin');
+            if (!sel) return;
+            var adminsIds = {};
+            try {
+                (typeof listarAdminsMembros === 'function' ? listarAdminsMembros() : []).forEach(function (a) {
+                    adminsIds[String(a.id)] = true;
+                });
+            } catch (e) {}
+            sel.innerHTML = '<option value="">Buscar / selecionar membro para admin...</option>';
+            membrosParaSelectCargos().forEach(function (m) {
+                if (m.nivel === 'admin' || m.nivel === 'gestor') return;
+                if (adminsIds[String(m.id)]) return;
+                sel.innerHTML += '<option value="' + m.id + '">' + (m.nome || '') + ' — ' + (m.email || m.telefone || '') + '</option>';
+            });
         }
         function renderizarAdmins() {
-            const container = document.getElementById('listaAdmins');
-            const lista = getAdminsNomeados();
-            if (lista.length === 0) {
+            var container = document.getElementById('listaAdmins');
+            var cnt = document.getElementById('cntAdmins');
+            if (!container) return;
+            var lista = (typeof listarAdminsMembros === 'function') ? listarAdminsMembros() : [];
+            if (cnt) cnt.textContent = lista.length + '/3';
+            if (!lista.length) {
                 container.innerHTML = '<p class="text-gray-400 text-sm">Nenhum administrador nomeado.</p>';
                 return;
             }
-            container.innerHTML = lista.map((adm, idx) => `
-                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
-                    <div>
-                        <p class="font-bold">${adm.nome}</p>
-                        <p class="text-sm text-gray-500">${adm.email}</p>
-                    </div>
-                    ${ehGestor ? `
-                    <button onclick="removerAdmin(${idx})" class="text-red-500 hover:text-red-700" title="Remover administrador">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                    ` : ''}
-                </div>
-            `).join('');
+            container.innerHTML = lista.map(function (adm) {
+                return '<div class="flex justify-between items-center p-3 bg-gray-50 rounded border">' +
+                    '<div><p class="font-bold">' + (adm.nome || '') + '</p>' +
+                    '<p class="text-sm text-gray-500">' + (adm.email || '') + ' · ' + (adm.telefone || '') + '</p></div>' +
+                    (ehGestor ? '<button type="button" class="btn-rem-admin text-red-500 hover:text-red-700 text-sm font-bold" data-id="' + adm.id + '">Remover</button>' : '') +
+                    '</div>';
+            }).join('');
+            container.querySelectorAll('.btn-rem-admin').forEach(function (btn) {
+                btn.onclick = function () {
+                    if (!confirm('Remover este administrador? Voltará a ser membro comum.')) return;
+                    var r = removerNivelAdmin(btn.getAttribute('data-id'));
+                    alert((r && r.mensagem) || (r && r.sucesso ? 'Removido' : 'Erro'));
+                    renderizarAdmins();
+                    preencherSelectAdmin();
+                    renderizarGestoresMembros();
+                    preencherSelectGestor();
+                };
+            });
         }
-        function removerAdmin(idx) {
-            if (!ehGestor) { alert('Somente o gestor pode remover admin.'); return; }
-            if (!confirm('Remover este administrador? Ele voltará a ser membro comum.')) return;
-            const l = getAdminsNomeados();
-            const removido = l[idx];
-            l.splice(idx, 1);
-            salvarAdminsNomeados(l);
-            try {
-                if (removido && removido.email) {
-                    var membros = getMembros();
-                    var ix = membros.findIndex(function(m){ return (m.email||'').toLowerCase() === removido.email.toLowerCase(); });
-                    if (ix >= 0 && membros[ix].nivel === 'admin') {
-                        membros[ix].nivel = 'membro';
-                        salvarMembrosPainel(membros);
-                    }
-                }
-            } catch(e) {}
-            alert('✅ Administrador removido — voltou a ser membro comum.');
+        function preencherSelectGestor() {
+            var sel = document.getElementById('selNovoGestor');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Selecione membro para gestor...</option>';
+            membrosParaSelectCargos().forEach(function (m) {
+                if (m.nivel === 'gestor') return;
+                sel.innerHTML += '<option value="' + m.id + '">' + (m.nome || '') + ' — ' + (m.email || m.telefone || '') + (m.nivel === 'admin' ? ' (admin)' : '') + '</option>';
+            });
         }
-        document.getElementById('formNovoAdmin').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const nome = document.getElementById('nomeNovoAdmin').value.trim();
-            const email = document.getElementById('emailNovoAdmin').value.trim().toLowerCase();
-            const senha = document.getElementById('senhaNovoAdmin').value.trim();
-            
-            if (senha.length < 4) { alert('Senha mínima: 4 caracteres'); return; }
-            if (['gestor@ibndiamantino.com.br','admin@ibndiamantino.com.br'].includes(email)) {
-                alert('E-mail mestro — não cadastre aqui.'); return;
+        function renderizarGestoresMembros() {
+            var box = document.getElementById('listaGestoresMembros');
+            var cnt = document.getElementById('cntGestores');
+            if (!box) return;
+            var lista = (typeof listarGestoresMembros === 'function') ? listarGestoresMembros() : [];
+            if (cnt) cnt.textContent = lista.length + '/2';
+            if (!lista.length) {
+                box.innerHTML = '<p class="text-gray-400 text-sm">Nenhum gestor nomeado entre os membros (só o Master do sistema).</p>';
+                return;
             }
-            const lista = getAdminsNomeados();
-            if (lista.some(a => a.email === email)) { alert('Já cadastrado.'); return; }
-            
-            if (!ehGestor) { alert('Somente o gestor pode nomear a secretaria.'); return; }
-            lista.push({ nome, email, senha, papel: 'admin' });
-            salvarAdminsNomeados(lista);
-            // Promove membro na base unificada (ibn_membros), se já existir
-            try {
-                var membros = getMembros();
-                var ix = membros.findIndex(function(m){ return (m.email||'').toLowerCase() === email; });
-                if (ix >= 0) {
-                    membros[ix].nivel = 'admin';
-                    salvarMembrosPainel(membros);
-                } else if (typeof cadastrarMembro === 'function') {
-                    // opcional: não cria senha paralela se não for membro
-                }
-            } catch(e) {}
-            alert('✅ Secretaria (admin) nomeada! Se a pessoa já era membro, o nível foi atualizado.');
-            e.target.reset();
-        });
+            box.innerHTML = lista.map(function (g) {
+                return '<div class="flex justify-between items-center p-3 bg-amber-50 rounded border border-amber-200">' +
+                    '<div><p class="font-bold">' + (g.nome || '') + '</p>' +
+                    '<p class="text-sm text-gray-500">' + (g.email || '') + '</p></div>' +
+                    (ehGestor ? '<button type="button" class="btn-reb-gestor text-xs font-bold text-amber-800 border border-amber-400 px-2 py-1 rounded" data-id="' + g.id + '">Rebaixar p/ admin</button>' : '') +
+                    '</div>';
+            }).join('');
+            box.querySelectorAll('.btn-reb-gestor').forEach(function (btn) {
+                btn.onclick = function () {
+                    if (!confirm('Rebaixar este gestor para administrador?')) return;
+                    var r = rebaixarGestorParaAdmin(btn.getAttribute('data-id'));
+                    alert((r && r.mensagem) || (r && r.sucesso ? 'Ok' : 'Erro'));
+                    renderizarGestoresMembros();
+                    renderizarAdmins();
+                    preencherSelectGestor();
+                    preencherSelectAdmin();
+                };
+            });
+        }
+        function mostrarMsgCargo(elId, ok, texto) {
+            var msg = document.getElementById(elId);
+            if (!msg) return;
+            msg.classList.remove('hidden');
+            msg.className = 'text-sm mt-2 ' + (ok ? 'text-green-600' : 'text-red-600');
+            msg.textContent = texto || '';
+        }
+        (function bindCargos() {
+            if (!ehGestor) return;
+            preencherSelectAdmin();
+            renderizarAdmins();
+            preencherSelectGestor();
+            renderizarGestoresMembros();
+            var btnA = document.getElementById('btnNomearAdmin');
+            if (btnA) btnA.addEventListener('click', function () {
+                var sel = document.getElementById('selNovoAdmin');
+                var id = sel && sel.value;
+                if (!id) { alert('Selecione um membro cadastrado.'); return; }
+                if (!confirm('Nomear esta pessoa como administrador (secretaria)?')) return;
+                var r = nomearComoAdmin(id);
+                mostrarMsgCargo('msgNomearAdmin', r && r.sucesso, (r && r.mensagem) || 'Erro');
+                renderizarAdmins();
+                preencherSelectAdmin();
+            });
+            var btnG = document.getElementById('btnNomearGestor');
+            if (btnG) btnG.addEventListener('click', function () {
+                var sel = document.getElementById('selNovoGestor');
+                var id = sel && sel.value;
+                if (!id) { alert('Selecione um membro.'); return; }
+                if (!confirm('Nomear como GESTOR? (máx. 2; Master continua acima)')) return;
+                var r = nomearComoGestor(id);
+                mostrarMsgCargo('msgTransferGestor', r && r.sucesso, (r && r.mensagem) || 'Erro');
+                renderizarGestoresMembros();
+                preencherSelectGestor();
+                renderizarAdmins();
+            });
+        })();
 
         // === MEMBROS — FUNÇÕES COMPLETAS ===
         function getMembros() {
