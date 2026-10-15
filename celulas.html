@@ -148,7 +148,7 @@
             <!-- Escala da reunião -->
             <div id="blocoEscalaCelula" class="hidden mb-6 border rounded-xl p-4 bg-white border-primary/20">
                 <h3 class="font-bold text-primary mb-1"><i class="fa fa-list-ol"></i> Escala da reunião</h3>
-                <p class="text-xs text-gray-500 mb-3">Modelo: Oração 2′ · Louvor 8′ · Quebra Gelo 10′ · Oferta 5′ · Palavra 30′ · Final/Avisos 5′. Líder ou líder em treinamento monta; pode incluir visitantes assíduos.</p>
+                <p class="text-xs text-gray-500 mb-3">Tempos aproximados: Oração ~2′ · Louvor ~8′ · Quebra Gelo ~10′ · Oferta ~5′ · Palavra ~30′ · Final/Avisos ~5′. Líder ou líder em treinamento monta; pode incluir visitantes assíduos.</p>
                 <button type="button" id="btnAbrirEscalaCelula" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent">
                     <i class="fa fa-calendar"></i> Ver / montar escala
                 </button>
@@ -226,6 +226,12 @@
                 </div>
                 <div id="camposEscalaCelula" class="space-y-2"></div>
                 <input type="text" id="escCelObs" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Observação (opcional)">
+                <div class="border rounded-lg p-3 bg-cream/50 space-y-2" style="background:#faf6ef">
+                    <p class="text-xs font-bold text-primary">Versículo no cartaz (editável)</p>
+                    <textarea id="escCelVersiculo" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Texto do versículo"></textarea>
+                    <input type="text" id="escCelRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: Mateus 18:20)">
+                    <button type="button" id="btnSalvarVersiculoCel" class="text-xs font-bold text-primary underline">Salvar versículo padrão desta célula</button>
+                </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" id="btnSalvarRascunhoEscalaCel" class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-bold">Salvar rascunho</button>
                     <button type="button" id="btnFinalizarEscalaCel" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold">Finalizar escala</button>
@@ -726,6 +732,11 @@
             document.getElementById('escCelData').value = '';
             document.getElementById('escCelLabel').value = '';
             document.getElementById('escCelObs').value = '';
+            try {
+                var vv = (typeof obterVersiculoEscala === 'function') ? obterVersiculoEscala('celula', celulaAberta) : null;
+                document.getElementById('escCelVersiculo').value = (vv && vv.texto) || '';
+                document.getElementById('escCelRef').value = (vv && vv.referencia) || '';
+            } catch (e) {}
             montarCamposEscalaCelula();
             renderListaEscalaCelula();
             modal.classList.remove('hidden');
@@ -755,7 +766,7 @@
                     return '<option value="' + String(p.nome).replace(/"/g, '&quot;') + '"' + sel + '>' + (p.nome || '') + tag + '</option>';
                 }).join('');
                 return '<div class="border rounded-lg px-3 py-2">' +
-                    '<label class="text-xs font-bold text-primary">' + f.nome + ' <span class="text-gray-400 font-normal">(' + f.minutos + ' min)</span></label>' +
+                    '<label class="text-xs font-bold text-primary">' + f.nome + ' <span class="text-gray-400 font-normal">(aprox. ' + f.minutos + ' min)</span></label>' +
                     '<select class="esc-cel-fn w-full mt-1 border rounded-lg px-2 py-1.5 text-sm" data-fn="' + f.nome + '">' + opts + '</select>' +
                     '</div>';
             }).join('');
@@ -788,7 +799,11 @@
                 dataLabel: label,
                 funcoes: coletarFuncoesEscalaCelula(),
                 observacao: document.getElementById('escCelObs').value.trim(),
-                status: status
+                status: status,
+                versiculo: {
+                    texto: (document.getElementById('escCelVersiculo') || {}).value || '',
+                    referencia: (document.getElementById('escCelRef') || {}).value || ''
+                }
             });
             var msg = document.getElementById('msgEscalaCelula');
             msg.classList.remove('hidden');
@@ -840,6 +855,10 @@
                     document.getElementById('escCelData').value = l.dataIso || '';
                     document.getElementById('escCelLabel').value = l.dataLabel || '';
                     document.getElementById('escCelObs').value = l.observacao || '';
+                    if (l.versiculo && l.versiculo.texto) {
+                        document.getElementById('escCelVersiculo').value = l.versiculo.texto;
+                        document.getElementById('escCelRef').value = l.versiculo.referencia || '';
+                    }
                     montarCamposEscalaCelula(l.funcoes || {});
                 };
             });
@@ -848,6 +867,12 @@
                     var iso = btn.getAttribute('data-iso');
                     var l = linhas.find(function (x) { return String(x.dataIso) === String(iso); });
                     if (!l) return;
+                    if (!l.versiculo || !l.versiculo.texto) {
+                        l.versiculo = {
+                            texto: (document.getElementById('escCelVersiculo') || {}).value || '',
+                            referencia: (document.getElementById('escCelRef') || {}).value || ''
+                        };
+                    }
                     var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
                     if (!r.sucesso) alert(r.mensagem || 'Erro PNG');
                 };
@@ -869,6 +894,13 @@
             if (!confirm('Finalizar esta escala do dia?')) return;
             salvarEscalaCelulaUI('finalizada');
         });
+        document.getElementById('btnSalvarVersiculoCel') && document.getElementById('btnSalvarVersiculoCel').addEventListener('click', function () {
+            if (typeof salvarVersiculoEscala !== 'function') return;
+            var v = salvarVersiculoEscala('celula', celulaAberta,
+                (document.getElementById('escCelVersiculo') || {}).value,
+                (document.getElementById('escCelRef') || {}).value);
+            alert('Versículo da célula salvo.\n' + (v.referencia || ''));
+        });
         document.getElementById('btnPngEscalaCel') && document.getElementById('btnPngEscalaCel').addEventListener('click', function () {
             var dataIso = document.getElementById('escCelData').value || escalaCelulaEditandoIso;
             var linhas = lerEscalaCelula(celulaAberta);
@@ -883,6 +915,10 @@
                     status: 'rascunho'
                 };
             }
+            l.versiculo = {
+                texto: (document.getElementById('escCelVersiculo') || {}).value || '',
+                referencia: (document.getElementById('escCelRef') || {}).value || ''
+            };
             var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
             if (!r.sucesso) alert(r.mensagem || 'Erro ao gerar PNG');
         });

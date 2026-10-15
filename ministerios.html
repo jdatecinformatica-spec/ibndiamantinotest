@@ -967,6 +967,10 @@
                 if (typeof gerarCartazEscalaPng !== 'function') {
                     return window.alert('Função PNG indisponível. Atualize o conta.js.');
                 }
+                l.versiculo = {
+                    texto: (document.getElementById('escMinVersiculo') || {}).value || '',
+                    referencia: (document.getElementById('escMinRef') || {}).value || ''
+                };
                 var r = gerarCartazEscalaPng(minAtualModal, l);
                 if (!r.sucesso) window.alert(r.mensagem || 'Não foi possível gerar o PNG.');
                 else window.alert('Cartaz PNG baixado!\nAbra a pasta de downloads e envie no WhatsApp para a equipe.');
@@ -1059,6 +1063,13 @@
         var tit = document.getElementById('modalEscalaTitulo');
         if (tit) tit.textContent = 'Escala — ' + nomeMin;
         function preencher() {
+            try {
+                var vv = (typeof obterVersiculoEscala === 'function') ? obterVersiculoEscala('ministerio', nomeMin) : null;
+                var elV = document.getElementById('escMinVersiculo');
+                var elR = document.getElementById('escMinRef');
+                if (elV && vv) elV.value = vv.texto || '';
+                if (elR && vv) elR.value = vv.referencia || '';
+            } catch (eV) {}
             try { renderListaEscalaModal(); } catch (e) { console.warn(e); }
             try { montarCamposNovoDia(nomeMin); } catch (e) { console.warn(e); }
             try { atualizarBlocoModeloLider(); } catch (e) { console.warn(e); }
@@ -1423,6 +1434,16 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 })();
+
+        document.getElementById('btnSalvarVersiculoMin') && document.getElementById('btnSalvarVersiculoMin').addEventListener('click', function () {
+            var min = (typeof minAtualModal !== 'undefined') ? minAtualModal : '';
+            if (!min || typeof salvarVersiculoEscala !== 'function') return;
+            var v = salvarVersiculoEscala('ministerio', min,
+                (document.getElementById('escMinVersiculo') || {}).value,
+                (document.getElementById('escMinRef') || {}).value);
+            alert('Versículo do ministério salvo.\n' + (v.referencia || ''));
+        });
+
 </script>
 
 
@@ -1482,6 +1503,13 @@
       </div>
     </div>
     <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">
+
+                <div class="border rounded-lg p-3 my-3 space-y-2" style="background:#faf6ef">
+                    <p class="text-xs font-bold text-primary">Versículo no cartaz PNG (editável por ministério)</p>
+                    <textarea id="escMinVersiculo" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Texto do versículo"></textarea>
+                    <input type="text" id="escMinRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: 1 Pedro 4:10)">
+                    <button type="button" id="btnSalvarVersiculoMin" class="text-xs font-bold text-primary underline">Salvar versículo padrão deste ministério</button>
+                </div>
       <button type="button" id="btnCsvEscalaModal" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">Baixar CSV (todos os dias)</button>
       <button type="button" id="btnWhatsEscalaModal" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Lembretes WhatsApp (próximo dia)</button>
       <button type="button" id="btnSairSemSalvarEsc" class="border border-red-300 text-red-700 px-3 py-2 rounded-lg text-xs font-bold">Sair sem salvar</button>

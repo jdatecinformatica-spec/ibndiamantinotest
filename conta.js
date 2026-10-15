@@ -1912,138 +1912,18 @@ function tituloCartazEscala(dataLabel, observacao, ministerio) {
  * linha = objeto de escala { dataLabel, dataIso, funcoes: {fn:[nomes]}, observacao, status }
  */
 function gerarCartazEscalaPng(ministerio, linha) {
-    if (!linha) return { sucesso: false, mensagem: 'Dia não informado.' };
-    var funcoes = linha.funcoes || {};
-    var pares = [];
-    Object.keys(funcoes).forEach(function (fn) {
-        if (/^observa/i.test(fn)) return;
-        var nomes = funcoes[fn];
-        var txt = Array.isArray(nomes) ? nomes.filter(Boolean).join(', ') : String(nomes || '');
-        if (!txt.trim()) return;
-        pares.push({ funcao: fn, nomes: txt });
-    });
-    if (!pares.length) return { sucesso: false, mensagem: 'Nenhuma função preenchida neste dia.' };
-
-    var tema = corTemaEscalaMinisterio(ministerio);
-    var tit = tituloCartazEscala(linha.dataLabel || linha.dataIso, linha.observacao, ministerio);
-    var W = 720;
-    var pad = 28;
-    var rowH = 44;
-    var headerH = 130;
-    var avisoH = 40;
-    var thH = 38;
-    var obsH = linha.observacao ? 44 : 0;
-    var footerH = 28;
-    var H = headerH + avisoH + thH + pares.length * rowH + obsH + footerH + 40;
-
-    var canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    var ctx = canvas.getContext('2d');
-
-    // fundo
-    ctx.fillStyle = tema.fundo;
-    ctx.fillRect(0, 0, W, H);
-    // borda
-    ctx.strokeStyle = tema.borda;
-    ctx.lineWidth = 6;
-    ctx.strokeRect(8, 8, W - 16, H - 16);
-
-    // header
-    ctx.fillStyle = tema.header;
-    ctx.fillRect(14, 14, W - 28, headerH - 10);
-    ctx.fillStyle = '#faf6ee';
-    ctx.font = 'bold 28px Segoe UI, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(tit.linha1, W / 2, 52);
-    ctx.font = '600 18px Segoe UI, Arial, sans-serif';
-    ctx.fillText(tit.linha2, W / 2, 82);
-    ctx.font = '16px Segoe UI, Arial, sans-serif';
-    ctx.fillText(tit.linha3, W / 2, 108);
-
-    // aviso 30 min
-    var ay = headerH + 4;
-    ctx.fillStyle = tema.aviso;
-    ctx.fillRect(14, ay, W - 28, avisoH);
-    ctx.fillStyle = tema.header;
-    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
-    ctx.fillText('ESTAR NO PRÉDIO DA IGREJA 30 MINUTOS ANTES', W / 2, ay + 26);
-
-    // th
-    var ty = ay + avisoH;
-    ctx.fillStyle = tema.th;
-    ctx.fillRect(14, ty, W - 28, thH);
-    ctx.fillStyle = '#faf6ee';
-    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('FUNÇÃO', pad + 10, ty + 25);
-    ctx.fillText('RESPONSÁVEL', pad + 240, ty + 25);
-
-    // linhas
-    pares.forEach(function (p, i) {
-        var y = ty + thH + i * rowH;
-        ctx.fillStyle = (i % 2 === 0) ? tema.fundo : tema.linha;
-        ctx.fillRect(14, y, W - 28, rowH);
-        ctx.fillStyle = tema.header;
-        ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
-        ctx.textAlign = 'left';
-        // truncar se preciso
-        var fn = p.funcao;
-        if (ctx.measureText(fn).width > 200) {
-            while (fn.length > 3 && ctx.measureText(fn + '…').width > 200) fn = fn.slice(0, -1);
-            fn += '…';
+    var v = (linha && linha.versiculo) || obterVersiculoEscala('ministerio', ministerio || '');
+    return gerarCartazEscalaElegante(
+        'Escala de Serviço',
+        ministerio || '',
+        linha,
+        'ministerio',
+        {
+            versiculo: v.texto,
+            referencia: v.referencia,
+            aviso: '⚠  ESTAR NO PRÉDIO DA IGREJA 30 MINUTOS ANTES  ⚠'
         }
-        ctx.fillText(fn, pad + 10, y + 28);
-        ctx.fillStyle = '#333';
-        ctx.font = '14px Segoe UI, Arial, sans-serif';
-        var nomes = p.nomes;
-        var maxW = W - pad - 260;
-        if (ctx.measureText(nomes).width > maxW) {
-            while (nomes.length > 3 && ctx.measureText(nomes + '…').width > maxW) nomes = nomes.slice(0, -1);
-            nomes += '…';
-        }
-        ctx.fillText(nomes, pad + 240, y + 28);
-    });
-
-    // observação
-    if (linha.observacao) {
-        var oy = ty + thH + pares.length * rowH;
-        ctx.fillStyle = '#ece2c8';
-        ctx.fillRect(14, oy, W - 28, obsH);
-        ctx.fillStyle = '#372a19';
-        ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
-        ctx.textAlign = 'center';
-        var obs = String(linha.observacao).toUpperCase();
-        ctx.fillText(obs, W / 2, oy + 28);
-    }
-
-    // footer
-    ctx.fillStyle = tema.header;
-    ctx.fillRect(14, H - footerH - 14, W - 28, footerH);
-    ctx.fillStyle = '#faf6ee';
-    ctx.font = '11px Segoe UI, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('IBN Diamantino · ' + (ministerio || ''), W / 2, H - footerH + 4);
-
-    try {
-        var nomeArq = 'escala_' + String(ministerio || 'min').replace(/\s+/g, '_').toLowerCase() + '_' +
-            String(linha.dataLabel || linha.dataIso || 'dia').replace(/[^\w\-]/g, '_') + '.png';
-        canvas.toBlob(function (blob) {
-            if (!blob) return;
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = nomeArq;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(function () {
-                try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {}
-            }, 800);
-        }, 'image/png');
-        return { sucesso: true, mensagem: 'PNG gerado: ' + nomeArq, canvas: canvas };
-    } catch (e) {
-        return { sucesso: false, mensagem: (e && e.message) || String(e) };
-    }
+    );
 }
 
 
@@ -3959,6 +3839,8 @@ function salvarDiaEscalaCelula(dados) {
         observacao: String(dados.observacao || '').trim(),
         status: status,
         celulaId: celulaId,
+        tema: dados.tema || 'areia',
+        versiculo: dados.versiculo || null,
         atualizadoEm: new Date().toISOString(),
         atualizadoPor: (getUsuarioLogado() || {}).nome || ''
     };
@@ -3985,106 +3867,286 @@ function removerDiaEscalaCelula(celulaId, dataIso) {
     return { sucesso: true };
 }
 
-/** PNG da escala da célula (modelo semelhante ao dos ministérios) */
-function gerarCartazEscalaCelulaPng(nomeCelula, linha) {
-    if (!linha) return { sucesso: false, mensagem: 'Sem dados da escala.' };
-    var W = 720;
-    var tema = {
-        header: '#0A1A3F',
-        aviso: '#e8f0fe',
-        th: '#1E3A8A',
-        linha: '#f0f4fa',
-        fundo: '#ffffff',
-        borda: '#D4AF37'
+
+/** Versículos padrão / salvos por ministério e célula */
+const CHAVE_VERSICULOS_ESCALA = 'ibn_versiculos_escala';
+/** Padrão do site: NVI (Nova Versão Internacional — português Brasil) */
+const VERSICULO_PADRAO = {
+    texto: 'Cada um exerça o dom que recebeu para servir aos outros, administrando fielmente a graça de Deus em suas múltiplas formas.',
+    referencia: '1 Pedro 4:10 (NVI)'
+};
+const VERSICULO_PADRAO_CELULA = {
+    texto: 'Pois onde se reunirem dois ou três em meu nome, ali eu estou no meio deles.',
+    referencia: 'Mateus 18:20 (NVI)'
+};
+
+function lerVersiculosEscala() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_VERSICULOS_ESCALA) || '{}'); }
+    catch (e) { return {}; }
+}
+function salvarVersiculosEscala(obj) {
+    localStorage.setItem(CHAVE_VERSICULOS_ESCALA, JSON.stringify(obj || {}));
+}
+function obterVersiculoEscala(tipo, chave) {
+    var all = lerVersiculosEscala();
+    var mapa = (all[tipo] || {});
+    var v = mapa[chave];
+    if (v && v.texto) return v;
+    return tipo === 'celula' ? Object.assign({}, VERSICULO_PADRAO_CELULA) : Object.assign({}, VERSICULO_PADRAO);
+}
+function salvarVersiculoEscala(tipo, chave, texto, referencia) {
+    var all = lerVersiculosEscala();
+    if (!all[tipo]) all[tipo] = {};
+    all[tipo][chave] = {
+        texto: String(texto || '').trim() || (tipo === 'celula' ? VERSICULO_PADRAO_CELULA.texto : VERSICULO_PADRAO.texto),
+        referencia: String(referencia || '').trim() || (tipo === 'celula' ? VERSICULO_PADRAO_CELULA.referencia : VERSICULO_PADRAO.referencia)
     };
-    var pares = [];
-    MODELO_ESCALA_CELULA.forEach(function (f) {
-        var nomes = (linha.funcoes && linha.funcoes[f.nome]) ? linha.funcoes[f.nome] : [];
-        if (!Array.isArray(nomes)) nomes = [nomes];
-        nomes = nomes.filter(Boolean);
-        pares.push({
-            funcao: f.nome + ' (' + f.minutos + ' min)',
-            nomes: nomes.length ? nomes.join(', ') : '—'
-        });
+    salvarVersiculosEscala(all);
+    return all[tipo][chave];
+}
+
+/** Quebra texto em linhas para canvas */
+function quebrarTextoCanvas(ctx, texto, maxW) {
+    var palavras = String(texto || '').split(/\s+/);
+    var linhas = [];
+    var atual = '';
+    palavras.forEach(function (p) {
+        var t = atual ? atual + ' ' + p : p;
+        if (ctx.measureText(t).width > maxW && atual) {
+            linhas.push(atual);
+            atual = p;
+        } else {
+            atual = t;
+        }
     });
-    var headerH = 88;
-    var avisoH = 36;
-    var rowH = 40;
-    var thH = 36;
+    if (atual) linhas.push(atual);
+    return linhas;
+}
+
+/**
+ * Cartaz estilo Atmosfera (creme, leve, versículo).
+ * tipo: 'ministerio' | 'celula'
+ * opts: { temaId, versiculo, referencia, aviso }
+ */
+function gerarCartazEscalaElegante(titulo, subtitulo, linha, tipo, opts) {
+    if (!linha) return { sucesso: false, mensagem: 'Sem dados da escala.' };
+    opts = opts || {};
+    var W = 720;
+    var navy = '#192D4B';
+    var cream = '#faf6ef';
+    var cream2 = '#f5f0e6';
+    var rowEven = '#EBF0F8';
+    var avisoBg = '#DCE6F5';
+
+    var pares = [];
+    if (tipo === 'celula' && typeof MODELO_ESCALA_CELULA !== 'undefined') {
+        MODELO_ESCALA_CELULA.forEach(function (f) {
+            var nomes = (linha.funcoes && linha.funcoes[f.nome]) ? linha.funcoes[f.nome] : [];
+            if (!Array.isArray(nomes)) nomes = [nomes];
+            nomes = nomes.filter(Boolean);
+            pares.push({
+                funcao: f.nome + ' (aprox. ' + f.minutos + ' min)',
+                nomes: nomes.length ? nomes.join(', ') : '—'
+            });
+        });
+    } else {
+        Object.keys(linha.funcoes || {}).forEach(function (fn) {
+            var nomes = linha.funcoes[fn];
+            if (!Array.isArray(nomes)) nomes = [nomes];
+            nomes = nomes.filter(Boolean);
+            pares.push({ funcao: fn, nomes: nomes.length ? nomes.join(', ') : '—' });
+        });
+    }
+
+    var versiculo = (opts.versiculo || (linha.versiculo && linha.versiculo.texto) || '').trim();
+    var referencia = (opts.referencia || (linha.versiculo && linha.versiculo.referencia) || '').trim();
+    if (!versiculo) {
+        var pad = tipo === 'celula' ? VERSICULO_PADRAO_CELULA : VERSICULO_PADRAO;
+        versiculo = pad.texto;
+        referencia = pad.referencia;
+    }
+
+    // medir versículo
+    var tmp = document.createElement('canvas').getContext('2d');
+    tmp.font = 'italic 14px Georgia, serif';
+    var linhasV = quebrarTextoCanvas(tmp, '“' + versiculo + '”', W - 120);
+
+    var headerH = 100;
+    var avisoH = tipo === 'celula' ? 42 : 40;
+    var thH = 38;
+    var rowH = 44;
+    var versePad = 20;
+    var verseLineH = 22;
+    var verseH = versePad + linhasV.length * verseLineH + 8 + 22 + 12;
+    var footerH = 28;
     var obsH = linha.observacao ? 40 : 0;
-    var footerH = 36;
-    var H = 14 + headerH + avisoH + thH + pares.length * rowH + obsH + footerH + 14;
+    var H = 20 + headerH + avisoH + thH + pares.length * rowH + obsH + verseH + footerH + 20;
 
     var canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     var ctx = canvas.getContext('2d');
-    ctx.fillStyle = tema.fundo;
+
+    // fundo página
+    ctx.fillStyle = '#f0ebe3';
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = tema.borda;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(6, 6, W - 12, H - 12);
+
+    // outer
+    var m = 18;
+    ctx.fillStyle = cream;
+    ctx.fillRect(m, m, W - 2 * m, H - 2 * m);
+    ctx.strokeStyle = navy + '88';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(m, m, W - 2 * m, H - 2 * m);
+
+    // card
+    var c = m + 12;
+    var cW = W - 2 * c;
+    ctx.fillStyle = cream;
+    ctx.fillRect(c, c, cW, H - 2 * c);
+    ctx.strokeStyle = navy;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(c, c, cW, H - 2 * c);
+
+    // cantos decorativos
+    ctx.strokeStyle = navy + '55';
+    ctx.lineWidth = 2;
+    function canto(x, y, dx, dy) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + dy * 22);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + dx * 22, y);
+        ctx.stroke();
+    }
+    canto(c + 10, c + 10, 1, 1);
+    canto(c + cW - 10, c + 10, -1, 1);
+    canto(c + 10, H - c - 10, 1, -1);
+    canto(c + cW - 10, H - c - 10, -1, -1);
+
+    var y = c + 8;
 
     // header
-    ctx.fillStyle = tema.header;
-    ctx.fillRect(14, 14, W - 28, headerH);
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 22px Segoe UI, Arial, sans-serif';
+    var grd = ctx.createLinearGradient(0, y, 0, y + headerH);
+    grd.addColorStop(0, cream);
+    grd.addColorStop(1, cream2);
+    ctx.fillStyle = grd;
+    ctx.fillRect(c + 4, y, cW - 8, headerH);
+
+    ctx.fillStyle = navy;
+    ctx.font = 'bold 26px Georgia, "Times New Roman", serif';
     ctx.textAlign = 'center';
-    ctx.fillText('ESCALA DA CÉLULA', W / 2, 44);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px Segoe UI, Arial, sans-serif';
-    ctx.fillText(String(nomeCelula || 'Célula'), W / 2, 70);
-    ctx.font = '13px Segoe UI, Arial, sans-serif';
-    ctx.fillText(String(linha.dataLabel || linha.dataIso || ''), W / 2, 92);
+    ctx.fillText(String(titulo || 'ESCALA').toUpperCase(), W / 2, y + 40);
+    ctx.font = '600 14px Segoe UI, Arial, sans-serif';
+    ctx.fillText(String(subtitulo || ''), W / 2, y + 64);
+    ctx.font = '600 13px Segoe UI, Arial, sans-serif';
+    ctx.globalAlpha = 0.85;
+    ctx.fillText(String(linha.dataLabel || linha.dataIso || ''), W / 2, y + 84);
+    ctx.globalAlpha = 1;
+    // linha decorativa
+    ctx.strokeStyle = navy + '99';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 40, y + 94);
+    ctx.lineTo(W / 2 + 40, y + 94);
+    ctx.stroke();
+    y += headerH;
 
-    // aviso tempos
-    ctx.fillStyle = tema.aviso;
-    ctx.fillRect(14, 14 + headerH, W - 28, avisoH);
-    ctx.fillStyle = tema.th;
-    ctx.font = '12px Segoe UI, Arial, sans-serif';
-    ctx.fillText('Oração 2′ · Louvor 8′ · Quebra Gelo 10′ · Oferta 5′ · Palavra 30′ · Final/Avisos 5′', W / 2, 14 + headerH + 24);
+    // aviso
+    var avisoTxt = opts.aviso || (tipo === 'celula'
+        ? 'Tempos aproximados · Oração ~2′ · Louvor ~8′ · Quebra Gelo ~10′ · Oferta ~5′ · Palavra ~30′ · Final ~5′'
+        : '⚠  ESTAR NO PRÉDIO DA IGREJA 30 MINUTOS ANTES  ⚠');
+    ctx.fillStyle = avisoBg;
+    ctx.fillRect(c + 4, y, cW - 8, avisoH);
+    ctx.strokeStyle = navy + '33';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(c + 4, y);
+    ctx.lineTo(c + cW - 4, y);
+    ctx.moveTo(c + 4, y + avisoH);
+    ctx.lineTo(c + cW - 4, y + avisoH);
+    ctx.stroke();
+    ctx.fillStyle = navy;
+    ctx.font = '600 11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(avisoTxt, W / 2, y + avisoH / 2 + 4);
+    y += avisoH;
 
-    var ty = 14 + headerH + avisoH;
-    ctx.fillStyle = tema.th;
-    ctx.fillRect(14, ty, W - 28, thH);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+    // thead
+    ctx.fillStyle = navy;
+    ctx.fillRect(c + 4, y, cW - 8, thH);
+    ctx.fillStyle = '#E6EBF5';
+    ctx.font = '600 12px Segoe UI, Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('Momento', 28, ty + 24);
-    ctx.fillText('Responsável', 280, ty + 24);
+    ctx.fillText(tipo === 'celula' ? 'MOMENTO' : 'FUNÇÃO', c + 24, y + 24);
+    ctx.fillText('RESPONSÁVEL', c + 260, y + 24);
+    y += thH;
 
     pares.forEach(function (p, i) {
-        var y = ty + thH + i * rowH;
-        ctx.fillStyle = i % 2 ? tema.linha : '#fff';
-        ctx.fillRect(14, y, W - 28, rowH);
-        ctx.fillStyle = tema.header;
-        ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
-        ctx.fillText(p.funcao, 28, y + 26);
-        ctx.fillStyle = '#333';
-        ctx.font = '14px Segoe UI, Arial, sans-serif';
-        ctx.fillText(p.nomes, 280, y + 26);
+        ctx.fillStyle = i % 2 ? rowEven : cream;
+        ctx.fillRect(c + 4, y, cW - 8, rowH);
+        ctx.fillStyle = navy;
+        ctx.font = '600 13px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'left';
+        var fn = p.funcao;
+        if (ctx.measureText(fn).width > 220) {
+            while (fn.length > 3 && ctx.measureText(fn + '…').width > 220) fn = fn.slice(0, -1);
+            fn += '…';
+        }
+        ctx.fillText(fn, c + 24, y + 28);
+        ctx.fillStyle = '#3a3a3a';
+        ctx.font = '400 13px Segoe UI, Arial, sans-serif';
+        var nm = p.nomes;
+        var maxN = cW - 280;
+        if (ctx.measureText(nm).width > maxN) {
+            while (nm.length > 3 && ctx.measureText(nm + '…').width > maxN) nm = nm.slice(0, -1);
+            nm += '…';
+        }
+        ctx.fillText(nm, c + 260, y + 28);
+        y += rowH;
     });
 
     if (linha.observacao) {
-        var oy = ty + thH + pares.length * rowH;
-        ctx.fillStyle = '#fef3c7';
-        ctx.fillRect(14, oy, W - 28, obsH);
-        ctx.fillStyle = '#78350f';
-        ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+        ctx.fillStyle = '#D2DCEB';
+        ctx.fillRect(c + 4, y, cW - 8, obsH);
+        ctx.fillStyle = '#1E283C';
+        ctx.font = '600 12px Segoe UI, Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(String(linha.observacao), W / 2, oy + 26);
+        ctx.fillText(String(linha.observacao), W / 2, y + 26);
+        y += obsH;
     }
 
-    ctx.fillStyle = tema.header;
-    ctx.fillRect(14, H - footerH - 14, W - 28, footerH);
-    ctx.fillStyle = '#faf6ee';
+    // versículo
+    ctx.fillStyle = cream;
+    ctx.fillRect(c + 4, y, cW - 8, verseH);
+    ctx.fillStyle = '#4a4a4a';
+    ctx.font = 'italic 14px Georgia, "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    var vy = y + versePad + 14;
+    linhasV.forEach(function (ln) {
+        ctx.fillText(ln, W / 2, vy);
+        vy += verseLineH;
+    });
+    ctx.fillStyle = navy;
+    ctx.font = '600 12px Segoe UI, Arial, sans-serif';
+    ctx.fillText(referencia, W / 2, vy + 6);
+    y += verseH;
+
+    // footer
+    var fg = ctx.createLinearGradient(0, y, 0, y + footerH);
+    fg.addColorStop(0, navy);
+    fg.addColorStop(1, navy + 'cc');
+    ctx.fillStyle = fg;
+    ctx.fillRect(c + 4, y, cW - 8, footerH);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(c + 4, y, cW - 8, 3);
+    ctx.fillStyle = '#E6EBF5';
     ctx.font = '11px Segoe UI, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('IBN Diamantino · Células · ' + (linha.status === 'finalizada' ? 'Finalizada' : 'Rascunho'), W / 2, H - footerH + 8);
+    ctx.fillText('IBN Diamantino' + (tipo === 'celula' ? ' · Células' : ' · Ministérios') +
+        (linha.status === 'rascunho' ? ' · Rascunho' : ''), W / 2, y + 18);
 
     try {
-        var nomeArq = 'escala_celula_' + String(nomeCelula || 'cel').replace(/\s+/g, '_').toLowerCase() + '_' +
+        var nomeArq = 'escala_' + String(subtitulo || titulo || 'dia').replace(/\s+/g, '_').toLowerCase() + '_' +
             String(linha.dataLabel || linha.dataIso || 'dia').replace(/[^\w\-]/g, '_') + '.png';
         canvas.toBlob(function (blob) {
             if (!blob) return;
@@ -4103,3 +4165,15 @@ function gerarCartazEscalaCelulaPng(nomeCelula, linha) {
         return { sucesso: false, mensagem: (e && e.message) || String(e) };
     }
 }
+
+function gerarCartazEscalaCelulaPng(nomeCelula, linha, temaId) {
+    var v = (linha && linha.versiculo) || obterVersiculoEscala('celula', (linha && linha.celulaId) || nomeCelula || '');
+    return gerarCartazEscalaElegante(
+        'Escala da Célula',
+        nomeCelula || 'Célula',
+        linha,
+        'celula',
+        { versiculo: v.texto, referencia: v.referencia, temaId: temaId }
+    );
+}
+
