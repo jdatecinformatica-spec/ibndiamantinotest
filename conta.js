@@ -3873,9 +3873,7 @@ function removerDiaEscalaCelula(celulaId, dataIso) {
 // ========== BÍBLIA (busca de versículo por versão — NVI padrão) ==========
 const BIBLIA_VERSOES = [
     { id: 'nvi', nome: 'NVI — Nova Versão Internacional' },
-    { id: 'ra', nome: 'Almeida Revista e Atualizada (RA)' },
-    { id: 'acf', nome: 'Almeida Corrigida Fiel (ACF)' },
-    { id: 'abe', nome: 'Almeida Revista e Corrigida (ARC)' }
+    { id: 'acf', nome: 'Almeida Corrigida Fiel (ACF)' }
 ];
 
 const BIBLIA_LIVROS = {
@@ -3920,7 +3918,7 @@ const BIBLIA_LIVROS = {
     'malaquias': 'ml', 'ml': 'ml',
     'mateus': 'mt', 'mt': 'mt', 'mat': 'mt',
     'marcos': 'mc', 'mc': 'mc', 'mr': 'mc',
-    'lucas': 'lc', 'lc': 'lc', 'lc.': 'lc',
+    'lucas': 'lc', 'lc': 'lc',
     'joao': 'jo', 'joão': 'jo', 'jo': 'jo',
     'atos': 'at', 'at': 'at',
     'romanos': 'rm', 'rm': 'rm', 'rom': 'rm',
@@ -3947,10 +3945,237 @@ const BIBLIA_LIVROS = {
     'apocalipse': 'ap', 'ap': 'ap', 'apo': 'ap'
 };
 
-/** Parseia "Mateus 18:20", "Mt 18:20-21", "1 Pedro 4:10" */
+/** Nomes de exibição do livro a partir da abreviação */
+const BIBLIA_NOME_LIVRO = {
+    gn: 'Gênesis', ex: 'Êxodo', lv: 'Levítico', nm: 'Números', dt: 'Deuteronômio',
+    js: 'Josué', jz: 'Juízes', rt: 'Rute', '1sm': '1 Samuel', '2sm': '2 Samuel',
+    '1rs': '1 Reis', '2rs': '2 Reis', '1cr': '1 Crônicas', '2cr': '2 Crônicas',
+    ed: 'Esdras', ne: 'Neemias', et: 'Ester', job: 'Jó', sl: 'Salmos', pv: 'Provérbios',
+    ec: 'Eclesiastes', ct: 'Cânticos', is: 'Isaías', jr: 'Jeremias', lm: 'Lamentações',
+    ez: 'Ezequiel', dn: 'Daniel', os: 'Oséias', jl: 'Joel', am: 'Amós', ob: 'Obadias',
+    jn: 'Jonas', mq: 'Miquéias', na: 'Naum', hc: 'Habacuque', sf: 'Sofonias', ag: 'Ageu',
+    zc: 'Zacarias', ml: 'Malaquias', mt: 'Mateus', mc: 'Marcos', lc: 'Lucas', jo: 'João',
+    at: 'Atos', rm: 'Romanos', '1co': '1 Coríntios', '2co': '2 Coríntios', gl: 'Gálatas',
+    ef: 'Efésios', fp: 'Filipenses', cl: 'Colossenses', '1ts': '1 Tessalonicenses',
+    '2ts': '2 Tessalonicenses', '1tm': '1 Timóteo', '2tm': '2 Timóteo', tt: 'Tito',
+    fm: 'Filemom', hb: 'Hebreus', tg: 'Tiago', '1pe': '1 Pedro', '2pe': '2 Pedro',
+    '1jo': '1 João', '2jo': '2 João', '3jo': '3 João', jd: 'Judas', ap: 'Apocalipse'
+};
+
+/**
+ * Banco local NVI + ACF (funciona sem internet).
+ * Chave: livro/capitulo/verso  ex: mt/18/20
+ */
+const BIBLIA_LOCAL = {
+    'mt/18/20': {
+        nvi: 'Pois onde se reunirem dois ou três em meu nome, ali eu estou no meio deles.',
+        acf: 'Porque, onde estiverem dois ou três reunidos em meu nome, aí estou eu no meio deles.'
+    },
+    'mt/18/24': {
+        nvi: 'Quando começou a acertar as contas, foi trazido à sua presença um que lhe devia dez mil talentos.',
+        acf: 'E, começando a contar, foi-lhe apresentado um que lhe devia dez mil talentos.'
+    },
+    'mt/28/19': {
+        nvi: 'Portanto, vão e façam discípulos de todas as nações, batizando-os em nome do Pai e do Filho e do Espírito Santo.',
+        acf: 'Portanto ide, fazei discípulos de todas as nações, batizando-os em nome do Pai, e do Filho, e do Espírito Santo.'
+    },
+    'mt/28/20': {
+        nvi: 'Ensinando-os a obedecer a tudo o que eu ordenei a vocês. E eu estarei sempre com vocês, até o fim dos tempos.',
+        acf: 'Ensinando-os a guardar todas as coisas que eu vos tenho mandado; e eis que eu estou convosco todos os dias, até a consumação dos séculos. Amém.'
+    },
+    'mt/5/16': {
+        nvi: 'Assim brilhe a luz de vocês diante dos homens, para que vejam as suas boas obras e glorifiquem a seu Pai que está nos céus.',
+        acf: 'Assim resplandeça a vossa luz diante dos homens, para que vejam as vossas boas obras e glorifiquem a vosso Pai, que está nos céus.'
+    },
+    'mt/6/33': {
+        nvi: 'Busquem, pois, em primeiro lugar o Reino de Deus e a sua justiça, e todas essas coisas lhes serão acrescentadas.',
+        acf: 'Mas, buscai primeiro o Reino de Deus, e a sua justiça, e todas essas coisas vos serão acrescentadas.'
+    },
+    'mt/11/28': {
+        nvi: 'Venham a mim, todos os que estão cansados e sobrecarregados, e eu darei descanso a vocês.',
+        acf: 'Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.'
+    },
+    'jo/3/16': {
+        nvi: 'Porque Deus tanto amou o mundo que deu o seu Filho Unigênito, para que todo o que nele crer não pereça, mas tenha a vida eterna.',
+        acf: 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.'
+    },
+    'jo/14/6': {
+        nvi: 'Respondeu Jesus: Eu sou o caminho, a verdade e a vida. Ninguém vem ao Pai, a não ser por mim.',
+        acf: 'Disse-lhe Jesus: Eu sou o caminho, e a verdade e a vida; ninguém vem ao Pai, senão por mim.'
+    },
+    'jo/13/35': {
+        nvi: 'Com isso todos saberão que vocês são meus discípulos, se vocês se amarem uns aos outros.',
+        acf: 'Nisto todos conhecerão que sois meus discípulos, se vos amardes uns aos outros.'
+    },
+    '1pe/4/10': {
+        nvi: 'Cada um exerça o dom que recebeu para servir aos outros, administrando fielmente a graça de Deus em suas múltiplas formas.',
+        acf: 'Cada um administre aos outros o dom como o recebeu, como bons despenseiros da multiforme graça de Deus.'
+    },
+    '1pe/5/7': {
+        nvi: 'Lancem sobre ele toda a sua ansiedade, porque ele tem cuidado de vocês.',
+        acf: 'Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.'
+    },
+    'rm/8/28': {
+        nvi: 'Sabemos que Deus age em todas as coisas para o bem daqueles que o amam, dos que foram chamados de acordo com o seu propósito.',
+        acf: 'E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito.'
+    },
+    'rm/12/1': {
+        nvi: 'Portanto, irmãos, rogo-lhes pelas misericórdias de Deus que se ofereçam em sacrifício vivo, santo e agradável a Deus; este é o culto racional de vocês.',
+        acf: 'Rogo-vos, pois, irmãos, pela compaixão de Deus, que apresenteis os vossos corpos em sacrifício vivo, santo e agradável a Deus, que é o vosso culto racional.'
+    },
+    'rm/12/2': {
+        nvi: 'Não se amoldem ao padrão deste mundo, mas transformem-se pela renovação da sua mente, para que sejam capazes de experimentar e comprovar a boa, agradável e perfeita vontade de Deus.',
+        acf: 'E não vos conformeis com este mundo, mas transformai-vos pela renovação da vossa mente, para que experimenteis qual seja a boa, agradável, e perfeita vontade de Deus.'
+    },
+    'fp/4/13': {
+        nvi: 'Tudo posso naquele que me fortalece.',
+        acf: 'Posso todas as coisas em Cristo que me fortalece.'
+    },
+    'fp/4/6': {
+        nvi: 'Não andem ansiosos por coisa alguma, mas em tudo, pela oração e súplicas, e com ação de graças, apresentem seus pedidos a Deus.',
+        acf: 'Não estejais inquietos por coisa alguma; antes as vossas petições sejam em tudo conhecidas diante de Deus pela oração e súplica, com ação de graças.'
+    },
+    'fp/4/7': {
+        nvi: 'E a paz de Deus, que excede todo o entendimento, guardará o coração e a mente de vocês em Cristo Jesus.',
+        acf: 'E a paz de Deus, que excede todo o entendimento, guardará os vossos corações e os vossos sentimentos em Cristo Jesus.'
+    },
+    'sl/23/1': {
+        nvi: 'O Senhor é o meu pastor; de nada terei falta.',
+        acf: 'O Senhor é o meu pastor; nada me faltará.'
+    },
+    'sl/46/1': {
+        nvi: 'Deus é o nosso refúgio e a nossa fortaleza, auxílio sempre presente na adversidade.',
+        acf: 'Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.'
+    },
+    'sl/119/105': {
+        nvi: 'A tua palavra é lâmpada que ilumina os meus passos e luz que clareia o meu caminho.',
+        acf: 'Lâmpada para os meus pés é tua palavra, e luz para o meu caminho.'
+    },
+    'sl/37/5': {
+        nvi: 'Entregue o seu caminho ao Senhor; confie nele, e ele agirá.',
+        acf: 'Entrega o teu caminho ao Senhor; confia nele, e ele o fará.'
+    },
+    'pv/3/5': {
+        nvi: 'Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento.',
+        acf: 'Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento.'
+    },
+    'pv/3/6': {
+        nvi: 'Reconheça o Senhor em todos os seus caminhos, e ele endireitará as suas veredas.',
+        acf: 'Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas.'
+    },
+    'is/40/31': {
+        nvi: 'Mas aqueles que esperam no Senhor renovam as suas forças. Voam alto como águias; correm e não ficam exaustos, andam e não se cansam.',
+        acf: 'Mas os que esperam no Senhor renovarão as forças, subirão com asas como águias; correrão, e não se cansarão; caminharão, e não se fatigarão.'
+    },
+    'is/41/10': {
+        nvi: 'Não tema, pois eu estou com você; não tenha medo, pois eu sou o seu Deus. Eu o fortalecerei e o ajudarei; eu o segurarei com a minha mão direita vitoriosa.',
+        acf: 'Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.'
+    },
+    'jr/29/11': {
+        nvi: 'Porque sou eu que conheço os planos que tenho para vocês, diz o Senhor, planos de fazê-los prosperar e não de lhes causar dano, planos de dar a vocês esperança e um futuro.',
+        acf: 'Porque eu bem sei os pensamentos que penso de vós, diz o Senhor; pensamentos de paz, e não de mal, para vos dar o fim que esperais.'
+    },
+    'hb/11/1': {
+        nvi: 'Ora, a fé é a certeza daquilo que esperamos e a prova das coisas que não vemos.',
+        acf: 'Ora, a fé é o firme fundamento das coisas que se esperam, e a prova das coisas que se não veem.'
+    },
+    'hb/13/8': {
+        nvi: 'Jesus Cristo é o mesmo ontem, hoje e para sempre.',
+        acf: 'Jesus Cristo é o mesmo ontem, e hoje, e eternamente.'
+    },
+    '2tm/3/16': {
+        nvi: 'Toda a Escritura é inspirada por Deus e útil para o ensino, para a repreensão, para a correção e para a instrução na justiça.',
+        acf: 'Toda a Escritura é divinamente inspirada, e proveitosa para ensinar, para redarguir, para corrigir, para instruir em justiça.'
+    },
+    '2tm/1/7': {
+        nvi: 'Pois Deus não nos deu espírito de covardia, mas de poder, de amor e de equilíbrio.',
+        acf: 'Porque Deus não nos deu o espírito de temor, mas de fortaleza, e de amor, e de moderação.'
+    },
+    'ef/2/8': {
+        nvi: 'Pois vocês são salvos pela graça, por meio da fé, e isto não vem de vocês, é dom de Deus.',
+        acf: 'Porque pela graça sois salvos, por meio da fé; e isto não vem de vós, é dom de Deus.'
+    },
+    'ef/4/32': {
+        nvi: 'Sejam bondosos e compassivos uns para com os outros, perdoando-se mutuamente, assim como Deus os perdoou em Cristo.',
+        acf: 'Antes sede uns para com os outros benignos, misericordiosos, perdoando-vos uns aos outros, como também Deus vos perdoou em Cristo.'
+    },
+    'ef/6/10': {
+        nvi: 'Finalmente, fortaleçam-se no Senhor e no seu forte poder.',
+        acf: 'No demais, irmãos meus, fortalecei-vos no Senhor e na força do seu poder.'
+    },
+    'gl/5/22': {
+        nvi: 'Mas o fruto do Espírito é amor, alegria, paz, paciência, amabilidade, bondade, fidelidade.',
+        acf: 'Mas o fruto do Espírito é: amor, gozo, paz, longanimidade, benignidade, bondade, fé, mansidão, temperança.'
+    },
+    'gl/6/9': {
+        nvi: 'E não nos cansemos de fazer o bem, pois no tempo próprio colheremos, se não desanimarmos.',
+        acf: 'E não nos cansemos de fazer bem, porque a seu tempo ceifaremos, se não houvermos desfalecido.'
+    },
+    '1co/13/13': {
+        nvi: 'Assim, permanecem agora estes três: a fé, a esperança e o amor. O maior deles, porém, é o amor.',
+        acf: 'Agora, pois, permanecem a fé, a esperança e o amor, estes três, porém o maior destes é o amor.'
+    },
+    '1co/10/31': {
+        nvi: 'Assim, quer vocês comam, quer bebam, quer façam qualquer outra coisa, façam tudo para a glória de Deus.',
+        acf: 'Portanto, quer comais quer bebais, ou façais qualquer outra coisa, fazei tudo para glória de Deus.'
+    },
+    '1ts/5/16': {
+        nvi: 'Alegrem-se sempre.',
+        acf: 'Regozijai-vos sempre.'
+    },
+    '1ts/5/17': {
+        nvi: 'Orem continuamente.',
+        acf: 'Orai sem cessar.'
+    },
+    '1ts/5/18': {
+        nvi: 'Deem graças em todas as circunstâncias, pois esta é a vontade de Deus para vocês em Cristo Jesus.',
+        acf: 'Em tudo dai graças, porque esta é a vontade de Deus em Cristo Jesus para convosco.'
+    },
+    'tg/1/5': {
+        nvi: 'Se algum de vocês tem falta de sabedoria, peça-a a Deus, que a todos dá livremente, de boa vontade; e lhe será concedida.',
+        acf: 'E, se algum de vós tem falta de sabedoria, peça-a a Deus, que a todos dá liberalmente, e o não lança em rosto, e ser-lhe-á dada.'
+    },
+    'tg/5/16': {
+        nvi: 'Portanto, confessem os seus pecados uns aos outros e orem uns pelos outros para serem curados. A oração de um justo é poderosa e eficaz.',
+        acf: 'Confessai as vossas culpas uns aos outros, e orai uns pelos outros, para que sareis. A oração feita por um justo pode muito em seus efeitos.'
+    },
+    'at/1/8': {
+        nvi: 'Mas receberão poder quando o Espírito Santo descer sobre vocês, e serão minhas testemunhas em Jerusalém, em toda a Judeia e Samaria, e até os confins da terra.',
+        acf: 'Mas recebereis a virtude do Espírito Santo, que há de vir sobre vós; e ser-me-eis testemunhas, tanto em Jerusalém como em toda a Judéia e Samaria, e até aos confins da terra.'
+    },
+    'at/2/42': {
+        nvi: 'Eles se dedicavam ao ensino dos apóstolos e à comunhão, ao partir do pão e às orações.',
+        acf: 'E perseveravam na doutrina dos apóstolos, e na comunhão, e no partir do pão, e nas orações.'
+    },
+    'cl/3/23': {
+        nvi: 'Tudo o que fizerem, façam de todo o coração, como para o Senhor, e não para os homens.',
+        acf: 'E tudo quanto fizerdes, fazei-o de todo o coração, como ao Senhor, e não aos homens.'
+    },
+    'hb/10/25': {
+        nvi: 'Não deixemos de reunir-nos como igreja, segundo o costume de alguns, mas façamos admoestações, e tanto mais quanto vedes que o dia se aproxima.',
+        acf: 'Não deixando a nossa congregação, como é costume de alguns, antes admoestando-nos uns aos outros; e tanto mais, quanto vedes que se vai aproximando aquele dia.'
+    },
+    '2co/5/17': {
+        nvi: 'Portanto, se alguém está em Cristo, é nova criação. As coisas antigas já passaram; eis que surgiram coisas novas!',
+        acf: 'Assim que, se alguém está em Cristo, nova criatura é; as coisas velhas já passaram; eis que tudo se fez novo.'
+    },
+    '1jo/1/9': {
+        nvi: 'Se confessarmos os nossos pecados, ele é fiel e justo para perdoar os nossos pecados e nos purificar de toda injustiça.',
+        acf: 'Se confessarmos os nossos pecados, ele é fiel e justo para nos perdoar os pecados, e nos purificar de toda a injustiça.'
+    },
+    '1jo/4/8': {
+        nvi: 'Quem não ama não conhece a Deus, porque Deus é amor.',
+        acf: 'Aquele que não ama não conhece a Deus; porque Deus é amor.'
+    },
+    'ap/3/20': {
+        nvi: 'Eis que estou à porta e bato. Se alguém ouvir a minha voz e abrir a porta, entrarei e cearei com ele, e ele comigo.',
+        acf: 'Eis que estou à porta, e bato; se alguém ouvir a minha voz, e abrir a porta, entrarei em sua casa, e com ele cearei, e ele comigo.'
+    }
+};
+
+/** Parseia "Mateus 18:20", "Mt 18:20", "1 Pedro 4:10" */
 function parseReferenciaBiblica(ref) {
     var s = String(ref || '').trim();
-    // remove (NVI) etc
     s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim();
     var m = s.match(/^((?:[123]\s*)?[A-Za-zÀ-ú\.]+)\s+(\d+)\s*[:\.]\s*(\d+)(?:\s*[-–]\s*(\d+))?/i);
     if (!m) return null;
@@ -3967,47 +4192,62 @@ function parseReferenciaBiblica(ref) {
     };
 }
 
+function chaveBibliaLocal(parsed) {
+    return parsed.livro + '/' + parsed.capitulo + '/' + parsed.verso;
+}
+
 /**
- * Busca versículo na API ABíblia Digital (pt-BR).
- * versao: nvi | ra | acf | abe
- * Retorna Promise<{ sucesso, texto, referencia, versao, mensagem }>
+ * Busca versículo: 1º banco local (NVI/ACF, sem internet);
+ * 2º tenta API se existir na rede (opcional, não bloqueia).
  */
 function buscarVersiculoBiblia(referencia, versao) {
     versao = String(versao || 'nvi').toLowerCase();
+    if (versao !== 'nvi' && versao !== 'acf') versao = 'nvi';
     var parsed = parseReferenciaBiblica(referencia);
     if (!parsed) {
         return Promise.resolve({
             sucesso: false,
-            mensagem: 'Referência inválida. Use o formato: Mateus 18:20 ou 1 Pedro 4:10'
+            mensagem: 'Referência inválida. Use: Mateus 18:20 ou 1 Pedro 4:10'
         });
     }
+    var chave = chaveBibliaLocal(parsed);
+    var local = BIBLIA_LOCAL[chave];
+    if (local && local[versao]) {
+        var nomeLivro = BIBLIA_NOME_LIVRO[parsed.livro] || parsed.livro;
+        var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso + ' (' + versao.toUpperCase() + ')';
+        return Promise.resolve({
+            sucesso: true,
+            texto: local[versao],
+            referencia: refOut,
+            versao: versao,
+            mensagem: 'Atualizado (NVI/ACF local): ' + refOut
+        });
+    }
+    // tenta API em segundo plano; se falhar, mensagem clara
     var url = 'https://www.abibliadigital.com.br/api/verses/' + encodeURIComponent(versao) + '/' +
         parsed.livro + '/' + parsed.capitulo + '/' + parsed.verso;
-    return fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
+    return fetch(url, { method: 'GET', headers: { Accept: 'application/json' }, mode: 'cors' })
         .then(function (res) {
-            if (!res.ok) throw new Error('Versículo não encontrado nesta versão (' + res.status + ')');
+            if (!res.ok) throw new Error('API indisponível');
             return res.json();
         })
         .then(function (data) {
             var texto = (data && data.text) ? String(data.text).trim() : '';
-            if (!texto) throw new Error('Resposta sem texto');
-            var nomeLivro = (data.book && data.book.name) ? data.book.name : parsed.refLimpa;
-            var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso;
-            var versaoNome = (BIBLIA_VERSOES.find(function (v) { return v.id === versao; }) || {}).nome || versao.toUpperCase();
-            // abreviação curta na referência
-            var sigla = versao.toUpperCase();
+            if (!texto) throw new Error('Sem texto');
+            var nomeLivro = (data.book && data.book.name) ? data.book.name : (BIBLIA_NOME_LIVRO[parsed.livro] || parsed.livro);
+            var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso + ' (' + versao.toUpperCase() + ')';
             return {
                 sucesso: true,
                 texto: texto,
-                referencia: refOut + ' (' + sigla + ')',
+                referencia: refOut,
                 versao: versao,
-                mensagem: 'Atualizado: ' + refOut + ' — ' + versaoNome
+                mensagem: 'Atualizado: ' + refOut
             };
         })
-        .catch(function (err) {
+        .catch(function () {
             return {
                 sucesso: false,
-                mensagem: (err && err.message) || 'Não foi possível buscar o versículo. Verifique a referência e a internet.'
+                mensagem: 'Este versículo ainda não está no banco local (NVI/ACF). Digite o texto manualmente ou use uma referência comum (ex: João 3:16, Mateus 18:20, 1 Pedro 4:10).'
             };
         });
 }
@@ -4015,9 +4255,10 @@ function buscarVersiculoBiblia(referencia, versao) {
 /** Preenche selects de versão da Bíblia na página */
 function preencherSelectsVersaoBiblia() {
     document.querySelectorAll('select.sel-versao-biblia').forEach(function (sel) {
-        if (sel.getAttribute('data-filled') === '1') return;
+        var atual = sel.value || 'nvi';
+        if (atual !== 'nvi' && atual !== 'acf') atual = 'nvi';
         sel.innerHTML = BIBLIA_VERSOES.map(function (v) {
-            return '<option value="' + v.id + '"' + (v.id === 'nvi' ? ' selected' : '') + '>' + v.nome + '</option>';
+            return '<option value="' + v.id + '"' + (v.id === atual ? ' selected' : '') + '>' + v.nome + '</option>';
         }).join('');
         sel.setAttribute('data-filled', '1');
     });
