@@ -4267,6 +4267,10 @@ function carregarBibliaCompleta(versao) {
         (baseLocal || '') + 'biblia/' + versao + '.json',
         'biblia/' + versao + '.json',
         './biblia/' + versao + '.json',
+        // também aceita na raiz do site (upload pelo GitHub sem pasta)
+        (baseLocal || '') + versao + '.json',
+        versao + '.json',
+        './' + versao + '.json',
         'https://cdn.jsdelivr.net/gh/thiagobodruk/biblia@master/json/' + versao + '.json',
         'https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/' + versao + '.json'
     ];
