@@ -734,9 +734,11 @@
             document.getElementById('escCelObs').value = '';
             try {
                 var vv = (typeof obterVersiculoEscala === 'function') ? obterVersiculoEscala('celula', celulaAberta) : null;
-                document.getElementById('escCelVersiculo').value = (vv && vv.texto) || '';
-                document.getElementById('escCelRef').value = (vv && vv.referencia) || '';
-            } catch (e) {}
+                var elV = document.getElementById('escCelVersiculo');
+                var elR = document.getElementById('escCelRef');
+                if (elV) elV.value = (vv && vv.texto) ? vv.texto : '';
+                if (elR) elR.value = (vv && vv.referencia) ? vv.referencia : '';
+            } catch (e) { console.warn('load versiculo', e); }
             montarCamposEscalaCelula();
             renderListaEscalaCelula();
             modal.classList.remove('hidden');
@@ -867,13 +869,14 @@
                     var iso = btn.getAttribute('data-iso');
                     var l = linhas.find(function (x) { return String(x.dataIso) === String(iso); });
                     if (!l) return;
-                    if (!l.versiculo || !l.versiculo.texto) {
-                        l.versiculo = {
-                            texto: (document.getElementById('escCelVersiculo') || {}).value || '',
-                            referencia: (document.getElementById('escCelRef') || {}).value || ''
-                        };
-                    }
-                    var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
+                    l.celulaId = l.celulaId || celulaAberta;
+                    var r = gerarCartazEscalaCelulaPng(
+                        nomeCelulaPorId(celulaAberta),
+                        l,
+                        null,
+                        (document.getElementById('escCelVersiculo') || {}).value,
+                        (document.getElementById('escCelRef') || {}).value
+                    );
                     if (!r.sucesso) alert(r.mensagem || 'Erro PNG');
                 };
             });
@@ -895,11 +898,19 @@
             salvarEscalaCelulaUI('finalizada');
         });
         document.getElementById('btnSalvarVersiculoCel') && document.getElementById('btnSalvarVersiculoCel').addEventListener('click', function () {
-            if (typeof salvarVersiculoEscala !== 'function') return;
-            var v = salvarVersiculoEscala('celula', celulaAberta,
-                (document.getElementById('escCelVersiculo') || {}).value,
-                (document.getElementById('escCelRef') || {}).value);
-            alert('Versículo da célula salvo.\n' + (v.referencia || ''));
+            if (typeof salvarVersiculoEscala !== 'function') {
+                alert('Função de versículo não carregada. Atualize o conta.js (Ctrl+F5).');
+                return;
+            }
+            if (!celulaAberta) { alert('Abra uma célula primeiro.'); return; }
+            var texto = ((document.getElementById('escCelVersiculo') || {}).value || '').trim();
+            var ref = ((document.getElementById('escCelRef') || {}).value || '').trim();
+            if (!texto) { alert('Digite o texto do versículo antes de salvar.'); return; }
+            var v = salvarVersiculoEscala('celula', celulaAberta, texto, ref);
+            document.getElementById('escCelVersiculo').value = v.texto || texto;
+            document.getElementById('escCelRef').value = v.referencia || ref;
+            alert('Versículo salvo para esta célula e aplicado nas escalas já cadastradas.\n' + (v.referencia || '') + '\n\nGere o PNG de novo para ver a mudança.');
+            try { renderListaEscalaCelula(); } catch (e) {}
         });
         document.getElementById('btnPngEscalaCel') && document.getElementById('btnPngEscalaCel').addEventListener('click', function () {
             var dataIso = document.getElementById('escCelData').value || escalaCelulaEditandoIso;
@@ -915,11 +926,14 @@
                     status: 'rascunho'
                 };
             }
-            l.versiculo = {
-                texto: (document.getElementById('escCelVersiculo') || {}).value || '',
-                referencia: (document.getElementById('escCelRef') || {}).value || ''
-            };
-            var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
+            l.celulaId = l.celulaId || celulaAberta;
+            var r = gerarCartazEscalaCelulaPng(
+                nomeCelulaPorId(celulaAberta),
+                l,
+                null,
+                (document.getElementById('escCelVersiculo') || {}).value,
+                (document.getElementById('escCelRef') || {}).value
+            );
             if (!r.sucesso) alert(r.mensagem || 'Erro ao gerar PNG');
         });
         document.getElementById('escCelData') && document.getElementById('escCelData').addEventListener('change', function () {

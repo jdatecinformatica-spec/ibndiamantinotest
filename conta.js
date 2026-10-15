@@ -1911,8 +1911,8 @@ function tituloCartazEscala(dataLabel, observacao, ministerio) {
  * Gera PNG do cartaz da escala do dia (para WhatsApp / salvar no celular).
  * linha = objeto de escala { dataLabel, dataIso, funcoes: {fn:[nomes]}, observacao, status }
  */
-function gerarCartazEscalaPng(ministerio, linha) {
-    var v = (linha && linha.versiculo) || obterVersiculoEscala('ministerio', ministerio || '');
+function gerarCartazEscalaPng(ministerio, linha, textoForm, refForm) {
+    var v = resolverVersiculoEscala('ministerio', ministerio || '', linha, textoForm, refForm);
     return gerarCartazEscalaElegante(
         'Escala de Serviço',
         ministerio || '',
@@ -3890,19 +3890,59 @@ function salvarVersiculosEscala(obj) {
 function obterVersiculoEscala(tipo, chave) {
     var all = lerVersiculosEscala();
     var mapa = (all[tipo] || {});
-    var v = mapa[chave];
-    if (v && v.texto) return v;
+    var k = String(chave || '').trim();
+    var v = mapa[k];
+    // tenta chave alternativa (nome vs id)
+    if ((!v || !v.texto) && k) {
+        Object.keys(mapa).forEach(function (mk) {
+            if (mk.toLowerCase() === k.toLowerCase()) v = mapa[mk];
+        });
+    }
+    if (v && v.texto) return { texto: v.texto, referencia: v.referencia || '' };
     return tipo === 'celula' ? Object.assign({}, VERSICULO_PADRAO_CELULA) : Object.assign({}, VERSICULO_PADRAO);
 }
 function salvarVersiculoEscala(tipo, chave, texto, referencia) {
     var all = lerVersiculosEscala();
     if (!all[tipo]) all[tipo] = {};
-    all[tipo][chave] = {
+    var k = String(chave || '').trim();
+    if (!k) return tipo === 'celula' ? Object.assign({}, VERSICULO_PADRAO_CELULA) : Object.assign({}, VERSICULO_PADRAO);
+    var salvo = {
         texto: String(texto || '').trim() || (tipo === 'celula' ? VERSICULO_PADRAO_CELULA.texto : VERSICULO_PADRAO.texto),
         referencia: String(referencia || '').trim() || (tipo === 'celula' ? VERSICULO_PADRAO_CELULA.referencia : VERSICULO_PADRAO.referencia)
     };
+    all[tipo][k] = salvo;
     salvarVersiculosEscala(all);
-    return all[tipo][chave];
+    // propaga para escalas já salvas dessa célula/ministério (atualiza PNG na próxima geração)
+    try {
+        if (tipo === 'celula' && typeof lerEscalaCelula === 'function' && typeof salvarEscalaCelula === 'function') {
+            var linhas = lerEscalaCelula(k);
+            var mudou = false;
+            linhas.forEach(function (l, i) {
+                linhas[i] = Object.assign({}, l, { versiculo: { texto: salvo.texto, referencia: salvo.referencia } });
+                mudou = true;
+            });
+            if (mudou) salvarEscalaCelula(k, linhas);
+        }
+        if (tipo === 'ministerio' && typeof lerEscalaCultosMinisterio === 'function' && typeof salvarEscalaCultosMinisterio === 'function') {
+            var linhasM = lerEscalaCultosMinisterio(k);
+            linhasM.forEach(function (l, i) {
+                linhasM[i] = Object.assign({}, l, { versiculo: { texto: salvo.texto, referencia: salvo.referencia } });
+            });
+            salvarEscalaCultosMinisterio(k, linhasM);
+        }
+    } catch (eProp) { console.warn('propagar versiculo', eProp); }
+    return salvo;
+}
+
+/** Resolve versículo: formulário > linha salva > padrão da chave > NVI global */
+function resolverVersiculoEscala(tipo, chave, linha, textoForm, refForm) {
+    var tf = String(textoForm || '').trim();
+    var rf = String(refForm || '').trim();
+    if (tf) return { texto: tf, referencia: rf || (obterVersiculoEscala(tipo, chave).referencia || '') };
+    if (linha && linha.versiculo && String(linha.versiculo.texto || '').trim()) {
+        return { texto: String(linha.versiculo.texto).trim(), referencia: String(linha.versiculo.referencia || '').trim() };
+    }
+    return obterVersiculoEscala(tipo, chave);
 }
 
 /** Quebra texto em linhas para canvas */
@@ -4166,8 +4206,10 @@ function gerarCartazEscalaElegante(titulo, subtitulo, linha, tipo, opts) {
     }
 }
 
-function gerarCartazEscalaCelulaPng(nomeCelula, linha, temaId) {
-    var v = (linha && linha.versiculo) || obterVersiculoEscala('celula', (linha && linha.celulaId) || nomeCelula || '');
+function gerarCartazEscalaCelulaPng(nomeCelula, linha, temaId, textoForm, refForm) {
+    var chave = (linha && linha.celulaId) || '';
+    // se não tem id na linha, tenta achar pelo nome nas células conhecidas não é necessário — caller passa form
+    var v = resolverVersiculoEscala('celula', chave || nomeCelula || '', linha, textoForm, refForm);
     return gerarCartazEscalaElegante(
         'Escala da Célula',
         nomeCelula || 'Célula',
