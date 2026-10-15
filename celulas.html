@@ -226,11 +226,19 @@
                 </div>
                 <div id="camposEscalaCelula" class="space-y-2"></div>
                 <input type="text" id="escCelObs" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Observação (opcional)">
-                <div class="border rounded-lg p-3 bg-cream/50 space-y-2" style="background:#faf6ef">
-                    <p class="text-xs font-bold text-primary">Versículo no cartaz (editável)</p>
+                <div class="border rounded-lg p-3 space-y-2" style="background:#faf6ef">
+                    <p class="text-xs font-bold text-primary">Versículo no cartaz (editável · NVI padrão)</p>
                     <textarea id="escCelVersiculo" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Texto do versículo"></textarea>
-                    <input type="text" id="escCelRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: Mateus 18:20)">
-                    <button type="button" id="btnSalvarVersiculoCel" class="text-xs font-bold text-primary underline">Salvar versículo padrão desta célula</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input type="text" id="escCelRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: Mateus 18:20)">
+                        <select id="escCelVersao" class="sel-versao-biblia w-full border rounded-lg px-3 py-2 text-sm"></select>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button type="button" id="btnAtualizarVersiculoCel" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+                            data-texto="escCelVersiculo" data-ref="escCelRef" data-versao="escCelVersao" data-msg="msgVersiculoCel">Atualizar texto</button>
+                        <button type="button" id="btnSalvarVersiculoCel" class="text-xs font-bold text-primary underline">Salvar padrão desta célula</button>
+                    </div>
+                    <p id="msgVersiculoCel" class="text-xs hidden"></p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" id="btnSalvarRascunhoEscalaCel" class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-bold">Salvar rascunho</button>
@@ -739,6 +747,8 @@
                 if (elV) elV.value = (vv && vv.texto) ? vv.texto : '';
                 if (elR) elR.value = (vv && vv.referencia) ? vv.referencia : '';
             } catch (e) { console.warn('load versiculo', e); }
+            try { if (typeof preencherSelectsVersaoBiblia === 'function') preencherSelectsVersaoBiblia(); } catch (e) {}
+            try { if (typeof ligarBotaoAtualizarVersiculo === 'function') ligarBotaoAtualizarVersiculo('btnAtualizarVersiculoCel'); } catch (e) {}
             montarCamposEscalaCelula();
             renderListaEscalaCelula();
             modal.classList.remove('hidden');

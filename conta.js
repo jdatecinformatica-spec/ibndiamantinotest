@@ -3869,6 +3869,211 @@ function removerDiaEscalaCelula(celulaId, dataIso) {
 
 
 /** Versículos padrão / salvos por ministério e célula */
+
+// ========== BÍBLIA (busca de versículo por versão — NVI padrão) ==========
+const BIBLIA_VERSOES = [
+    { id: 'nvi', nome: 'NVI — Nova Versão Internacional' },
+    { id: 'ra', nome: 'Almeida Revista e Atualizada (RA)' },
+    { id: 'acf', nome: 'Almeida Corrigida Fiel (ACF)' },
+    { id: 'abe', nome: 'Almeida Revista e Corrigida (ARC)' }
+];
+
+const BIBLIA_LIVROS = {
+    'genesis': 'gn', 'gênesis': 'gn', 'gn': 'gn', 'gen': 'gn',
+    'exodo': 'ex', 'êxodo': 'ex', 'ex': 'ex',
+    'levitico': 'lv', 'levítico': 'lv', 'lv': 'lv',
+    'numeros': 'nm', 'números': 'nm', 'nm': 'nm',
+    'deuteronomio': 'dt', 'deuteronômio': 'dt', 'dt': 'dt',
+    'josue': 'js', 'josué': 'js', 'js': 'js',
+    'juizes': 'jz', 'juízes': 'jz', 'jz': 'jz',
+    'rute': 'rt', 'rt': 'rt',
+    '1 samuel': '1sm', '1samuel': '1sm', '1sm': '1sm', 'i samuel': '1sm',
+    '2 samuel': '2sm', '2samuel': '2sm', '2sm': '2sm',
+    '1 reis': '1rs', '1reis': '1rs', '1rs': '1rs',
+    '2 reis': '2rs', '2reis': '2rs', '2rs': '2rs',
+    '1 cronicas': '1cr', '1crônicas': '1cr', '1cr': '1cr',
+    '2 cronicas': '2cr', '2crônicas': '2cr', '2cr': '2cr',
+    'esdras': 'ed', 'ed': 'ed',
+    'neemias': 'ne', 'ne': 'ne',
+    'ester': 'et', 'et': 'et',
+    'jo': 'job', 'jó': 'job', 'job': 'job',
+    'salmos': 'sl', 'salmo': 'sl', 'sl': 'sl', 'ps': 'sl',
+    'proverbios': 'pv', 'provérbios': 'pv', 'pv': 'pv',
+    'eclesiastes': 'ec', 'ec': 'ec',
+    'cantares': 'ct', 'cantico': 'ct', 'cântico': 'ct', 'ct': 'ct',
+    'isaias': 'is', 'isaías': 'is', 'is': 'is',
+    'jeremias': 'jr', 'jr': 'jr',
+    'lamentacoes': 'lm', 'lamentações': 'lm', 'lm': 'lm',
+    'ezequiel': 'ez', 'ez': 'ez',
+    'daniel': 'dn', 'dn': 'dn',
+    'oseias': 'os', 'oséias': 'os', 'os': 'os',
+    'joel': 'jl', 'jl': 'jl',
+    'amos': 'am', 'amós': 'am', 'am': 'am',
+    'obadias': 'ob', 'ob': 'ob',
+    'jonas': 'jn', 'jn': 'jn',
+    'miqueias': 'mq', 'mq': 'mq',
+    'naum': 'na', 'na': 'na',
+    'habacuque': 'hc', 'hc': 'hc',
+    'sofonias': 'sf', 'sf': 'sf',
+    'ageu': 'ag', 'ag': 'ag',
+    'zacarias': 'zc', 'zc': 'zc',
+    'malaquias': 'ml', 'ml': 'ml',
+    'mateus': 'mt', 'mt': 'mt', 'mat': 'mt',
+    'marcos': 'mc', 'mc': 'mc', 'mr': 'mc',
+    'lucas': 'lc', 'lc': 'lc', 'lc.': 'lc',
+    'joao': 'jo', 'joão': 'jo', 'jo': 'jo',
+    'atos': 'at', 'at': 'at',
+    'romanos': 'rm', 'rm': 'rm', 'rom': 'rm',
+    '1 corintios': '1co', '1corintios': '1co', '1 coríntios': '1co', '1co': '1co',
+    '2 corintios': '2co', '2corintios': '2co', '2 coríntios': '2co', '2co': '2co',
+    'galatas': 'gl', 'gálatas': 'gl', 'gl': 'gl',
+    'efesios': 'ef', 'efésios': 'ef', 'ef': 'ef',
+    'filipenses': 'fp', 'fp': 'fp',
+    'colossenses': 'cl', 'cl': 'cl',
+    '1 tessalonicenses': '1ts', '1tessalonicenses': '1ts', '1ts': '1ts',
+    '2 tessalonicenses': '2ts', '2tessalonicenses': '2ts', '2ts': '2ts',
+    '1 timoteo': '1tm', '1timoteo': '1tm', '1 timóteo': '1tm', '1tm': '1tm',
+    '2 timoteo': '2tm', '2timoteo': '2tm', '2 timóteo': '2tm', '2tm': '2tm',
+    'tito': 'tt', 'tt': 'tt',
+    'filemom': 'fm', 'fm': 'fm',
+    'hebreus': 'hb', 'hb': 'hb',
+    'tiago': 'tg', 'tg': 'tg',
+    '1 pedro': '1pe', '1pedro': '1pe', '1pe': '1pe',
+    '2 pedro': '2pe', '2pedro': '2pe', '2pe': '2pe',
+    '1 joao': '1jo', '1joao': '1jo', '1 joão': '1jo', '1jo': '1jo',
+    '2 joao': '2jo', '2joao': '2jo', '2 joão': '2jo', '2jo': '2jo',
+    '3 joao': '3jo', '3joao': '3jo', '3 joão': '3jo', '3jo': '3jo',
+    'judas': 'jd', 'jd': 'jd',
+    'apocalipse': 'ap', 'ap': 'ap', 'apo': 'ap'
+};
+
+/** Parseia "Mateus 18:20", "Mt 18:20-21", "1 Pedro 4:10" */
+function parseReferenciaBiblica(ref) {
+    var s = String(ref || '').trim();
+    // remove (NVI) etc
+    s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim();
+    var m = s.match(/^((?:[123]\s*)?[A-Za-zÀ-ú\.]+)\s+(\d+)\s*[:\.]\s*(\d+)(?:\s*[-–]\s*(\d+))?/i);
+    if (!m) return null;
+    var livroRaw = m[1].replace(/\./g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    var livroRaw2 = livroRaw.replace(/\s+/g, '');
+    var abrev = BIBLIA_LIVROS[livroRaw] || BIBLIA_LIVROS[livroRaw2];
+    if (!abrev) return null;
+    return {
+        livro: abrev,
+        capitulo: parseInt(m[2], 10),
+        verso: parseInt(m[3], 10),
+        versoFim: m[4] ? parseInt(m[4], 10) : null,
+        refLimpa: s
+    };
+}
+
+/**
+ * Busca versículo na API ABíblia Digital (pt-BR).
+ * versao: nvi | ra | acf | abe
+ * Retorna Promise<{ sucesso, texto, referencia, versao, mensagem }>
+ */
+function buscarVersiculoBiblia(referencia, versao) {
+    versao = String(versao || 'nvi').toLowerCase();
+    var parsed = parseReferenciaBiblica(referencia);
+    if (!parsed) {
+        return Promise.resolve({
+            sucesso: false,
+            mensagem: 'Referência inválida. Use o formato: Mateus 18:20 ou 1 Pedro 4:10'
+        });
+    }
+    var url = 'https://www.abibliadigital.com.br/api/verses/' + encodeURIComponent(versao) + '/' +
+        parsed.livro + '/' + parsed.capitulo + '/' + parsed.verso;
+    return fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Versículo não encontrado nesta versão (' + res.status + ')');
+            return res.json();
+        })
+        .then(function (data) {
+            var texto = (data && data.text) ? String(data.text).trim() : '';
+            if (!texto) throw new Error('Resposta sem texto');
+            var nomeLivro = (data.book && data.book.name) ? data.book.name : parsed.refLimpa;
+            var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso;
+            var versaoNome = (BIBLIA_VERSOES.find(function (v) { return v.id === versao; }) || {}).nome || versao.toUpperCase();
+            // abreviação curta na referência
+            var sigla = versao.toUpperCase();
+            return {
+                sucesso: true,
+                texto: texto,
+                referencia: refOut + ' (' + sigla + ')',
+                versao: versao,
+                mensagem: 'Atualizado: ' + refOut + ' — ' + versaoNome
+            };
+        })
+        .catch(function (err) {
+            return {
+                sucesso: false,
+                mensagem: (err && err.message) || 'Não foi possível buscar o versículo. Verifique a referência e a internet.'
+            };
+        });
+}
+
+/** Preenche selects de versão da Bíblia na página */
+function preencherSelectsVersaoBiblia() {
+    document.querySelectorAll('select.sel-versao-biblia').forEach(function (sel) {
+        if (sel.getAttribute('data-filled') === '1') return;
+        sel.innerHTML = BIBLIA_VERSOES.map(function (v) {
+            return '<option value="' + v.id + '"' + (v.id === 'nvi' ? ' selected' : '') + '>' + v.nome + '</option>';
+        }).join('');
+        sel.setAttribute('data-filled', '1');
+    });
+}
+
+/** Liga botão Atualizar versículo (data-texto, data-ref, data-versao, data-msg opcional) */
+function ligarBotaoAtualizarVersiculo(btnId) {
+    var btn = document.getElementById(btnId);
+    if (!btn || btn.getAttribute('data-bound') === '1') return;
+    btn.setAttribute('data-bound', '1');
+    btn.addEventListener('click', function () {
+        var idTexto = btn.getAttribute('data-texto');
+        var idRef = btn.getAttribute('data-ref');
+        var idVersao = btn.getAttribute('data-versao');
+        var idMsg = btn.getAttribute('data-msg');
+        var elT = document.getElementById(idTexto);
+        var elR = document.getElementById(idRef);
+        var elV = document.getElementById(idVersao);
+        var elM = idMsg ? document.getElementById(idMsg) : null;
+        var ref = elR ? elR.value.trim() : '';
+        var versao = elV ? elV.value : 'nvi';
+        if (!ref) {
+            alert('Informe a referência (ex: Mateus 18:20)');
+            return;
+        }
+        btn.disabled = true;
+        var old = btn.textContent;
+        btn.textContent = 'Buscando…';
+        if (elM) {
+            elM.classList.remove('hidden');
+            elM.className = 'text-xs text-blue-700 mt-1';
+            elM.textContent = 'Consultando a Bíblia (' + versao.toUpperCase() + ')…';
+        }
+        buscarVersiculoBiblia(ref, versao).then(function (r) {
+            btn.disabled = false;
+            btn.textContent = old;
+            if (r.sucesso) {
+                if (elT) elT.value = r.texto;
+                if (elR) elR.value = r.referencia;
+                if (elM) {
+                    elM.className = 'text-xs text-green-700 mt-1';
+                    elM.textContent = r.mensagem;
+                }
+            } else {
+                if (elM) {
+                    elM.className = 'text-xs text-red-600 mt-1';
+                    elM.textContent = r.mensagem;
+                } else {
+                    alert(r.mensagem);
+                }
+            }
+        });
+    });
+}
+
+
 const CHAVE_VERSICULOS_ESCALA = 'ibn_versiculos_escala';
 /** Padrão do site: NVI (Nova Versão Internacional — português Brasil) */
 const VERSICULO_PADRAO = {

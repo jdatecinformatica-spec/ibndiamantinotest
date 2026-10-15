@@ -967,11 +967,12 @@
                 if (typeof gerarCartazEscalaPng !== 'function') {
                     return window.alert('Função PNG indisponível. Atualize o conta.js.');
                 }
-                l.versiculo = {
-                    texto: (document.getElementById('escMinVersiculo') || {}).value || '',
-                    referencia: (document.getElementById('escMinRef') || {}).value || ''
-                };
-                var r = gerarCartazEscalaPng(minAtualModal, l);
+                var r = gerarCartazEscalaPng(
+                    minAtualModal,
+                    l,
+                    (document.getElementById('escMinVersiculo') || {}).value,
+                    (document.getElementById('escMinRef') || {}).value
+                );
                 if (!r.sucesso) window.alert(r.mensagem || 'Não foi possível gerar o PNG.');
                 else window.alert('Cartaz PNG baixado!\nAbra a pasta de downloads e envie no WhatsApp para a equipe.');
             });
@@ -1063,6 +1064,8 @@
         var tit = document.getElementById('modalEscalaTitulo');
         if (tit) tit.textContent = 'Escala — ' + nomeMin;
         function preencher() {
+            try { if (typeof preencherSelectsVersaoBiblia === 'function') preencherSelectsVersaoBiblia(); } catch (e0) {}
+            try { if (typeof ligarBotaoAtualizarVersiculo === 'function') ligarBotaoAtualizarVersiculo('btnAtualizarVersiculoMin'); } catch (e1) {}
             try {
                 var vv = (typeof obterVersiculoEscala === 'function') ? obterVersiculoEscala('ministerio', nomeMin) : null;
                 var elV = document.getElementById('escMinVersiculo');
@@ -1437,11 +1440,20 @@
 
         document.getElementById('btnSalvarVersiculoMin') && document.getElementById('btnSalvarVersiculoMin').addEventListener('click', function () {
             var min = (typeof minAtualModal !== 'undefined') ? minAtualModal : '';
-            if (!min || typeof salvarVersiculoEscala !== 'function') return;
-            var v = salvarVersiculoEscala('ministerio', min,
-                (document.getElementById('escMinVersiculo') || {}).value,
-                (document.getElementById('escMinRef') || {}).value);
-            alert('Versículo do ministério salvo.\n' + (v.referencia || ''));
+            if (!min) { alert('Abra a escala de um ministério.'); return; }
+            if (typeof salvarVersiculoEscala !== 'function') {
+                alert('Atualize o conta.js (Ctrl+F5).');
+                return;
+            }
+            var texto = ((document.getElementById('escMinVersiculo') || {}).value || '').trim();
+            var ref = ((document.getElementById('escMinRef') || {}).value || '').trim();
+            if (!texto) { alert('Digite o versículo antes de salvar.'); return; }
+            var v = salvarVersiculoEscala('ministerio', min, texto, ref);
+            var elV = document.getElementById('escMinVersiculo');
+            var elR = document.getElementById('escMinRef');
+            if (elV) elV.value = v.texto || texto;
+            if (elR) elR.value = v.referencia || ref;
+            alert('Versículo salvo para este ministério e aplicado nas escalas já cadastradas.\n' + (v.referencia || '') + '\n\nGere o PNG de novo para ver a mudança.');
         });
 
 </script>
@@ -1505,10 +1517,18 @@
     <div class="border-t px-4 py-2 flex flex-wrap gap-2 justify-end bg-gray-50">
 
                 <div class="border rounded-lg p-3 my-3 space-y-2" style="background:#faf6ef">
-                    <p class="text-xs font-bold text-primary">Versículo no cartaz PNG (editável por ministério)</p>
+                    <p class="text-xs font-bold text-primary">Versículo no cartaz PNG (editável · NVI padrão)</p>
                     <textarea id="escMinVersiculo" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Texto do versículo"></textarea>
-                    <input type="text" id="escMinRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: 1 Pedro 4:10)">
-                    <button type="button" id="btnSalvarVersiculoMin" class="text-xs font-bold text-primary underline">Salvar versículo padrão deste ministério</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input type="text" id="escMinRef" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Referência (ex: 1 Pedro 4:10)">
+                        <select id="escMinVersao" class="sel-versao-biblia w-full border rounded-lg px-3 py-2 text-sm"></select>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button type="button" id="btnAtualizarVersiculoMin" class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+                            data-texto="escMinVersiculo" data-ref="escMinRef" data-versao="escMinVersao" data-msg="msgVersiculoMin">Atualizar texto</button>
+                        <button type="button" id="btnSalvarVersiculoMin" class="text-xs font-bold text-primary underline">Salvar padrão deste ministério</button>
+                    </div>
+                    <p id="msgVersiculoMin" class="text-xs hidden"></p>
                 </div>
       <button type="button" id="btnCsvEscalaModal" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">Baixar CSV (todos os dias)</button>
       <button type="button" id="btnWhatsEscalaModal" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Lembretes WhatsApp (próximo dia)</button>
