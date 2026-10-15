@@ -3818,3 +3818,288 @@ function transferirTitularidadeGestor(novoGestorMembroId) {
     };
 }
 
+
+
+// ========== ESCALA DA REUNIÃO DE CÉLULA ==========
+const CHAVE_ESCALA_CELULAS = 'ibn_escala_celulas';
+
+/** Modelo padrão de tempos da reunião de célula */
+const MODELO_ESCALA_CELULA = [
+    { id: 'oracao_inicial', nome: 'Oração inicial', minutos: 2 },
+    { id: 'louvor', nome: 'Louvor', minutos: 8 },
+    { id: 'quebra_gelo', nome: 'Quebra Gelo', minutos: 10 },
+    { id: 'oferta', nome: 'Oferta', minutos: 5 },
+    { id: 'palavra', nome: 'Palavra', minutos: 30 },
+    { id: 'oracao_final', nome: 'Oração final e Avisos', minutos: 5 }
+];
+
+function lerTodasEscalasCelulas() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_ESCALA_CELULAS) || '{}'); }
+    catch (e) { return {}; }
+}
+function salvarTodasEscalasCelulas(obj) {
+    localStorage.setItem(CHAVE_ESCALA_CELULAS, JSON.stringify(obj || {}));
+}
+function lerEscalaCelula(celulaId) {
+    var all = lerTodasEscalasCelulas();
+    var arr = all[celulaId] || [];
+    return Array.isArray(arr) ? arr : [];
+}
+function salvarEscalaCelula(celulaId, linhas) {
+    var all = lerTodasEscalasCelulas();
+    all[celulaId] = Array.isArray(linhas) ? linhas : [];
+    salvarTodasEscalasCelulas(all);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.sincronizarEscalaCelula) {
+            IBNNuvem.sincronizarEscalaCelula(celulaId, all[celulaId]).then(function (r) {
+                if (r && r.sucesso === false && typeof avisarFalhaNuvem === 'function') {
+                    avisarFalhaNuvem('escala da célula', r.mensagem);
+                }
+            }).catch(function () {});
+        }
+    } catch (e) {}
+}
+
+/** Líder da célula ou líder em treinamento (admin/gestor também) */
+function podeEditarEscalaCelula(celulaId) {
+    var u = getUsuarioLogado();
+    if (!u) return false;
+    if (isAdmin(u) || isGestor(u)) return true;
+    if (isLiderCelula(u, celulaId)) return true;
+    // líder em treinamento explícito
+    if (Array.isArray(u.celulas)) {
+        return u.celulas.some(function (c) {
+            var id = typeof idCelulaDe === 'function' ? idCelulaDe(c) : (c && c.id);
+            if (String(id) !== String(celulaId)) return false;
+            var papel = String(c.papel || c.funcao || '').toLowerCase();
+            var papeis = Array.isArray(c.papeis) ? c.papeis.map(function (x) { return String(x).toLowerCase(); }) : [];
+            return papel.indexOf('treino') !== -1 || papel.indexOf('treinamento') !== -1 ||
+                papeis.indexOf('lider_treino') !== -1 || papeis.indexOf('lider_em_treinamento') !== -1;
+        });
+    }
+    return false;
+}
+
+/**
+ * Quem pode ser escalado: integrantes da célula (líder → visitante)
+ * e visitantes assíduos cadastrados na célula / com celulaId.
+ */
+function pessoasEscalaveisCelula(celulaId) {
+    var porNome = {};
+    function add(p) {
+        if (!p || !p.nome) return;
+        var k = String(p.nome).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (!k) return;
+        if (!porNome[k]) porNome[k] = p;
+    }
+    // membros e visitantes vinculados à célula no cadastro
+    var membros = (typeof membrosDaCelula === 'function') ? membrosDaCelula(celulaId) : [];
+    membros.forEach(function (m) {
+        if (typeof isContaSistema === 'function' && isContaSistema(m)) return;
+        var tipo = (m.status === 'visitante' || m.tipo === 'visitante') ? 'visitante' : 'membro';
+        add({
+            id: m.id,
+            nome: m.nome,
+            telefone: m.telefone || '',
+            tipo: tipo,
+            origem: 'membro'
+        });
+    });
+    // visitantes da base de acolhimento ligados a esta célula
+    try {
+        var vis = (typeof lerVisitantes === 'function') ? lerVisitantes() : [];
+        vis.forEach(function (v) {
+            var cid = v.celulaId || v.celula || '';
+            if (cid && String(cid) !== String(celulaId)) return;
+            // se não tem celulaId, só inclui se observações mencionam — melhor exigir vínculo
+            if (!cid) return;
+            add({
+                id: v.id,
+                nome: v.nome,
+                telefone: v.telefone || '',
+                tipo: 'visitante',
+                origem: 'visitante'
+            });
+        });
+    } catch (e) {}
+    return Object.keys(porNome).map(function (k) { return porNome[k]; })
+        .sort(function (a, b) { return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'); });
+}
+
+function salvarDiaEscalaCelula(dados) {
+    var celulaId = dados.celulaId;
+    if (!celulaId) return { sucesso: false, mensagem: 'Célula não informada.' };
+    if (!podeEditarEscalaCelula(celulaId)) {
+        return { sucesso: false, mensagem: 'Só o líder da célula ou líder em treinamento pode montar a escala.' };
+    }
+    var dataIso = dados.dataIso || '';
+    var dataLabel = dados.dataLabel || dataIso;
+    if (!dataIso && dataLabel && typeof parseDataEscalaLabel === 'function') {
+        var pd = parseDataEscalaLabel(dataLabel);
+        if (pd) dataIso = pd.iso;
+    }
+    if (!dataIso) return { sucesso: false, mensagem: 'Informe a data da reunião.' };
+
+    var funcoes = dados.funcoes || {};
+    // garante chaves do modelo
+    MODELO_ESCALA_CELULA.forEach(function (f) {
+        if (!funcoes[f.nome]) funcoes[f.nome] = [];
+        if (!Array.isArray(funcoes[f.nome])) funcoes[f.nome] = [String(funcoes[f.nome])].filter(Boolean);
+    });
+
+    var status = dados.status === 'finalizada' ? 'finalizada' : 'rascunho';
+    var linhas = lerEscalaCelula(celulaId);
+    var idx = linhas.findIndex(function (l) {
+        return String(l.dataIso || '') === String(dataIso) || String(l.dataLabel || '') === String(dataLabel);
+    });
+    var linha = {
+        dataIso: dataIso,
+        dataLabel: dataLabel,
+        funcoes: funcoes,
+        observacao: String(dados.observacao || '').trim(),
+        status: status,
+        celulaId: celulaId,
+        atualizadoEm: new Date().toISOString(),
+        atualizadoPor: (getUsuarioLogado() || {}).nome || ''
+    };
+    if (idx >= 0) linhas[idx] = Object.assign({}, linhas[idx], linha);
+    else linhas.push(linha);
+    linhas.sort(function (a, b) {
+        return String(a.dataIso || a.dataLabel).localeCompare(String(b.dataIso || b.dataLabel));
+    });
+    salvarEscalaCelula(celulaId, linhas);
+    try {
+        if (typeof IBNNuvem !== 'undefined' && IBNNuvem.registrarAtividade) {
+            IBNNuvem.registrarAtividade('escala_celula', (status === 'finalizada' ? 'Finalizou' : 'Salvou rascunho de') + ' escala célula ' + celulaId + ' ' + dataLabel, getUsuarioLogado());
+        }
+    } catch (e) {}
+    return { sucesso: true, linha: linha, linhas: linhas, mensagem: status === 'finalizada' ? 'Escala finalizada.' : 'Rascunho salvo.' };
+}
+
+function removerDiaEscalaCelula(celulaId, dataIso) {
+    if (!podeEditarEscalaCelula(celulaId)) return { sucesso: false, mensagem: 'Sem permissão.' };
+    var linhas = lerEscalaCelula(celulaId).filter(function (l) {
+        return String(l.dataIso || '') !== String(dataIso);
+    });
+    salvarEscalaCelula(celulaId, linhas);
+    return { sucesso: true };
+}
+
+/** PNG da escala da célula (modelo semelhante ao dos ministérios) */
+function gerarCartazEscalaCelulaPng(nomeCelula, linha) {
+    if (!linha) return { sucesso: false, mensagem: 'Sem dados da escala.' };
+    var W = 720;
+    var tema = {
+        header: '#0A1A3F',
+        aviso: '#e8f0fe',
+        th: '#1E3A8A',
+        linha: '#f0f4fa',
+        fundo: '#ffffff',
+        borda: '#D4AF37'
+    };
+    var pares = [];
+    MODELO_ESCALA_CELULA.forEach(function (f) {
+        var nomes = (linha.funcoes && linha.funcoes[f.nome]) ? linha.funcoes[f.nome] : [];
+        if (!Array.isArray(nomes)) nomes = [nomes];
+        nomes = nomes.filter(Boolean);
+        pares.push({
+            funcao: f.nome + ' (' + f.minutos + ' min)',
+            nomes: nomes.length ? nomes.join(', ') : '—'
+        });
+    });
+    var headerH = 88;
+    var avisoH = 36;
+    var rowH = 40;
+    var thH = 36;
+    var obsH = linha.observacao ? 40 : 0;
+    var footerH = 36;
+    var H = 14 + headerH + avisoH + thH + pares.length * rowH + obsH + footerH + 14;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = tema.fundo;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = tema.borda;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(6, 6, W - 12, H - 12);
+
+    // header
+    ctx.fillStyle = tema.header;
+    ctx.fillRect(14, 14, W - 28, headerH);
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = 'bold 22px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('ESCALA DA CÉLULA', W / 2, 44);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Segoe UI, Arial, sans-serif';
+    ctx.fillText(String(nomeCelula || 'Célula'), W / 2, 70);
+    ctx.font = '13px Segoe UI, Arial, sans-serif';
+    ctx.fillText(String(linha.dataLabel || linha.dataIso || ''), W / 2, 92);
+
+    // aviso tempos
+    ctx.fillStyle = tema.aviso;
+    ctx.fillRect(14, 14 + headerH, W - 28, avisoH);
+    ctx.fillStyle = tema.th;
+    ctx.font = '12px Segoe UI, Arial, sans-serif';
+    ctx.fillText('Oração 2′ · Louvor 8′ · Quebra Gelo 10′ · Oferta 5′ · Palavra 30′ · Final/Avisos 5′', W / 2, 14 + headerH + 24);
+
+    var ty = 14 + headerH + avisoH;
+    ctx.fillStyle = tema.th;
+    ctx.fillRect(14, ty, W - 28, thH);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Momento', 28, ty + 24);
+    ctx.fillText('Responsável', 280, ty + 24);
+
+    pares.forEach(function (p, i) {
+        var y = ty + thH + i * rowH;
+        ctx.fillStyle = i % 2 ? tema.linha : '#fff';
+        ctx.fillRect(14, y, W - 28, rowH);
+        ctx.fillStyle = tema.header;
+        ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+        ctx.fillText(p.funcao, 28, y + 26);
+        ctx.fillStyle = '#333';
+        ctx.font = '14px Segoe UI, Arial, sans-serif';
+        ctx.fillText(p.nomes, 280, y + 26);
+    });
+
+    if (linha.observacao) {
+        var oy = ty + thH + pares.length * rowH;
+        ctx.fillStyle = '#fef3c7';
+        ctx.fillRect(14, oy, W - 28, obsH);
+        ctx.fillStyle = '#78350f';
+        ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(linha.observacao), W / 2, oy + 26);
+    }
+
+    ctx.fillStyle = tema.header;
+    ctx.fillRect(14, H - footerH - 14, W - 28, footerH);
+    ctx.fillStyle = '#faf6ee';
+    ctx.font = '11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('IBN Diamantino · Células · ' + (linha.status === 'finalizada' ? 'Finalizada' : 'Rascunho'), W / 2, H - footerH + 8);
+
+    try {
+        var nomeArq = 'escala_celula_' + String(nomeCelula || 'cel').replace(/\s+/g, '_').toLowerCase() + '_' +
+            String(linha.dataLabel || linha.dataIso || 'dia').replace(/[^\w\-]/g, '_') + '.png';
+        canvas.toBlob(function (blob) {
+            if (!blob) return;
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = nomeArq;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () {
+                try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {}
+            }, 800);
+        }, 'image/png');
+        return { sucesso: true, mensagem: 'PNG gerado: ' + nomeArq };
+    } catch (e) {
+        return { sucesso: false, mensagem: (e && e.message) || String(e) };
+    }
+}

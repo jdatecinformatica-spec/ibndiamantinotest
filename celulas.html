@@ -145,6 +145,15 @@
                 </div>
             </div>
 
+            <!-- Escala da reunião -->
+            <div id="blocoEscalaCelula" class="hidden mb-6 border rounded-xl p-4 bg-white border-primary/20">
+                <h3 class="font-bold text-primary mb-1"><i class="fa fa-list-ol"></i> Escala da reunião</h3>
+                <p class="text-xs text-gray-500 mb-3">Modelo: Oração 2′ · Louvor 8′ · Quebra Gelo 10′ · Oferta 5′ · Palavra 30′ · Final/Avisos 5′. Líder ou líder em treinamento monta; pode incluir visitantes assíduos.</p>
+                <button type="button" id="btnAbrirEscalaCelula" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent">
+                    <i class="fa fa-calendar"></i> Ver / montar escala
+                </button>
+            </div>
+
             <!-- Relatórios -->
             <div id="blocoRelatorios" class="hidden border-t pt-5">
                 <h3 class="font-bold text-primary mb-3"><i class="fa fa-file-text-o"></i> Relatório de presença e ofertas</h3>
@@ -198,6 +207,38 @@
                 <div id="listaRelatorios" class="space-y-2 text-sm"></div>
             </div>
         </div>
+    
+    <!-- Modal Escala da Célula -->
+    <div id="modalEscalaCelula" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-3">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+            <div class="bg-primary text-white px-4 py-3 rounded-t-2xl flex justify-between items-center sticky top-0 z-10">
+                <h2 id="tituloModalEscalaCelula" class="font-bold text-lg">Escala da célula</h2>
+                <button type="button" id="btnFecharModalEscalaCelula" class="text-white/90 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <p class="text-xs text-gray-500">Uma pessoa por momento; a mesma pessoa pode fazer dois ou mais momentos. Escaláveis: do líder ao visitante da célula.</p>
+                <div id="listaEscalaCelulaModal" class="space-y-2 text-sm"></div>
+                <hr>
+                <h3 class="font-bold text-primary text-sm">Novo dia / editar</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" id="escCelData" class="border rounded-lg px-3 py-2 text-sm">
+                    <input type="text" id="escCelLabel" class="border rounded-lg px-3 py-2 text-sm" placeholder="Ex: TER 15/10">
+                </div>
+                <div id="camposEscalaCelula" class="space-y-2"></div>
+                <input type="text" id="escCelObs" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Observação (opcional)">
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="btnSalvarRascunhoEscalaCel" class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-bold">Salvar rascunho</button>
+                    <button type="button" id="btnFinalizarEscalaCel" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold">Finalizar escala</button>
+                    <button type="button" id="btnPngEscalaCel" class="bg-primary text-white px-3 py-2 rounded-lg text-sm font-bold">Baixar PNG</button>
+                </div>
+                <p id="msgEscalaCelula" class="text-sm hidden"></p>
+                <div class="flex justify-end gap-2 pt-2 border-t">
+                    <button type="button" id="btnSairEscalaCel" class="border px-4 py-2 rounded-lg text-sm font-bold">Sair</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -295,6 +336,14 @@
             document.getElementById('papelLider').textContent = nomeOuTraco(eq.lider);
             document.getElementById('papelAnfitriao').textContent = nomeOuTraco(eq.anfitriao);
             document.getElementById('papelTreino').textContent = nomeOuTraco(eq.liderTreino);
+            var blEsc0 = document.getElementById('blocoEscalaCelula');
+            if (blEsc0) {
+                if ((typeof podeEditarEscalaCelula === 'function' && podeEditarEscalaCelula(id)) || (typeof isAdmin === 'function' && isAdmin())) {
+                    blEsc0.classList.remove('hidden');
+                } else {
+                    blEsc0.classList.add('hidden');
+                }
+            }
 
             const ul = document.getElementById('listaMembrosCelula');
             if (!eq.membros.length) {
@@ -658,6 +707,192 @@
         // Abre célula se veio na URL ?id=
         var params = new URLSearchParams(window.location.search);
         if (params.get('id')) abrirCelula(params.get('id'));
+    
+        // ===== ESCALA DA CÉLULA =====
+        var escalaCelulaEditandoIso = null;
+        function nomeCelulaPorId(id) {
+            var c = LISTA_CELULAS.find(function (x) { return x.id === id; });
+            return c ? c.nome : id;
+        }
+        function abrirModalEscalaCelula() {
+            if (!celulaAberta) return;
+            if (typeof podeEditarEscalaCelula === 'function' && !podeEditarEscalaCelula(celulaAberta)) {
+                alert('Só o líder da célula ou líder em treinamento pode montar a escala.');
+                return;
+            }
+            var modal = document.getElementById('modalEscalaCelula');
+            document.getElementById('tituloModalEscalaCelula').textContent = 'Escala — ' + nomeCelulaPorId(celulaAberta);
+            escalaCelulaEditandoIso = null;
+            document.getElementById('escCelData').value = '';
+            document.getElementById('escCelLabel').value = '';
+            document.getElementById('escCelObs').value = '';
+            montarCamposEscalaCelula();
+            renderListaEscalaCelula();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            try {
+                if (typeof IBNNuvem !== 'undefined' && IBNNuvem.puxarEscalasCelulaParaLocal) {
+                    IBNNuvem.puxarEscalasCelulaParaLocal().then(function () { renderListaEscalaCelula(); }).catch(function () {});
+                }
+            } catch (e) {}
+        }
+        function fecharModalEscalaCelula() {
+            var modal = document.getElementById('modalEscalaCelula');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        function montarCamposEscalaCelula(prefill) {
+            var box = document.getElementById('camposEscalaCelula');
+            var pessoas = (typeof pessoasEscalaveisCelula === 'function') ? pessoasEscalaveisCelula(celulaAberta) : [];
+            var modelo = (typeof MODELO_ESCALA_CELULA !== 'undefined') ? MODELO_ESCALA_CELULA : [];
+            prefill = prefill || {};
+            box.innerHTML = modelo.map(function (f) {
+                var escolhido = '';
+                if (prefill[f.nome] && prefill[f.nome].length) escolhido = prefill[f.nome][0];
+                var opts = '<option value="">— escolher —</option>' + pessoas.map(function (p) {
+                    var tag = p.tipo === 'visitante' ? ' (visitante)' : '';
+                    var sel = (escolhido && String(escolhido).toLowerCase() === String(p.nome).toLowerCase()) ? ' selected' : '';
+                    return '<option value="' + String(p.nome).replace(/"/g, '&quot;') + '"' + sel + '>' + (p.nome || '') + tag + '</option>';
+                }).join('');
+                return '<div class="border rounded-lg px-3 py-2">' +
+                    '<label class="text-xs font-bold text-primary">' + f.nome + ' <span class="text-gray-400 font-normal">(' + f.minutos + ' min)</span></label>' +
+                    '<select class="esc-cel-fn w-full mt-1 border rounded-lg px-2 py-1.5 text-sm" data-fn="' + f.nome + '">' + opts + '</select>' +
+                    '</div>';
+            }).join('');
+        }
+        function coletarFuncoesEscalaCelula() {
+            var funcoes = {};
+            document.querySelectorAll('.esc-cel-fn').forEach(function (sel) {
+                var fn = sel.getAttribute('data-fn');
+                var v = (sel.value || '').trim();
+                funcoes[fn] = v ? [v] : [];
+            });
+            return funcoes;
+        }
+        function labelDeDataIso(iso) {
+            if (!iso) return '';
+            var p = String(iso).split('-');
+            if (p.length < 3) return iso;
+            var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+            var dias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+            return dias[d.getDay()] + ' ' + p[2] + '/' + p[1];
+        }
+        function salvarEscalaCelulaUI(status) {
+            var dataIso = document.getElementById('escCelData').value;
+            var label = document.getElementById('escCelLabel').value.trim();
+            if (!dataIso && !label) { alert('Informe a data.'); return; }
+            if (!label && dataIso) label = labelDeDataIso(dataIso);
+            var r = salvarDiaEscalaCelula({
+                celulaId: celulaAberta,
+                dataIso: dataIso || escalaCelulaEditandoIso || '',
+                dataLabel: label,
+                funcoes: coletarFuncoesEscalaCelula(),
+                observacao: document.getElementById('escCelObs').value.trim(),
+                status: status
+            });
+            var msg = document.getElementById('msgEscalaCelula');
+            msg.classList.remove('hidden');
+            msg.className = 'text-sm ' + (r.sucesso ? 'text-green-600' : 'text-red-600');
+            msg.textContent = r.mensagem || (r.sucesso ? 'Ok' : 'Erro');
+            if (r.sucesso) {
+                escalaCelulaEditandoIso = r.linha.dataIso;
+                renderListaEscalaCelula();
+            }
+        }
+        function renderListaEscalaCelula() {
+            var box = document.getElementById('listaEscalaCelulaModal');
+            var linhas = (typeof lerEscalaCelula === 'function') ? lerEscalaCelula(celulaAberta) : [];
+            var inc = linhas.filter(function (l) { return l.status !== 'finalizada'; });
+            var fin = linhas.filter(function (l) { return l.status === 'finalizada'; });
+            function itemHtml(l, incompleta) {
+                var n = 0;
+                Object.keys(l.funcoes || {}).forEach(function (k) {
+                    if ((l.funcoes[k] || []).length) n++;
+                });
+                return '<div class="border rounded-lg px-3 py-2 ' + (incompleta ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50') + '">' +
+                    '<div class="flex justify-between items-center gap-2">' +
+                    '<span class="font-bold text-sm">' + (l.dataLabel || l.dataIso) +
+                    (incompleta ? ' <span class="text-amber-700 text-xs">Rascunho</span>' : ' <span class="text-green-700 text-xs">Finalizada</span>') +
+                    ' · ' + n + ' momento(s)</span>' +
+                    '<span class="flex gap-1 flex-wrap">' +
+                    '<button type="button" class="btn-ed-esc-cel text-xs font-bold underline" data-iso="' + (l.dataIso || '') + '">Editar</button>' +
+                    '<button type="button" class="btn-png-esc-cel text-xs font-bold text-primary underline" data-iso="' + (l.dataIso || '') + '">PNG</button>' +
+                    '<button type="button" class="btn-rem-esc-cel text-xs font-bold text-red-600 underline" data-iso="' + (l.dataIso || '') + '">Excluir</button>' +
+                    '</span></div></div>';
+            }
+            var html = '';
+            if (inc.length) {
+                html += '<p class="text-xs font-bold text-amber-800">Incompletas / rascunhos (' + inc.length + ')</p>';
+                html += inc.map(function (l) { return itemHtml(l, true); }).join('');
+            }
+            if (fin.length) {
+                html += '<p class="text-xs font-bold text-green-800 mt-2">Completas / finalizadas (' + fin.length + ')</p>';
+                html += fin.map(function (l) { return itemHtml(l, false); }).join('');
+            }
+            if (!linhas.length) html = '<p class="text-gray-400 text-sm">Nenhuma escala ainda. Monte abaixo.</p>';
+            box.innerHTML = html;
+            box.querySelectorAll('.btn-ed-esc-cel').forEach(function (btn) {
+                btn.onclick = function () {
+                    var iso = btn.getAttribute('data-iso');
+                    var l = linhas.find(function (x) { return String(x.dataIso) === String(iso); });
+                    if (!l) return;
+                    escalaCelulaEditandoIso = l.dataIso;
+                    document.getElementById('escCelData').value = l.dataIso || '';
+                    document.getElementById('escCelLabel').value = l.dataLabel || '';
+                    document.getElementById('escCelObs').value = l.observacao || '';
+                    montarCamposEscalaCelula(l.funcoes || {});
+                };
+            });
+            box.querySelectorAll('.btn-png-esc-cel').forEach(function (btn) {
+                btn.onclick = function () {
+                    var iso = btn.getAttribute('data-iso');
+                    var l = linhas.find(function (x) { return String(x.dataIso) === String(iso); });
+                    if (!l) return;
+                    var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
+                    if (!r.sucesso) alert(r.mensagem || 'Erro PNG');
+                };
+            });
+            box.querySelectorAll('.btn-rem-esc-cel').forEach(function (btn) {
+                btn.onclick = function () {
+                    if (!confirm('Excluir esta escala?')) return;
+                    removerDiaEscalaCelula(celulaAberta, btn.getAttribute('data-iso'));
+                    renderListaEscalaCelula();
+                };
+            });
+        }
+
+        document.getElementById('btnAbrirEscalaCelula') && document.getElementById('btnAbrirEscalaCelula').addEventListener('click', abrirModalEscalaCelula);
+        document.getElementById('btnFecharModalEscalaCelula') && document.getElementById('btnFecharModalEscalaCelula').addEventListener('click', fecharModalEscalaCelula);
+        document.getElementById('btnSairEscalaCel') && document.getElementById('btnSairEscalaCel').addEventListener('click', fecharModalEscalaCelula);
+        document.getElementById('btnSalvarRascunhoEscalaCel') && document.getElementById('btnSalvarRascunhoEscalaCel').addEventListener('click', function () { salvarEscalaCelulaUI('rascunho'); });
+        document.getElementById('btnFinalizarEscalaCel') && document.getElementById('btnFinalizarEscalaCel').addEventListener('click', function () {
+            if (!confirm('Finalizar esta escala do dia?')) return;
+            salvarEscalaCelulaUI('finalizada');
+        });
+        document.getElementById('btnPngEscalaCel') && document.getElementById('btnPngEscalaCel').addEventListener('click', function () {
+            var dataIso = document.getElementById('escCelData').value || escalaCelulaEditandoIso;
+            var linhas = lerEscalaCelula(celulaAberta);
+            var l = linhas.find(function (x) { return String(x.dataIso) === String(dataIso); });
+            if (!l) {
+                // tenta montar da tela atual sem salvar
+                l = {
+                    dataIso: dataIso,
+                    dataLabel: document.getElementById('escCelLabel').value || labelDeDataIso(dataIso),
+                    funcoes: coletarFuncoesEscalaCelula(),
+                    observacao: document.getElementById('escCelObs').value,
+                    status: 'rascunho'
+                };
+            }
+            var r = gerarCartazEscalaCelulaPng(nomeCelulaPorId(celulaAberta), l);
+            if (!r.sucesso) alert(r.mensagem || 'Erro ao gerar PNG');
+        });
+        document.getElementById('escCelData') && document.getElementById('escCelData').addEventListener('change', function () {
+            var v = this.value;
+            if (v && !document.getElementById('escCelLabel').value) {
+                document.getElementById('escCelLabel').value = labelDeDataIso(v);
+            }
+        });
+
     </script>
 </body>
 </html>

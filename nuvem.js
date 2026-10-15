@@ -882,6 +882,53 @@ const IBNNuvem = (function () {
         });
         return Object.keys(por).map(function (k) { return por[k]; });
     }
+    
+    async function sincronizarEscalaCelula(celulaId, linhas) {
+        if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
+        try {
+            var id = String(celulaId || 'geral').toLowerCase().replace(/\s+/g, '_');
+            await db.collection('escalas_celula').doc(id).set({
+                celulaId: celulaId || '',
+                linhas: linhas || [],
+                atualizadoEm: new Date().toISOString()
+            }, { merge: false });
+            return { sucesso: true };
+        } catch (e) {
+            ultimoErro = (e && e.message) || String(e);
+            return { sucesso: false, mensagem: ultimoErro };
+        }
+    }
+    async function puxarEscalasCelulaParaLocal() {
+        if (!iniciar() || !db) return { sucesso: false };
+        try {
+            var snap = await db.collection('escalas_celula').get();
+            var all = {};
+            try { all = JSON.parse(localStorage.getItem('ibn_escala_celulas') || '{}'); } catch (e) { all = {}; }
+            snap.forEach(function (doc) {
+                var d = doc.data() || {};
+                var cid = d.celulaId || doc.id;
+                var nuvem = Array.isArray(d.linhas) ? d.linhas : [];
+                var local = Array.isArray(all[cid]) ? all[cid] : [];
+                var por = {};
+                local.concat(nuvem).forEach(function (l) {
+                    if (!l) return;
+                    var k = String(l.dataIso || l.dataLabel || '');
+                    if (!k) return;
+                    var prev = por[k];
+                    if (!prev) { por[k] = l; return; }
+                    var t1 = Date.parse(prev.atualizadoEm || '') || 0;
+                    var t2 = Date.parse(l.atualizadoEm || '') || 0;
+                    por[k] = t2 >= t1 ? l : prev;
+                });
+                all[cid] = Object.keys(por).map(function (k) { return por[k]; });
+            });
+            localStorage.setItem('ibn_escala_celulas', JSON.stringify(all));
+            return { sucesso: true };
+        } catch (e) {
+            return { sucesso: false, mensagem: (e && e.message) || String(e) };
+        }
+    }
+
     async function sincronizarEscalaMinisterio(ministerio, linhas) {
         if (!iniciar() || !db) return { sucesso: false, mensagem: ultimoErro || 'Nuvem indisponível' };
         try {
@@ -959,6 +1006,8 @@ const IBNNuvem = (function () {
         sincronizarExcluidos: sincronizarExcluidos,
 
         sincronizarEscalaMinisterio: sincronizarEscalaMinisterio,
+        sincronizarEscalaCelula: sincronizarEscalaCelula,
+        puxarEscalasCelulaParaLocal: puxarEscalasCelulaParaLocal,
         puxarEscalasParaLocal: puxarEscalasParaLocal,
         sincronizarRelatorio: sincronizarRelatorio,
         buscarRelatorios: buscarRelatorios,
