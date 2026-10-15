@@ -4176,12 +4176,22 @@ const BIBLIA_LOCAL = {
 /** Parseia "Mateus 18:20", "Mt 18:20", "1 Pedro 4:10" */
 function parseReferenciaBiblica(ref) {
     var s = String(ref || '').trim();
+    // remove (NVI), (ACF) etc.
     s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim();
-    var m = s.match(/^((?:[123]\s*)?[A-Za-zÀ-ú\.]+)\s+(\d+)\s*[:\.]\s*(\d+)(?:\s*[-–]\s*(\d+))?/i);
+    // normaliza João / Joao
+    s = s.replace(/\bjoao\b/gi, 'João');
+    // aceita "João 10.10" ou "João 10:10" ou "João10:10"
+    var m = s.match(/^((?:[123]\s*)?[A-Za-zÀ-ú\.]+)\s*(\d+)\s*[:\.\s]\s*(\d+)(?:\s*[-–]\s*(\d+))?/i);
+    if (!m) {
+        // tenta sem espaço: Mt18:20
+        m = s.match(/^((?:[123])?[A-Za-zÀ-ú\.]+)(\d+)[:\.](\d+)$/i);
+    }
     if (!m) return null;
     var livroRaw = m[1].replace(/\./g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-    var livroRaw2 = livroRaw.replace(/\s+/g, '');
-    var abrev = BIBLIA_LIVROS[livroRaw] || BIBLIA_LIVROS[livroRaw2];
+    // remove acentos para casar joão -> joao
+    var livroNorm = livroRaw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var livroRaw2 = livroNorm.replace(/\s+/g, '');
+    var abrev = BIBLIA_LIVROS[livroRaw] || BIBLIA_LIVROS[livroNorm] || BIBLIA_LIVROS[livroRaw2] || BIBLIA_LIVROS[livroRaw.replace(/\s+/g, '')];
     if (!abrev) return null;
     return {
         livro: abrev,
@@ -4196,9 +4206,62 @@ function chaveBibliaLocal(parsed) {
     return parsed.livro + '/' + parsed.capitulo + '/' + parsed.verso;
 }
 
+/** Cache em memória da Bíblia completa (NVI / ACF) — carrega 1x por sessão */
+var _bibliaCacheCompleta = { nvi: null, acf: null };
+var _bibliaLoadingPromise = { nvi: null, acf: null };
+
+function carregarBibliaCompleta(versao) {
+    versao = (versao === 'acf') ? 'acf' : 'nvi';
+    if (_bibliaCacheCompleta[versao]) {
+        return Promise.resolve(_bibliaCacheCompleta[versao]);
+    }
+    if (_bibliaLoadingPromise[versao]) {
+        return _bibliaLoadingPromise[versao];
+    }
+    // Fonte pública (GitHub): Bíblia completa em português — CORS liberado
+    var url = 'https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/' + versao + '.json';
+    _bibliaLoadingPromise[versao] = fetch(url, { method: 'GET', mode: 'cors', cache: 'force-cache' })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Falha ao baixar Bíblia ' + versao.toUpperCase() + ' (' + res.status + ')');
+            return res.json();
+        })
+        .then(function (data) {
+            // remove BOM se vier como string
+            if (typeof data === 'string') {
+                data = JSON.parse(data.replace(/^﻿/, ''));
+            }
+            _bibliaCacheCompleta[versao] = data;
+            _bibliaLoadingPromise[versao] = null;
+            return data;
+        })
+        .catch(function (err) {
+            _bibliaLoadingPromise[versao] = null;
+            throw err;
+        });
+    return _bibliaLoadingPromise[versao];
+}
+
+function extrairVersiculoDaBiblia(data, parsed) {
+    if (!data || !parsed) return null;
+    var livro = null;
+    for (var i = 0; i < data.length; i++) {
+        if (String(data[i].abbrev || '').toLowerCase() === String(parsed.livro).toLowerCase()) {
+            livro = data[i];
+            break;
+        }
+    }
+    if (!livro || !Array.isArray(livro.chapters)) return null;
+    var cap = livro.chapters[parsed.capitulo - 1];
+    if (!cap || !Array.isArray(cap)) return null;
+    var texto = cap[parsed.verso - 1];
+    if (!texto) return null;
+    return String(texto).trim();
+}
+
 /**
- * Busca versículo: 1º banco local (NVI/ACF, sem internet);
- * 2º tenta API se existir na rede (opcional, não bloqueia).
+ * Busca versículo NVI ou ACF:
+ * 1) banco local rápido (versículos comuns)
+ * 2) Bíblia completa online (cache na memória após 1º uso)
  */
 function buscarVersiculoBiblia(referencia, versao) {
     versao = String(versao || 'nvi').toLowerCase();
@@ -4207,35 +4270,38 @@ function buscarVersiculoBiblia(referencia, versao) {
     if (!parsed) {
         return Promise.resolve({
             sucesso: false,
-            mensagem: 'Referência inválida. Use: Mateus 18:20 ou 1 Pedro 4:10'
+            mensagem: 'Referência inválida. Exemplos: Mateus 18:20 · João 10:10 · 1 Pedro 4:10'
         });
     }
+    var nomeLivro = BIBLIA_NOME_LIVRO[parsed.livro] || parsed.livro;
+    var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso + ' (' + versao.toUpperCase() + ')';
+
+    // 1) local rápido
     var chave = chaveBibliaLocal(parsed);
     var local = BIBLIA_LOCAL[chave];
     if (local && local[versao]) {
-        var nomeLivro = BIBLIA_NOME_LIVRO[parsed.livro] || parsed.livro;
-        var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso + ' (' + versao.toUpperCase() + ')';
         return Promise.resolve({
             sucesso: true,
             texto: local[versao],
             referencia: refOut,
             versao: versao,
-            mensagem: 'Atualizado (NVI/ACF local): ' + refOut
+            mensagem: 'Atualizado: ' + refOut
         });
     }
-    // tenta API em segundo plano; se falhar, mensagem clara
-    var url = 'https://www.abibliadigital.com.br/api/verses/' + encodeURIComponent(versao) + '/' +
-        parsed.livro + '/' + parsed.capitulo + '/' + parsed.verso;
-    return fetch(url, { method: 'GET', headers: { Accept: 'application/json' }, mode: 'cors' })
-        .then(function (res) {
-            if (!res.ok) throw new Error('API indisponível');
-            return res.json();
-        })
+
+    // 2) Bíblia completa (1ª vez baixa ~4MB e guarda na memória do navegador)
+    return carregarBibliaCompleta(versao)
         .then(function (data) {
-            var texto = (data && data.text) ? String(data.text).trim() : '';
-            if (!texto) throw new Error('Sem texto');
-            var nomeLivro = (data.book && data.book.name) ? data.book.name : (BIBLIA_NOME_LIVRO[parsed.livro] || parsed.livro);
-            var refOut = nomeLivro + ' ' + parsed.capitulo + ':' + parsed.verso + ' (' + versao.toUpperCase() + ')';
+            var texto = extrairVersiculoDaBiblia(data, parsed);
+            if (!texto) {
+                return {
+                    sucesso: false,
+                    mensagem: 'Versículo não encontrado: ' + refOut + '. Confira livro, capítulo e verso.'
+                };
+            }
+            // guarda no banco local da sessão para próxima busca instantânea
+            if (!BIBLIA_LOCAL[chave]) BIBLIA_LOCAL[chave] = {};
+            BIBLIA_LOCAL[chave][versao] = texto;
             return {
                 sucesso: true,
                 texto: texto,
@@ -4244,10 +4310,11 @@ function buscarVersiculoBiblia(referencia, versao) {
                 mensagem: 'Atualizado: ' + refOut
             };
         })
-        .catch(function () {
+        .catch(function (err) {
             return {
                 sucesso: false,
-                mensagem: 'Este versículo ainda não está no banco local (NVI/ACF). Digite o texto manualmente ou use uma referência comum (ex: João 3:16, Mateus 18:20, 1 Pedro 4:10).'
+                mensagem: 'Não foi possível baixar a Bíblia (' + versao.toUpperCase() + '). Verifique a internet e tente de novo. ' +
+                    ((err && err.message) ? err.message : '')
             };
         });
 }
@@ -4290,7 +4357,7 @@ function ligarBotaoAtualizarVersiculo(btnId) {
         if (elM) {
             elM.classList.remove('hidden');
             elM.className = 'text-xs text-blue-700 mt-1';
-            elM.textContent = 'Consultando a Bíblia (' + versao.toUpperCase() + ')…';
+            elM.textContent = 'Buscando ' + versao.toUpperCase() + '… (na 1ª vez pode baixar a Bíblia completa; depois fica rápido)';
         }
         buscarVersiculoBiblia(ref, versao).then(function (r) {
             btn.disabled = false;
