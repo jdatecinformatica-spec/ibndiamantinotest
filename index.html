@@ -251,6 +251,7 @@
                 </a>
                 <a href="ministerios.html" class="hover:text-secondary transition-colors">Ministérios</a>
                 <a href="fotos.html" class="hover:text-secondary transition-colors">Fotos</a>
+                <a href="#biblia" class="hover:text-secondary transition-colors">Bíblia</a>
                 <a href="#devocional" class="hover:text-secondary transition-colors">Devocional</a>
                 <a href="#oracao" class="hover:text-secondary transition-colors flex items-center gap-1">
                     <i class="fa fa-heart text-xs"></i> Oração
@@ -288,6 +289,7 @@
                 <a href="#eventos" class="menu-link py-3 border-b border-white/15">Programação</a>
                 <a href="eventos.html" class="menu-link py-3 border-b border-white/15 font-bold" style="color:#D4AF37;">Eventos</a>
                 <a href="ministerios.html" class="menu-link py-3 border-b border-white/15">Ministérios</a>
+                <a href="#biblia" class="menu-link py-3 border-b border-white/15">Bíblia</a>
                 <a href="#devocional" class="menu-link py-3 border-b border-white/15">Devocional</a>
                 <a href="#oracao" class="menu-link py-3 border-b border-white/15">Oração</a>
                 <a href="adminlogin.html" id="linkGestaoMobile" class="menu-link py-3 border-b border-white/15 hidden font-semibold">Gestão</a>
@@ -346,6 +348,66 @@
                     <a href="#celulas" class="bg-white/20 hover:bg-white/30 px-8 py-3 rounded-md font-bold text-lg transition-colors border border-white/30">
                         <i class="fa fa-map-marker mr-2"></i> Encontrar Célula
                     </a>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 📖 BÍBLIA — busca rápida livro → capítulo → versículo -->
+        <section id="biblia" class="py-12 md:py-16 bg-gradient-to-b from-[#faf6ef] to-white border-y border-[#e8dcc8]">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-stretch bg-white rounded-2xl shadow-lg border border-[#d4c4a8]/60 overflow-hidden">
+                        <div class="md:w-2/5 bg-gradient-to-br from-primary to-accent text-white p-8 flex flex-col items-center justify-center text-center relative">
+                            <div class="text-7xl md:text-8xl mb-3 leading-none" aria-hidden="true">📖</div>
+                            <h2 class="text-2xl md:text-3xl font-bold text-secondary tracking-wide">Bíblia Sagrada</h2>
+                            <p class="text-sm text-white/80 mt-2 max-w-xs">Consulte a Palavra aqui no site — NVI ou Almeida Corrigida Fiel</p>
+                            <p class="text-xs text-white/50 mt-4">IBN Diamantino</p>
+                        </div>
+                        <div class="md:w-3/5 p-6 md:p-8 flex flex-col">
+                            <p class="text-sm text-gray-600 mb-4">Escolha <strong>versão</strong>, depois <strong>livro</strong>, <strong>capítulo</strong> e <strong>versículo</strong> — só aparecem opções que existem na Bíblia.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-primary mb-1">Versão</label>
+                                    <select id="bibHomeVersao" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white">
+                                        <option value="nvi" selected>NVI — Nova Versão Internacional</option>
+                                        <option value="acf">ACF — Almeida Corrigida Fiel</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-primary mb-1">Livro</label>
+                                    <select id="bibHomeLivro" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white" disabled>
+                                        <option value="">Aguardando…</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-primary mb-1">Capítulo</label>
+                                    <select id="bibHomeCap" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white" disabled>
+                                        <option value="">—</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-primary mb-1">Versículo</label>
+                                    <select id="bibHomeVer" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white" disabled>
+                                        <option value="">—</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="bibHomeResultado" class="mt-2 flex-1 min-h-[100px] rounded-xl border border-[#e8dcc8] bg-[#faf6ef] p-4">
+                                <p id="bibHomeStatus" class="text-sm text-gray-500">Selecione livro, capítulo e versículo para ler.</p>
+                                <p id="bibHomeRef" class="hidden text-xs font-bold text-primary mb-2"></p>
+                                <div id="bibHomeTexto" class="hidden text-base text-gray-800 leading-relaxed font-serif space-y-2"></div>
+                            </div>
+                            <div id="bibHomeNav" class="hidden flex flex-wrap gap-2 mt-3 items-center justify-between">
+                                <button type="button" id="bibHomeAnt" class="px-3 py-2 rounded-lg border border-primary/30 text-primary text-sm font-bold hover:bg-primary/5">← Anterior</button>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" id="bibHomeCont" class="px-3 py-2 rounded-lg bg-secondary text-primary text-sm font-bold hover:bg-yellow-400">Continuar lendo (+3)</button>
+                                    <button type="button" id="bibHomeProx" class="px-3 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-accent">Próximo →</button>
+                                </div>
+                            </div>
+                            <p id="bibHomeMsg" class="text-xs text-gray-400 mt-2">Na primeira consulta a Bíblia é baixada uma vez; depois fica rápida neste aparelho.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -2527,6 +2589,292 @@
         }, 1200);
 })();
 </script>
+
+
+    <script>
+    <script>
+    (function () {
+        var selV = document.getElementById('bibHomeVersao');
+        var selL = document.getElementById('bibHomeLivro');
+        var selC = document.getElementById('bibHomeCap');
+        var selR = document.getElementById('bibHomeVer');
+        var elStatus = document.getElementById('bibHomeStatus');
+        var elRef = document.getElementById('bibHomeRef');
+        var elTexto = document.getElementById('bibHomeTexto');
+        var elMsg = document.getElementById('bibHomeMsg');
+        var elNav = document.getElementById('bibHomeNav');
+        var btnAnt = document.getElementById('bibHomeAnt');
+        var btnProx = document.getElementById('bibHomeProx');
+        var btnCont = document.getElementById('bibHomeCont');
+        if (!selV || !selL) return;
+
+        var bibData = null;
+        var carregando = false;
+        // posição atual da leitura contínua
+        var pos = { livroIdx: 0, cap: 1, ver: 1 };
+
+        function setStatus(t, ok) {
+            if (elStatus) {
+                elStatus.classList.remove('hidden');
+                elStatus.textContent = t;
+                elStatus.className = 'text-sm ' + (ok === false ? 'text-red-600' : 'text-gray-500');
+            }
+            if (elRef) elRef.classList.add('hidden');
+            if (elTexto) {
+                elTexto.classList.add('hidden');
+                elTexto.innerHTML = '';
+            }
+            if (elNav) elNav.classList.add('hidden');
+        }
+
+        function nomeLivro(ab) {
+            var nomes = (typeof BIBLIA_NOME_LIVRO !== 'undefined') ? BIBLIA_NOME_LIVRO : {};
+            return nomes[ab] || (ab || '').toUpperCase();
+        }
+
+        function getTexto(livroIdx, cap, ver) {
+            if (!bibData || !bibData[livroIdx]) return null;
+            var caps = bibData[livroIdx].chapters || [];
+            var versos = caps[cap - 1];
+            if (!versos) return null;
+            var t = versos[ver - 1];
+            return t ? String(t).trim() : null;
+        }
+
+        function maxCap(livroIdx) {
+            return (bibData[livroIdx] && bibData[livroIdx].chapters) ? bibData[livroIdx].chapters.length : 0;
+        }
+        function maxVer(livroIdx, cap) {
+            var c = (bibData[livroIdx] && bibData[livroIdx].chapters) ? bibData[livroIdx].chapters[cap - 1] : null;
+            return c ? c.length : 0;
+        }
+
+        /** Avança 1 versículo; se acabar o capítulo, vai ao próximo; se acabar o livro, próximo livro */
+        function avancarPos(p) {
+            var n = { livroIdx: p.livroIdx, cap: p.cap, ver: p.ver + 1 };
+            if (n.ver <= maxVer(n.livroIdx, n.cap)) return n;
+            n.ver = 1;
+            n.cap += 1;
+            if (n.cap <= maxCap(n.livroIdx)) return n;
+            n.cap = 1;
+            n.livroIdx += 1;
+            if (n.livroIdx < bibData.length) return n;
+            return null; // fim da Bíblia
+        }
+
+        function voltarPos(p) {
+            var n = { livroIdx: p.livroIdx, cap: p.cap, ver: p.ver - 1 };
+            if (n.ver >= 1) return n;
+            n.cap -= 1;
+            if (n.cap >= 1) {
+                n.ver = maxVer(n.livroIdx, n.cap);
+                return n;
+            }
+            n.livroIdx -= 1;
+            if (n.livroIdx >= 0) {
+                n.cap = maxCap(n.livroIdx);
+                n.ver = maxVer(n.livroIdx, n.cap);
+                return n;
+            }
+            return null;
+        }
+
+        function sincronizarSelects(p) {
+            if (!p) return;
+            selL.value = String(p.livroIdx);
+            // repovoa capítulos se mudou livro
+            preencherCapitulos(true);
+            selC.value = String(p.cap);
+            preencherVersiculos(true);
+            selR.value = String(p.ver);
+        }
+
+        function mostrarLeitura(p, qtdExtra) {
+            qtdExtra = qtdExtra || 0;
+            if (!p) {
+                setStatus('Fim da Bíblia nesta versão.', false);
+                return;
+            }
+            pos = p;
+            var versao = (selV.value || 'nvi').toUpperCase();
+            var livro = bibData[p.livroIdx];
+            var ab = livro.abbrev || '';
+            var ref = nomeLivro(ab) + ' ' + p.cap + ':' + p.ver + ' (' + versao + ')';
+
+            var html = '';
+            var cur = { livroIdx: p.livroIdx, cap: p.cap, ver: p.ver };
+            var total = 1 + qtdExtra;
+            for (var i = 0; i < total; i++) {
+                if (!cur) break;
+                var tx = getTexto(cur.livroIdx, cur.cap, cur.ver);
+                if (!tx) break;
+                var ab2 = bibData[cur.livroIdx].abbrev || '';
+                var r2 = nomeLivro(ab2) + ' ' + cur.cap + ':' + cur.ver;
+                var destaque = (i === 0) ? 'font-semibold text-gray-900' : 'text-gray-700';
+                html += '<p class="' + destaque + '"><span class="text-primary font-bold text-sm mr-1">' + r2 + '</span> ' + tx + '</p>';
+                if (i < total - 1) cur = avancarPos(cur);
+            }
+
+            if (elStatus) elStatus.classList.add('hidden');
+            if (elRef) {
+                elRef.classList.remove('hidden');
+                elRef.textContent = ref + (qtdExtra > 0 ? ' · e seguintes' : '');
+            }
+            if (elTexto) {
+                elTexto.classList.remove('hidden');
+                elTexto.innerHTML = html;
+            }
+            if (elNav) elNav.classList.remove('hidden');
+            if (btnAnt) btnAnt.disabled = !voltarPos(pos);
+            if (btnProx) btnProx.disabled = !avancarPos(pos);
+            sincronizarSelects(pos);
+        }
+
+        function preencherLivros() {
+            if (!bibData || !Array.isArray(bibData)) return;
+            selL.innerHTML = '<option value="">Selecione o livro…</option>';
+            bibData.forEach(function (b, idx) {
+                selL.innerHTML += '<option value="' + idx + '">' + nomeLivro(b.abbrev || '') + '</option>';
+            });
+            selL.disabled = false;
+            selC.innerHTML = '<option value="">—</option>';
+            selR.innerHTML = '<option value="">—</option>';
+            selC.disabled = true;
+            selR.disabled = true;
+        }
+
+        function preencherCapitulos(silent) {
+            var idx = parseInt(selL.value, 10);
+            var keep = selC.value;
+            selC.innerHTML = '<option value="">Selecione o capítulo…</option>';
+            selR.innerHTML = '<option value="">—</option>';
+            if (!silent) selR.disabled = true;
+            if (isNaN(idx) || !bibData[idx]) {
+                selC.disabled = true;
+                return;
+            }
+            var caps = bibData[idx].chapters || [];
+            for (var i = 1; i <= caps.length; i++) {
+                selC.innerHTML += '<option value="' + i + '">' + i + '</option>';
+            }
+            selC.disabled = false;
+            if (silent && keep) selC.value = keep;
+            if (!silent) setStatus('Escolha o capítulo.');
+        }
+
+        function preencherVersiculos(silent) {
+            var idx = parseInt(selL.value, 10);
+            var cap = parseInt(selC.value, 10);
+            var keep = selR.value;
+            selR.innerHTML = '<option value="">Selecione o versículo…</option>';
+            if (isNaN(idx) || isNaN(cap) || !bibData[idx]) {
+                selR.disabled = true;
+                return;
+            }
+            var versos = (bibData[idx].chapters || [])[cap - 1] || [];
+            for (var i = 1; i <= versos.length; i++) {
+                selR.innerHTML += '<option value="' + i + '">' + i + '</option>';
+            }
+            selR.disabled = false;
+            if (silent && keep) selR.value = keep;
+            if (!silent) setStatus('Escolha o versículo.');
+        }
+
+        function mostrarSelecionado() {
+            var idx = parseInt(selL.value, 10);
+            var cap = parseInt(selC.value, 10);
+            var ver = parseInt(selR.value, 10);
+            if (isNaN(idx) || isNaN(cap) || isNaN(ver)) return;
+            mostrarLeitura({ livroIdx: idx, cap: cap, ver: ver }, 0);
+        }
+
+        function carregar(versao) {
+            if (typeof carregarBibliaCompleta !== 'function') {
+                setStatus('Recursos da Bíblia não carregaram. Atualize a página (Ctrl+F5).', false);
+                return;
+            }
+            if (carregando) return;
+            carregando = true;
+            selL.disabled = true;
+            selC.disabled = true;
+            selR.disabled = true;
+            setStatus('Carregando Bíblia ' + (versao || 'nvi').toUpperCase() + '…');
+            if (elMsg) elMsg.textContent = 'Baixando (só na primeira vez por versão)…';
+            carregarBibliaCompleta(versao || 'nvi').then(function (data) {
+                carregando = false;
+                bibData = data;
+                preencherLivros();
+                setStatus('Selecione o livro, depois o capítulo e o versículo.');
+                if (elMsg) elMsg.textContent = 'Bíblia pronta neste aparelho. Use Anterior / Próximo ou Continuar lendo.';
+            }).catch(function (err) {
+                carregando = false;
+                setStatus('Não foi possível carregar a Bíblia. Verifique a internet.', false);
+                if (elMsg) elMsg.textContent = (err && err.message) || 'Erro de rede';
+            });
+        }
+
+        selV.addEventListener('change', function () {
+            bibData = null;
+            carregar(selV.value);
+        });
+        selL.addEventListener('change', function () { preencherCapitulos(false); });
+        selC.addEventListener('change', function () { preencherVersiculos(false); });
+        selR.addEventListener('change', mostrarSelecionado);
+
+        if (btnProx) btnProx.addEventListener('click', function () {
+            var n = avancarPos(pos);
+            if (n) mostrarLeitura(n, 0);
+        });
+        if (btnAnt) btnAnt.addEventListener('click', function () {
+            var n = voltarPos(pos);
+            if (n) mostrarLeitura(n, 0);
+        });
+        if (btnCont) btnCont.addEventListener('click', function () {
+            // mostra o atual + 3 seguintes e avança a posição para o último mostrado
+            var inicio = pos;
+            mostrarLeitura(inicio, 3);
+            var cur = inicio;
+            for (var i = 0; i < 3; i++) {
+                var n = avancarPos(cur);
+                if (!n) break;
+                cur = n;
+            }
+            pos = cur;
+            sincronizarSelects(pos);
+            if (btnAnt) btnAnt.disabled = !voltarPos(pos);
+            if (btnProx) btnProx.disabled = !avancarPos(pos);
+        });
+
+        function iniciar() {
+            if (bibData || carregando) return;
+            if (typeof location !== 'undefined' && location.protocol === 'file:') {
+                setStatus('Abra o site pelo GitHub (https) ou por um servidor local. Arquivo aberto direto do PC não carrega a Bíblia.', false);
+                if (elMsg) elMsg.textContent = 'Dica: no GitHub Pages funciona. No PC use: npx serve na pasta do site.';
+                // ainda tenta caminhos relativos (se o navegador permitir)
+            }
+            carregar(selV.value || 'nvi');
+        }
+        if ('IntersectionObserver' in window) {
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) {
+                        iniciar();
+                        obs.disconnect();
+                    }
+                });
+            }, { rootMargin: '100px' });
+            var sec = document.getElementById('biblia');
+            if (sec) obs.observe(sec);
+            else setTimeout(iniciar, 500);
+        } else {
+            setTimeout(iniciar, 500);
+        }
+        setTimeout(iniciar, 1200);
+        selL.addEventListener('focus', iniciar);
+        selV.addEventListener('focus', iniciar);
+        selL.addEventListener('click', iniciar);
+    })();
+    </script>
 
 </body>
 </html>

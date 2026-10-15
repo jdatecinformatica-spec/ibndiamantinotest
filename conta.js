@@ -4218,26 +4218,83 @@ function carregarBibliaCompleta(versao) {
     if (_bibliaLoadingPromise[versao]) {
         return _bibliaLoadingPromise[versao];
     }
-    // Fonte pública (GitHub): Bíblia completa em português — CORS liberado
-    var url = 'https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/' + versao + '.json';
-    _bibliaLoadingPromise[versao] = fetch(url, { method: 'GET', mode: 'cors', cache: 'force-cache' })
-        .then(function (res) {
-            if (!res.ok) throw new Error('Falha ao baixar Bíblia ' + versao.toUpperCase() + ' (' + res.status + ')');
-            return res.json();
-        })
-        .then(function (data) {
-            // remove BOM se vier como string
-            if (typeof data === 'string') {
-                data = JSON.parse(data.replace(/^﻿/, ''));
+
+    function normalizarData(data) {
+        if (typeof data === 'string') {
+            data = JSON.parse(data.replace(/^\uFEFF/, ''));
+        }
+        if (!Array.isArray(data) || !data.length) throw new Error('Arquivo da Bíblia inválido');
+        return data;
+    }
+
+    function tentarFetch(url, opts) {
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = null;
+        if (ctrl) {
+            timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 25000);
+        }
+        return fetch(url, Object.assign({ method: 'GET', cache: 'force-cache' }, opts || {}, ctrl ? { signal: ctrl.signal } : {}))
+            .then(function (res) {
+                if (timer) clearTimeout(timer);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (timer) clearTimeout(timer);
+                return normalizarData(data);
+            })
+            .catch(function (err) {
+                if (timer) clearTimeout(timer);
+                throw err;
+            });
+    }
+
+    // 1) arquivo no próprio site (GitHub Pages / servidor)
+    // 2) jsDelivr CDN
+    // 3) raw GitHub
+    var baseLocal = '';
+    try {
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            var src = scripts[i].src || '';
+            if (src.indexOf('conta.js') !== -1) {
+                baseLocal = src.replace(/conta\.js.*$/, '');
+                break;
             }
-            _bibliaCacheCompleta[versao] = data;
+        }
+    } catch (e0) {}
+    var urls = [
+        (baseLocal || '') + 'biblia/' + versao + '.json',
+        'biblia/' + versao + '.json',
+        './biblia/' + versao + '.json',
+        'https://cdn.jsdelivr.net/gh/thiagobodruk/biblia@master/json/' + versao + '.json',
+        'https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/' + versao + '.json'
+    ];
+
+    _bibliaLoadingPromise[versao] = (function tentarEm(i) {
+        if (i >= urls.length) {
+            var fileProto = (typeof location !== 'undefined' && location.protocol === 'file:');
+            var msg = fileProto
+                ? 'Você abriu o site direto do computador (arquivo local). O navegador bloqueia o carregamento da Bíblia assim. Publique no GitHub Pages ou abra com um servidor local.'
+                : 'Não foi possível carregar a Bíblia ' + versao.toUpperCase() + '. Verifique a internet e tente de novo.';
             _bibliaLoadingPromise[versao] = null;
-            return data;
-        })
-        .catch(function (err) {
-            _bibliaLoadingPromise[versao] = null;
-            throw err;
+            return Promise.reject(new Error(msg));
+        }
+        return tentarFetch(urls[i], { mode: i >= 3 ? 'cors' : 'same-origin' }).catch(function () {
+            // local pode falhar com CORS mode — tenta sem mode restrito
+            return tentarFetch(urls[i]).catch(function () {
+                return tentarEm(i + 1);
+            });
         });
+    })(0).then(function (data) {
+        _bibliaCacheCompleta[versao] = data;
+        _bibliaLoadingPromise[versao] = null;
+        return data;
+    }).catch(function (err) {
+        _bibliaLoadingPromise[versao] = null;
+        throw err;
+    });
+
     return _bibliaLoadingPromise[versao];
 }
 
